@@ -1,26 +1,112 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { GraduationCap, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: LoginPage,
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
+function LoginPage() {
+  const { signInWithEmployeeId, session, loading } = useAuth();
+  const navigate = useNavigate();
+  const [employeeId, setEmployeeId] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!loading && session) navigate({ to: "/dashboard" });
+  }, [loading, session, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await signInWithEmployeeId(employeeId.trim(), password);
+      toast.success("Welcome back");
+      navigate({ to: "/dashboard" });
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen grid lg:grid-cols-[1.1fr_1fr]">
+      {/* Left: branded panel */}
+      <div className="hidden lg:flex flex-col justify-between p-12 text-sidebar-foreground" style={{ background: "var(--gradient-hero)" }}>
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-xl bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground">
+            <GraduationCap className="h-6 w-6" />
+          </div>
+          <div className="font-display font-bold text-xl">Bakı Electronics</div>
+        </div>
+        <div className="space-y-6 max-w-lg">
+          <h1 className="font-display text-5xl font-bold leading-tight">
+            Learn. Practice. <span className="text-sidebar-primary">Certify.</span>
+          </h1>
+          <p className="text-lg text-sidebar-foreground/80">
+            The internal learning platform for structured courses, assessments,
+            and performance tracking across the company.
+          </p>
+        </div>
+        <div className="text-sm text-sidebar-foreground/60">
+          © {new Date().getFullYear()} Bakı Electronics — Internal use only
+        </div>
+      </div>
+
+      {/* Right: form */}
+      <div className="flex items-center justify-center p-6 sm:p-12 bg-background">
+        <Card className="w-full max-w-md p-8 shadow-[var(--shadow-elegant)] border-border/60">
+          <div className="lg:hidden flex items-center gap-3 mb-8">
+            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
+              <GraduationCap className="h-5 w-5" />
+            </div>
+            <div className="font-display font-bold">Bakı Electronics LMS</div>
+          </div>
+          <h2 className="text-2xl font-display font-bold text-foreground">Sign in</h2>
+          <p className="text-sm text-muted-foreground mt-1 mb-8">
+            Enter your Employee ID and password.
+          </p>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="employee_id">Employee ID</Label>
+              <Input
+                id="employee_id"
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                placeholder="e.g. 1336"
+                required
+                autoComplete="username"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+            <Button type="submit" className="w-full mt-2" size="lg" disabled={submitting}>
+              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Sign In
+            </Button>
+            <p className="text-xs text-center text-muted-foreground pt-2">
+              Forgot your password? Contact your administrator.
+            </p>
+          </form>
+        </Card>
+      </div>
     </div>
   );
-}
-
-function Index() {
-  return <PlaceholderIndex />;
 }
