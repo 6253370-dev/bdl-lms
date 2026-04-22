@@ -113,9 +113,10 @@ function CourseBuilderPage() {
       quiz: { title: "New Quiz", time_limit_seconds: 30 },
       final_exam: { title: "Final Exam", passing_score: 60 },
     };
+    const insertRow = { course_id: courseId, block_type: type, position, title: defaults[type].title ?? "Untitled", ...defaults[type] };
     const { data, error } = await supabase
       .from("course_blocks")
-      .insert({ course_id: courseId, block_type: type, position, ...defaults[type] })
+      .insert(insertRow)
       .select()
       .single();
     if (error) { toast.error(error.message); return; }
