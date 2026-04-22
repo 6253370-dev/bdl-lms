@@ -14,16 +14,289 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      answers: {
+        Row: {
+          id: string
+          is_correct: boolean
+          position: number
+          question_id: string
+          text: string
+        }
+        Insert: {
+          id?: string
+          is_correct?: boolean
+          position?: number
+          question_id: string
+          text: string
+        }
+        Update: {
+          id?: string
+          is_correct?: boolean
+          position?: number
+          question_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_blocks: {
+        Row: {
+          block_type: Database["public"]["Enums"]["block_type"]
+          course_id: string
+          created_at: string
+          description: string | null
+          docx_url: string | null
+          external_video_url: string | null
+          id: string
+          passing_score: number | null
+          pdf_url: string | null
+          position: number
+          pptx_url: string | null
+          time_limit_seconds: number | null
+          title: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          block_type: Database["public"]["Enums"]["block_type"]
+          course_id: string
+          created_at?: string
+          description?: string | null
+          docx_url?: string | null
+          external_video_url?: string | null
+          id?: string
+          passing_score?: number | null
+          pdf_url?: string | null
+          position?: number
+          pptx_url?: string | null
+          time_limit_seconds?: number | null
+          title: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          block_type?: Database["public"]["Enums"]["block_type"]
+          course_id?: string
+          created_at?: string
+          description?: string | null
+          docx_url?: string | null
+          external_video_url?: string | null
+          id?: string
+          passing_score?: number | null
+          pdf_url?: string | null
+          position?: number
+          pptx_url?: string | null
+          time_limit_seconds?: number | null
+          title?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_blocks_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          certificate_template_url: string | null
+          cover_image_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          folder_id: string | null
+          id: string
+          is_published: boolean
+          passing_score: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          certificate_template_url?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          folder_id?: string | null
+          id?: string
+          is_published?: boolean
+          passing_score?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          certificate_template_url?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          folder_id?: string | null
+          id?: string
+          is_published?: boolean
+          passing_score?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courses_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          parent_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          employee_id: string
+          full_name: string
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          employee_id: string
+          full_name: string
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          employee_id?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          block_id: string
+          created_at: string
+          id: string
+          position: number
+          text: string
+          time_limit_seconds: number | null
+        }
+        Insert: {
+          block_id: string
+          created_at?: string
+          id?: string
+          position?: number
+          text: string
+          time_limit_seconds?: number | null
+        }
+        Update: {
+          block_id?: string
+          created_at?: string
+          id?: string
+          position?: number
+          text?: string
+          time_limit_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "course_blocks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_email_by_employee_id: {
+        Args: { _employee_id: string }
+        Returns: string
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin_or_super: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "admin" | "user"
+      block_type: "lesson" | "practice" | "quiz" | "final_exam"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +423,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "admin", "user"],
+      block_type: ["lesson", "practice", "quiz", "final_exam"],
+    },
   },
 } as const
