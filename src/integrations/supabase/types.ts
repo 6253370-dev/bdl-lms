@@ -361,6 +361,194 @@ export type Database = {
           },
         ]
       }
+      standalone_exam_answers: {
+        Row: {
+          id: string
+          is_correct: boolean
+          position: number
+          question_id: string
+          text: string
+        }
+        Insert: {
+          id?: string
+          is_correct?: boolean
+          position?: number
+          question_id: string
+          text: string
+        }
+        Update: {
+          id?: string
+          is_correct?: boolean
+          position?: number
+          question_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standalone_exam_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_exam_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      standalone_exam_attempts: {
+        Row: {
+          correct_count: number
+          created_at: string
+          duration_seconds: number
+          exam_id: string
+          id: string
+          passed: boolean
+          score_percent: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          correct_count?: number
+          created_at?: string
+          duration_seconds?: number
+          exam_id: string
+          id?: string
+          passed?: boolean
+          score_percent?: number
+          total_questions?: number
+          user_id: string
+        }
+        Update: {
+          correct_count?: number
+          created_at?: string
+          duration_seconds?: number
+          exam_id?: string
+          id?: string
+          passed?: boolean
+          score_percent?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standalone_exam_attempts_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      standalone_exam_questions: {
+        Row: {
+          created_at: string
+          exam_id: string
+          id: string
+          position: number
+          text: string
+          time_limit_seconds: number | null
+        }
+        Insert: {
+          created_at?: string
+          exam_id: string
+          id?: string
+          position?: number
+          text: string
+          time_limit_seconds?: number | null
+        }
+        Update: {
+          created_at?: string
+          exam_id?: string
+          id?: string
+          position?: number
+          text?: string
+          time_limit_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standalone_exam_questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      standalone_exam_responses: {
+        Row: {
+          answer_id: string | null
+          attempt_id: string
+          created_at: string
+          id: string
+          is_correct: boolean
+          question_id: string
+          time_spent_seconds: number
+        }
+        Insert: {
+          answer_id?: string | null
+          attempt_id: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id: string
+          time_spent_seconds?: number
+        }
+        Update: {
+          answer_id?: string | null
+          attempt_id?: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          time_spent_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standalone_exam_responses_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_exam_attempts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      standalone_exams: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_published: boolean
+          passing_score: number
+          password: string
+          time_limit_seconds: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          passing_score?: number
+          password: string
+          time_limit_seconds?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          passing_score?: number
+          password?: string
+          time_limit_seconds?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
