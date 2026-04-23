@@ -8,6 +8,7 @@ import {
   FileQuestion,
   Trophy,
   ClipboardList,
+  BarChart3,
   LogOut,
   Menu,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const NAV: NavItem[] = [
   { to: "/exams", label: "Exams", icon: ClipboardList },
   { to: "/quiz", label: "Quizzes", icon: FileQuestion },
   { to: "/champions", label: "Champions", icon: Trophy },
+  { to: "/reports", label: "Reports", icon: BarChart3, adminOnly: true },
   { to: "/users", label: "Users", icon: Users, adminOnly: true },
 ];
 
@@ -59,7 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <GraduationCap className="h-5 w-5" />
           </div>
           <div>
-            <div className="font-display font-bold text-base leading-tight">Bakı Electronics</div>
+            <div className="font-display font-bold text-base leading-tight">BE Academy</div>
             <div className="text-xs text-sidebar-foreground/60">Learning Platform</div>
           </div>
         </div>
@@ -122,7 +124,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="ml-3 font-display font-bold">Bakı Electronics</div>
+          <div className="ml-3 font-display font-bold">BE Academy</div>
         </header>
         <main className="flex-1 overflow-x-hidden">{children}</main>
       </div>
