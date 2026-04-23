@@ -30,7 +30,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Bakı Electronics — Learning Platform" },
+      { title: "BE Academy — Learning Platform" },
       { name: "description", content: "Internal learning, assessment and certification platform." },
     ],
     links: [

@@ -45,7 +45,7 @@ function LoginPage() {
           <div className="h-11 w-11 rounded-xl bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground">
             <GraduationCap className="h-6 w-6" />
           </div>
-          <div className="font-display font-bold text-xl">Bakı Electronics</div>
+          <div className="font-display font-bold text-xl">BE Academy</div>
         </div>
         <div className="space-y-6 max-w-lg">
           <h1 className="font-display text-5xl font-bold leading-tight">
@@ -57,7 +57,7 @@ function LoginPage() {
           </p>
         </div>
         <div className="text-sm text-sidebar-foreground/60">
-          © {new Date().getFullYear()} Bakı Electronics — Internal use only
+          © {new Date().getFullYear()} BE Academy — Internal use only
         </div>
       </div>
 
@@ -68,7 +68,7 @@ function LoginPage() {
             <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
               <GraduationCap className="h-5 w-5" />
             </div>
-            <div className="font-display font-bold">Bakı Electronics LMS</div>
+            <div className="font-display font-bold">BE Academy</div>
           </div>
           <h2 className="text-2xl font-display font-bold text-foreground">Sign in</h2>
           <p className="text-sm text-muted-foreground mt-1 mb-8">
