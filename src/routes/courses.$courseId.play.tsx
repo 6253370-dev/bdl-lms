@@ -1,0 +1,490 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  ArrowLeft, BookOpen, Dumbbell, FileQuestion, GraduationCap,
+  Loader2, CheckCircle2, XCircle, Play, Trophy, Clock, FileText, Video,
+} from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/courses/$courseId/play")({
+  component: () => (
+    <ProtectedRoute>
+      <CoursePlayer />
+    </ProtectedRoute>
+  ),
+});
+
+type BlockType = "lesson" | "practice" | "quiz" | "final_exam";
+
+interface Block {
+  id: string;
+  course_id: string;
+  block_type: BlockType;
+  title: string;
+  description: string | null;
+  position: number;
+  video_url: string | null;
+  external_video_url: string | null;
+  pdf_url: string | null;
+  pptx_url: string | null;
+  docx_url: string | null;
+  time_limit_seconds: number | null;
+  passing_score: number | null;
+}
+
+interface Course {
+  id: string;
+  title: string;
+  description: string | null;
+  passing_score: number;
+}
+
+const meta: Record<BlockType, { icon: typeof BookOpen; label: string; tone: string }> = {
+  lesson: { icon: BookOpen, label: "Lesson", tone: "bg-primary/10 text-primary" },
+  practice: { icon: Dumbbell, label: "Practice", tone: "bg-accent/15 text-accent-foreground" },
+  quiz: { icon: FileQuestion, label: "Quiz", tone: "bg-warning/15 text-warning-foreground" },
+  final_exam: { icon: GraduationCap, label: "Final Exam", tone: "bg-success/15 text-success" },
+};
+
+function CoursePlayer() {
+  const { courseId } = Route.useParams();
+  const navigate = useNavigate();
+  const [course, setCourse] = useState<Course | null>(null);
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [{ data: c }, { data: b }] = await Promise.all([
+      supabase.from("courses").select("id,title,description,passing_score").eq("id", courseId).single(),
+      supabase.from("course_blocks").select("*").eq("course_id", courseId).order("position"),
+    ]);
+    setCourse(c as Course);
+    const list = (b ?? []) as Block[];
+    setBlocks(list);
+    setActiveId(list[0]?.id ?? null);
+    setLoading(false);
+  }, [courseId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) {
+    return <div className="p-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+  if (!course) return null;
+
+  const active = blocks.find((b) => b.id === activeId) ?? null;
+
+  return (
+    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-3.5rem)]">
+      {/* Sidebar */}
+      <aside className="lg:w-80 lg:border-r bg-background/50">
+        <div className="p-5 border-b">
+          <button
+            onClick={() => navigate({ to: "/courses" })}
+            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-3"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> All courses
+          </button>
+          <h2 className="font-display font-bold text-lg leading-tight">{course.title}</h2>
+          {course.description && <p className="text-xs text-muted-foreground mt-1">{course.description}</p>}
+        </div>
+        <div className="p-3 space-y-1">
+          {blocks.length === 0 && (
+            <div className="text-sm text-muted-foreground p-4 text-center">No content yet.</div>
+          )}
+          {blocks.map((b, i) => {
+            const Icon = meta[b.block_type].icon;
+            const isActive = b.id === activeId;
+            return (
+              <button
+                key={b.id}
+                onClick={() => setActiveId(b.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors",
+                  isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                )}
+              >
+                <div className={cn("h-7 w-7 rounded-md flex items-center justify-center shrink-0",
+                  isActive ? "bg-primary-foreground/15" : meta[b.block_type].tone)}>
+                  <Icon className="h-3.5 w-3.5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className={cn("text-[10px] uppercase tracking-wider",
+                    isActive ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                    {String(i + 1).padStart(2, "0")} · {meta[b.block_type].label}
+                  </div>
+                  <div className="font-medium truncate">{b.title}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      {/* Content */}
+      <section className="flex-1 p-6 lg:p-10 max-w-5xl mx-auto w-full">
+        {!active ? (
+          <Card className="p-12 text-center border-dashed">
+            <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">No content available.</p>
+          </Card>
+        ) : active.block_type === "lesson" ? (
+          <LessonView block={active} />
+        ) : (
+          <AssessmentView key={active.id} block={active} courseId={course.id} coursePassingScore={course.passing_score} />
+        )}
+      </section>
+    </div>
+  );
+}
+
+function LessonView({ block }: { block: Block }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Lesson</div>
+        <h1 className="font-display text-3xl font-bold">{block.title}</h1>
+        {block.description && <p className="text-muted-foreground mt-2">{block.description}</p>}
+      </div>
+
+      {block.external_video_url && (
+        <Card className="overflow-hidden aspect-video">
+          <iframe
+            src={toEmbedUrl(block.external_video_url)}
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={block.title}
+          />
+        </Card>
+      )}
+
+      {block.video_url && (
+        <Card className="overflow-hidden">
+          <video src={block.video_url} controls className="w-full" />
+        </Card>
+      )}
+
+      {block.pdf_url && (
+        <Card className="overflow-hidden h-[70vh]">
+          <iframe src={block.pdf_url} className="w-full h-full" title={`${block.title} PDF`} />
+        </Card>
+      )}
+
+      {block.pptx_url && (
+        <Card className="overflow-hidden h-[70vh]">
+          <iframe
+            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(block.pptx_url)}`}
+            className="w-full h-full"
+            title={`${block.title} PPTX`}
+          />
+        </Card>
+      )}
+
+      {block.docx_url && (
+        <Card className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <FileText className="h-5 w-5 text-muted-foreground" />
+            <span className="font-medium">Word document</span>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <a href={block.docx_url} target="_blank" rel="noopener noreferrer">Download</a>
+          </Button>
+        </Card>
+      )}
+
+      {!block.external_video_url && !block.video_url && !block.pdf_url && !block.pptx_url && !block.docx_url && (
+        <Card className="p-12 text-center border-dashed">
+          <Video className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+          <p className="text-muted-foreground">No media uploaded for this lesson yet.</p>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function toEmbedUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtube.com")) {
+      const id = u.searchParams.get("v");
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+    if (u.hostname === "youtu.be") {
+      return `https://www.youtube.com/embed${u.pathname}`;
+    }
+    if (u.hostname.includes("vimeo.com")) {
+      const id = u.pathname.split("/").filter(Boolean).pop();
+      if (id) return `https://player.vimeo.com/video/${id}`;
+    }
+    return url;
+  } catch { return url; }
+}
+
+interface Question {
+  id: string;
+  text: string;
+  position: number;
+  answers: { id: string; text: string; is_correct: boolean; position: number }[];
+}
+
+interface ResultRow {
+  questionId: string;
+  selectedAnswerId: string | null;
+  isCorrect: boolean;
+  timeSpent: number;
+}
+
+function AssessmentView({ block, courseId, coursePassingScore }: { block: Block; courseId: string; coursePassingScore: number }) {
+  const { user } = useAuth();
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stage, setStage] = useState<"intro" | "running" | "done">("intro");
+  const [idx, setIdx] = useState(0);
+  const [results, setResults] = useState<ResultRow[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [questionStart, setQuestionStart] = useState<number>(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [score, setScore] = useState<{ correct: number; total: number; percent: number; passed: boolean } | null>(null);
+
+  const passingScore = block.block_type === "final_exam" ? (block.passing_score ?? coursePassingScore) : 0;
+  const timePer = block.time_limit_seconds ?? null;
+  const Icon = meta[block.block_type].icon;
+
+  useEffect(() => {
+    let canceled = false;
+    (async () => {
+      setLoading(true);
+      const { data: qs } = await supabase
+        .from("questions").select("id,text,position").eq("block_id", block.id).order("position");
+      const ids = (qs ?? []).map((q) => q.id);
+      const { data: ans } = ids.length
+        ? await supabase.from("answers").select("id,text,is_correct,position,question_id").in("question_id", ids).order("position")
+        : { data: [] };
+      if (canceled) return;
+      setQuestions((qs ?? []).map((q) => ({
+        ...q,
+        answers: (ans ?? []).filter((a: { question_id: string }) => a.question_id === q.id) as Question["answers"],
+      })));
+      setLoading(false);
+    })();
+    return () => { canceled = true; };
+  }, [block.id]);
+
+  const startAttempt = () => {
+    if (questions.length === 0) {
+      toast.error("No questions in this assessment yet");
+      return;
+    }
+    setIdx(0);
+    setResults([]);
+    setSelected(null);
+    setQuestionStart(Date.now());
+    setStage("running");
+  };
+
+  const recordAndAdvance = useCallback((answerId: string | null) => {
+    const q = questions[idx];
+    if (!q) return;
+    const correctAnswer = q.answers.find((a) => a.is_correct);
+    const isCorrect = !!answerId && answerId === correctAnswer?.id;
+    const timeSpent = Math.round((Date.now() - questionStart) / 1000);
+    const next = [...results, { questionId: q.id, selectedAnswerId: answerId, isCorrect, timeSpent }];
+    setResults(next);
+    setSelected(null);
+    if (idx + 1 >= questions.length) {
+      void finalize(next);
+    } else {
+      setIdx(idx + 1);
+      setQuestionStart(Date.now());
+    }
+  }, [idx, questions, questionStart, results]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const finalize = async (allResults: ResultRow[]) => {
+    if (!user) { toast.error("Not signed in"); return; }
+    setSubmitting(true);
+    const correct = allResults.filter((r) => r.isCorrect).length;
+    const total = allResults.length;
+    const percent = total ? Math.round((correct / total) * 1000) / 10 : 0;
+    const passed = block.block_type === "final_exam" ? percent >= passingScore : true;
+    const duration = allResults.reduce((s, r) => s + r.timeSpent, 0);
+
+    const { data: attempt, error } = await supabase
+      .from("block_attempts")
+      .insert({
+        user_id: user.id,
+        block_id: block.id,
+        course_id: courseId,
+        total_questions: total,
+        correct_count: correct,
+        score_percent: percent,
+        passed,
+        duration_seconds: duration,
+      })
+      .select().single();
+
+    if (error || !attempt) {
+      toast.error(error?.message ?? "Failed to save attempt");
+      setSubmitting(false);
+      return;
+    }
+
+    if (allResults.length) {
+      const { error: rErr } = await supabase.from("attempt_responses").insert(
+        allResults.map((r) => ({
+          attempt_id: attempt.id,
+          question_id: r.questionId,
+          answer_id: r.selectedAnswerId,
+          is_correct: r.isCorrect,
+          time_spent_seconds: r.timeSpent,
+        })),
+      );
+      if (rErr) toast.error(rErr.message);
+    }
+
+    setScore({ correct, total, percent, passed });
+    setStage("done");
+    setSubmitting(false);
+  };
+
+  // Per-question timer
+  useEffect(() => {
+    if (stage !== "running" || !timePer) return;
+    const t = setTimeout(() => recordAndAdvance(selected), timePer * 1000);
+    return () => clearTimeout(t);
+  }, [stage, idx, timePer, recordAndAdvance, selected]);
+
+  if (loading) {
+    return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  if (stage === "intro") {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center", meta[block.block_type].tone)}>
+            <Icon className="h-6 w-6" />
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">{meta[block.block_type].label}</div>
+            <h1 className="font-display text-2xl font-bold leading-tight">{block.title}</h1>
+          </div>
+        </div>
+        {block.description && <p className="text-muted-foreground mb-6">{block.description}</p>}
+
+        <Card className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <Stat label="Questions" value={String(questions.length)} />
+            {timePer && <Stat label="Time per question" value={`${timePer}s`} icon={Clock} />}
+            {block.block_type === "final_exam" && (
+              <Stat label="Pass score" value={`${passingScore}%`} icon={Trophy} />
+            )}
+          </div>
+          <Button size="lg" className="w-full" onClick={startAttempt} disabled={questions.length === 0}>
+            <Play className="h-4 w-4 mr-2" />
+            {questions.length === 0 ? "No questions yet" : `Start ${meta[block.block_type].label}`}
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (stage === "running") {
+    const q = questions[idx];
+    if (!q) return null;
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="flex items-center justify-between mb-4 text-sm">
+          <span className="text-muted-foreground">Question {idx + 1} of {questions.length}</span>
+          {timePer && <span className="text-muted-foreground inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {timePer}s</span>}
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-muted mb-6 overflow-hidden">
+          <div className="h-full bg-primary transition-all" style={{ width: `${((idx) / questions.length) * 100}%` }} />
+        </div>
+
+        <Card className="p-6 space-y-5">
+          <h2 className="font-display text-xl font-semibold leading-snug">{q.text}</h2>
+          <div className="space-y-2">
+            {q.answers.map((a) => {
+              const isSel = selected === a.id;
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => setSelected(a.id)}
+                  className={cn(
+                    "w-full text-left px-4 py-3 rounded-lg border-2 transition-all",
+                    isSel ? "border-primary bg-primary/5" : "border-border hover:border-primary/40",
+                  )}
+                >
+                  <span className={cn("inline-block h-4 w-4 rounded-full border-2 mr-3 align-middle",
+                    isSel ? "border-primary bg-primary" : "border-muted-foreground/40")} />
+                  {a.text}
+                </button>
+              );
+            })}
+          </div>
+          <Button
+            size="lg"
+            className="w-full"
+            disabled={!selected || submitting}
+            onClick={() => recordAndAdvance(selected)}
+          >
+            {idx + 1 === questions.length ? "Finish" : "Next question"}
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  // done
+  if (!score) return null;
+  return (
+    <div className="max-w-xl mx-auto text-center">
+      <div className={cn("h-20 w-20 rounded-full mx-auto mb-6 flex items-center justify-center",
+        score.passed ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive")}>
+        {score.passed ? <CheckCircle2 className="h-10 w-10" /> : <XCircle className="h-10 w-10" />}
+      </div>
+      <h1 className="font-display text-3xl font-bold mb-2">
+        {block.block_type === "final_exam"
+          ? score.passed ? "Congratulations!" : "Not quite there"
+          : "Attempt complete"}
+      </h1>
+      <p className="text-muted-foreground mb-6">
+        {score.correct} / {score.total} correct
+      </p>
+      <Card className="p-6 mb-6">
+        <div className="text-5xl font-display font-bold mb-1">{score.percent}%</div>
+        <div className="text-sm text-muted-foreground">
+          {block.block_type === "final_exam" ? `Pass mark: ${passingScore}%` : "Score"}
+        </div>
+      </Card>
+      <div className="flex gap-3 justify-center">
+        <Button variant="outline" onClick={() => { setStage("intro"); setScore(null); }}>
+          Try again
+        </Button>
+        <Button asChild>
+          <Link to="/dashboard">Back to dashboard</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, icon: Icon }: { label: string; value: string; icon?: typeof BookOpen }) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <div className="text-xs text-muted-foreground inline-flex items-center gap-1">
+        {Icon && <Icon className="h-3 w-3" />} {label}
+      </div>
+      <div className="font-display text-lg font-semibold">{value}</div>
+    </div>
+  );
+}
