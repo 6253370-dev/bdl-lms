@@ -46,6 +46,112 @@ export type Database = {
           },
         ]
       }
+      attempt_responses: {
+        Row: {
+          answer_id: string | null
+          attempt_id: string
+          created_at: string
+          id: string
+          is_correct: boolean
+          question_id: string
+          time_spent_seconds: number
+        }
+        Insert: {
+          answer_id?: string | null
+          attempt_id: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id: string
+          time_spent_seconds?: number
+        }
+        Update: {
+          answer_id?: string | null
+          attempt_id?: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          time_spent_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attempt_responses_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_responses_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "block_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempt_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      block_attempts: {
+        Row: {
+          block_id: string
+          correct_count: number
+          course_id: string
+          created_at: string
+          duration_seconds: number
+          id: string
+          passed: boolean
+          score_percent: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          block_id: string
+          correct_count?: number
+          course_id: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          passed?: boolean
+          score_percent?: number
+          total_questions?: number
+          user_id: string
+        }
+        Update: {
+          block_id?: string
+          correct_count?: number
+          course_id?: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          passed?: boolean
+          score_percent?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "block_attempts_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: false
+            referencedRelation: "course_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "block_attempts_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_blocks: {
         Row: {
           block_type: Database["public"]["Enums"]["block_type"]

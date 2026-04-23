@@ -116,19 +116,27 @@ function CoursesPage() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {courses.map((c) => (
-            <Link key={c.id} to="/courses/$courseId" params={{ courseId: c.id }}>
-              <Card className="p-5 h-full hover:shadow-[var(--shadow-elegant)] transition-shadow cursor-pointer border-border/60">
-                <div className="h-32 -mx-5 -mt-5 mb-4 rounded-t-xl" style={{ background: "var(--gradient-hero)" }} />
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.is_published ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
-                    {c.is_published ? "Published" : "Draft"}
-                  </span>
-                  <span className="text-xs text-muted-foreground">Pass: {c.passing_score}%</span>
-                </div>
-                <h3 className="font-display font-semibold text-lg leading-snug">{c.title}</h3>
-                {c.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{c.description}</p>}
-              </Card>
-            </Link>
+            <Card key={c.id} className="p-5 h-full hover:shadow-[var(--shadow-elegant)] transition-shadow border-border/60 flex flex-col">
+              <div className="h-32 -mx-5 -mt-5 mb-4 rounded-t-xl" style={{ background: "var(--gradient-hero)" }} />
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.is_published ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+                  {c.is_published ? "Published" : "Draft"}
+                </span>
+                <span className="text-xs text-muted-foreground">Pass: {c.passing_score}%</span>
+              </div>
+              <h3 className="font-display font-semibold text-lg leading-snug">{c.title}</h3>
+              {c.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2 flex-1">{c.description}</p>}
+              <div className="flex gap-2 mt-4">
+                <Button asChild size="sm" className="flex-1">
+                  <Link to="/courses/$courseId/play" params={{ courseId: c.id }}>Open</Link>
+                </Button>
+                {isAdmin && (
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/courses/$courseId" params={{ courseId: c.id }}>Edit</Link>
+                  </Button>
+                )}
+              </div>
+            </Card>
           ))}
         </div>
       )}
