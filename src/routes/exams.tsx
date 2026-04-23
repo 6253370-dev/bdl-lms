@@ -1,20 +1,881 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Card } from "@/components/ui/card";
-import { ClipboardList } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import {
+  ClipboardList,
+  Plus,
+  Lock,
+  Play,
+  Eye,
+  EyeOff,
+  Trash2,
+  Pencil,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Download,
+  Loader2,
+  ListChecks,
+} from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/exams")({
   component: () => (
     <ProtectedRoute>
-      <div className="p-6 lg:p-10 max-w-5xl mx-auto">
-        <h1 className="font-display text-3xl font-bold mb-2">Standalone Exams</h1>
-        <p className="text-muted-foreground mb-8">Password-protected exams independent of courses.</p>
-        <Card className="p-12 text-center border-dashed">
-          <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <h3 className="font-display font-semibold">Coming in next iteration</h3>
-          <p className="text-sm text-muted-foreground mt-1">Standalone exam creation, password protection, and result export.</p>
-        </Card>
-      </div>
+      <ExamsPage />
     </ProtectedRoute>
   ),
 });
+
+type Exam = {
+  id: string;
+  title: string;
+  description: string | null;
+  time_limit_seconds: number | null;
+  passing_score: number;
+  is_published: boolean;
+  created_at: string;
+};
+
+type ExamWithPassword = Exam & { password: string };
+
+type ExamQuestion = {
+  id: string;
+  exam_id: string;
+  text: string;
+  position: number;
+  time_limit_seconds: number | null;
+  answers: { id: string; text: string; position: number; is_correct: boolean }[];
+};
+
+type Attempt = {
+  id: string;
+  exam_id: string;
+  user_id: string;
+  score_percent: number;
+  correct_count: number;
+  total_questions: number;
+  duration_seconds: number;
+  passed: boolean;
+  created_at: string;
+  profile?: { full_name: string; employee_id: string } | null;
+};
+
+function ExamsPage() {
+  const { isAdmin } = useAuth();
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeExam, setActiveExam] = useState<Exam | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [runnerExam, setRunnerExam] = useState<Exam | null>(null);
+  const [resultsExam, setResultsExam] = useState<Exam | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("standalone_exams")
+      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at")
+      .order("created_at", { ascending: false });
+    setExams((data ?? []) as Exam[]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  return (
+    <div className="p-6 lg:p-10 max-w-6xl mx-auto">
+      <div className="flex items-start justify-between gap-4 mb-8">
+        <div>
+          <h1 className="font-display text-3xl font-bold mb-1">Standalone Exams</h1>
+          <p className="text-muted-foreground">
+            Password-protected exams independent of courses.
+          </p>
+        </div>
+        {isAdmin && (
+          <Button
+            onClick={() => {
+              setActiveExam(null);
+              setEditorOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" /> New exam
+          </Button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : exams.length === 0 ? (
+        <Card className="p-12 text-center border-dashed">
+          <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+          <h3 className="font-display font-semibold">No exams yet</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isAdmin
+              ? "Create your first password-protected exam."
+              : "No exams have been published."}
+          </p>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {exams.map((exam) => (
+            <Card key={exam.id} className="p-5 flex flex-col">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-amber-600" />
+                  <Badge variant={exam.is_published ? "default" : "secondary"}>
+                    {exam.is_published ? "Published" : "Draft"}
+                  </Badge>
+                </div>
+                {exam.time_limit_seconds && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {Math.round(exam.time_limit_seconds / 60)}m
+                  </span>
+                )}
+              </div>
+              <h3 className="font-display font-semibold text-lg">{exam.title}</h3>
+              {exam.description && (
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                  {exam.description}
+                </p>
+              )}
+              <div className="text-xs text-muted-foreground mt-2">
+                Pass: {exam.passing_score}%
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {exam.is_published && (
+                  <Button size="sm" onClick={() => setRunnerExam(exam)}>
+                    <Play className="h-4 w-4" /> Take exam
+                  </Button>
+                )}
+                {isAdmin && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setActiveExam(exam);
+                        setEditorOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" /> Edit
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setResultsExam(exam)}>
+                      <ListChecks className="h-4 w-4" /> Results
+                    </Button>
+                  </>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {editorOpen && (
+        <ExamEditor
+          exam={activeExam}
+          onClose={() => {
+            setEditorOpen(false);
+            setActiveExam(null);
+          }}
+          onSaved={() => {
+            setEditorOpen(false);
+            setActiveExam(null);
+            load();
+          }}
+        />
+      )}
+
+      {runnerExam && (
+        <ExamRunner exam={runnerExam} onClose={() => setRunnerExam(null)} />
+      )}
+
+      {resultsExam && (
+        <ExamResults exam={resultsExam} onClose={() => setResultsExam(null)} />
+      )}
+    </div>
+  );
+}
+
+/* -------------------- Editor -------------------- */
+
+function ExamEditor({
+  exam,
+  onClose,
+  onSaved,
+}: {
+  exam: Exam | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [title, setTitle] = useState(exam?.title ?? "");
+  const [description, setDescription] = useState(exam?.description ?? "");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [timeLimitMin, setTimeLimitMin] = useState(
+    exam?.time_limit_seconds ? String(Math.round(exam.time_limit_seconds / 60)) : "",
+  );
+  const [passingScore, setPassingScore] = useState(String(exam?.passing_score ?? 60));
+  const [isPublished, setIsPublished] = useState(exam?.is_published ?? false);
+  const [examId, setExamId] = useState<string | null>(exam?.id ?? null);
+  const [questions, setQuestions] = useState<ExamQuestion[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!examId) return;
+    (async () => {
+      const { data: qs } = await supabase
+        .from("standalone_exam_questions")
+        .select("id,exam_id,text,position,time_limit_seconds")
+        .eq("exam_id", examId)
+        .order("position");
+      const ids = (qs ?? []).map((q) => q.id);
+      const { data: ans } = ids.length
+        ? await supabase
+            .from("standalone_exam_answers")
+            .select("id,question_id,text,position,is_correct")
+            .in("question_id", ids)
+            .order("position")
+        : { data: [] as any[] };
+      setQuestions(
+        (qs ?? []).map((q) => ({
+          ...q,
+          answers: (ans ?? []).filter((a: any) => a.question_id === q.id),
+        })) as ExamQuestion[],
+      );
+    })();
+  }, [examId]);
+
+  const saveExam = async () => {
+    if (!title.trim()) return toast.error("Title required");
+    if (!examId && !password.trim()) return toast.error("Password required");
+    setSaving(true);
+    const payload: any = {
+      title: title.trim(),
+      description: description.trim() || null,
+      time_limit_seconds: timeLimitMin ? Number(timeLimitMin) * 60 : null,
+      passing_score: Number(passingScore) || 60,
+      is_published: isPublished,
+    };
+    if (password.trim()) payload.password = password.trim();
+
+    if (examId) {
+      const { error } = await supabase
+        .from("standalone_exams")
+        .update(payload)
+        .eq("id", examId);
+      setSaving(false);
+      if (error) return toast.error(error.message);
+      toast.success("Exam updated");
+    } else {
+      const { data, error } = await supabase
+        .from("standalone_exams")
+        .insert(payload)
+        .select()
+        .single();
+      setSaving(false);
+      if (error) return toast.error(error.message);
+      setExamId(data!.id);
+      toast.success("Exam created — now add questions");
+    }
+  };
+
+  const addQuestion = async () => {
+    if (!examId) return toast.error("Save the exam first");
+    const { data, error } = await supabase
+      .from("standalone_exam_questions")
+      .insert({
+        exam_id: examId,
+        text: "New question",
+        position: questions.length,
+      })
+      .select()
+      .single();
+    if (error) return toast.error(error.message);
+    setQuestions((q) => [...q, { ...data!, answers: [] } as ExamQuestion]);
+  };
+
+  const updateQuestion = async (id: string, patch: Partial<ExamQuestion>) => {
+    setQuestions((qs) => qs.map((q) => (q.id === id ? { ...q, ...patch } : q)));
+    await supabase.from("standalone_exam_questions").update(patch as any).eq("id", id);
+  };
+
+  const deleteQuestion = async (id: string) => {
+    await supabase.from("standalone_exam_questions").delete().eq("id", id);
+    setQuestions((qs) => qs.filter((q) => q.id !== id));
+  };
+
+  const addAnswer = async (questionId: string) => {
+    const q = questions.find((x) => x.id === questionId);
+    if (!q) return;
+    const { data, error } = await supabase
+      .from("standalone_exam_answers")
+      .insert({
+        question_id: questionId,
+        text: "Option",
+        position: q.answers.length,
+        is_correct: false,
+      })
+      .select()
+      .single();
+    if (error) return toast.error(error.message);
+    setQuestions((qs) =>
+      qs.map((x) =>
+        x.id === questionId ? { ...x, answers: [...x.answers, data!] } : x,
+      ),
+    );
+  };
+
+  const updateAnswer = async (
+    questionId: string,
+    answerId: string,
+    patch: Partial<ExamQuestion["answers"][number]>,
+  ) => {
+    setQuestions((qs) =>
+      qs.map((q) =>
+        q.id === questionId
+          ? { ...q, answers: q.answers.map((a) => (a.id === answerId ? { ...a, ...patch } : a)) }
+          : q,
+      ),
+    );
+    await supabase.from("standalone_exam_answers").update(patch as any).eq("id", answerId);
+  };
+
+  const deleteAnswer = async (questionId: string, answerId: string) => {
+    await supabase.from("standalone_exam_answers").delete().eq("id", answerId);
+    setQuestions((qs) =>
+      qs.map((q) =>
+        q.id === questionId ? { ...q, answers: q.answers.filter((a) => a.id !== answerId) } : q,
+      ),
+    );
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{examId ? "Edit exam" : "New exam"}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="grid gap-2">
+            <Label>Title</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div className="grid gap-2">
+            <Label>Description</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid gap-2">
+              <Label>Password {examId && <span className="text-xs text-muted-foreground">(leave blank to keep)</span>}</Label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={examId ? "••••••" : "Required"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Time limit (min)</Label>
+              <Input
+                type="number"
+                value={timeLimitMin}
+                onChange={(e) => setTimeLimitMin(e.target.value)}
+                placeholder="Optional"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Passing score (%)</Label>
+              <Input
+                type="number"
+                value={passingScore}
+                onChange={(e) => setPassingScore(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={isPublished} onCheckedChange={setIsPublished} id="pub" />
+            <Label htmlFor="pub">Published (visible to users)</Label>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={saveExam} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {examId ? "Save details" : "Create exam"}
+            </Button>
+          </div>
+
+          {examId && (
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display font-semibold">Questions</h3>
+                <Button size="sm" variant="outline" onClick={addQuestion}>
+                  <Plus className="h-4 w-4" /> Add question
+                </Button>
+              </div>
+              {questions.length === 0 && (
+                <p className="text-sm text-muted-foreground">No questions yet.</p>
+              )}
+              {questions.map((q, idx) => (
+                <Card key={q.id} className="p-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs text-muted-foreground mt-2">Q{idx + 1}</span>
+                    <Textarea
+                      value={q.text}
+                      onChange={(e) => updateQuestion(q.id, { text: e.target.value })}
+                      rows={2}
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => deleteQuestion(q.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-2 pl-6">
+                    {q.answers.map((a) => (
+                      <div key={a.id} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={a.is_correct}
+                          onChange={(e) =>
+                            updateAnswer(q.id, a.id, { is_correct: e.target.checked })
+                          }
+                          className="h-4 w-4"
+                        />
+                        <Input
+                          value={a.text}
+                          onChange={(e) => updateAnswer(q.id, a.id, { text: e.target.value })}
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => deleteAnswer(q.id, a.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button size="sm" variant="ghost" onClick={() => addAnswer(q.id)}>
+                      <Plus className="h-4 w-4" /> Add option
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* -------------------- Runner -------------------- */
+
+function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
+  const { user } = useAuth();
+  const [stage, setStage] = useState<"password" | "running" | "result">("password");
+  const [password, setPassword] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [questions, setQuestions] = useState<ExamQuestion[]>([]);
+  const [current, setCurrent] = useState(0);
+  const [selected, setSelected] = useState<Record<string, string>>({});
+  const [startedAt, setStartedAt] = useState(0);
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [result, setResult] = useState<{
+    correct: number;
+    total: number;
+    percent: number;
+    passed: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (stage !== "running" || !exam.time_limit_seconds) return;
+    const id = setInterval(() => {
+      setRemaining((r) => (r === null ? r : Math.max(0, r - 1)));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [stage, exam.time_limit_seconds]);
+
+  useEffect(() => {
+    if (remaining === 0) submit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remaining]);
+
+  const verifyAndStart = async () => {
+    setVerifying(true);
+    const { data: ok, error } = await supabase.rpc("verify_exam_password", {
+      _exam_id: exam.id,
+      _password: password,
+    });
+    if (error || !ok) {
+      setVerifying(false);
+      toast.error("Incorrect password");
+      return;
+    }
+    const { data: qs } = await supabase
+      .from("standalone_exam_questions")
+      .select("id,exam_id,text,position,time_limit_seconds")
+      .eq("exam_id", exam.id)
+      .order("position");
+    const ids = (qs ?? []).map((q) => q.id);
+    const { data: ans } = ids.length
+      ? await supabase
+          .from("standalone_exam_answers")
+          .select("id,question_id,text,position,is_correct")
+          .in("question_id", ids)
+          .order("position")
+      : { data: [] as any[] };
+    const full = (qs ?? []).map((q) => ({
+      ...q,
+      answers: (ans ?? []).filter((a: any) => a.question_id === q.id),
+    })) as ExamQuestion[];
+    if (full.length === 0) {
+      setVerifying(false);
+      toast.error("This exam has no questions");
+      return;
+    }
+    setQuestions(full);
+    setStartedAt(Date.now());
+    if (exam.time_limit_seconds) setRemaining(exam.time_limit_seconds);
+    setStage("running");
+    setVerifying(false);
+  };
+
+  const submit = async () => {
+    if (!user) return;
+    const total = questions.length;
+    let correct = 0;
+    const responses = questions.map((q) => {
+      const chosen = selected[q.id];
+      const ansObj = q.answers.find((a) => a.id === chosen);
+      const isCorrect = !!ansObj?.is_correct;
+      if (isCorrect) correct++;
+      return {
+        question_id: q.id,
+        answer_id: chosen ?? null,
+        is_correct: isCorrect,
+        time_spent_seconds: 0,
+      };
+    });
+    const percent = Math.round((correct / total) * 100);
+    const passed = percent >= exam.passing_score;
+    const duration = Math.round((Date.now() - startedAt) / 1000);
+
+    const { data: attempt, error } = await supabase
+      .from("standalone_exam_attempts")
+      .insert({
+        exam_id: exam.id,
+        user_id: user.id,
+        score_percent: percent,
+        correct_count: correct,
+        total_questions: total,
+        duration_seconds: duration,
+        passed,
+      })
+      .select()
+      .single();
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    if (responses.length) {
+      await supabase
+        .from("standalone_exam_responses")
+        .insert(responses.map((r) => ({ ...r, attempt_id: attempt!.id })));
+    }
+    setResult({ correct, total, percent, passed });
+    setStage("result");
+  };
+
+  const q = questions[current];
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        {stage === "password" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Lock className="h-4 w-4" /> {exam.title}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {exam.description && (
+                <p className="text-sm text-muted-foreground">{exam.description}</p>
+              )}
+              <div className="text-sm flex gap-4 text-muted-foreground">
+                <span>Pass: {exam.passing_score}%</span>
+                {exam.time_limit_seconds && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {Math.round(exam.time_limit_seconds / 60)} min
+                  </span>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label>Exam password</Label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && verifyAndStart()}
+                  autoFocus
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button onClick={verifyAndStart} disabled={verifying || !password}>
+                  {verifying && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Start exam
+                </Button>
+              </DialogFooter>
+            </div>
+          </>
+        )}
+
+        {stage === "running" && q && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>
+                  Question {current + 1} / {questions.length}
+                </span>
+                {remaining !== null && (
+                  <span className="text-sm font-mono text-amber-600 flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    {Math.floor(remaining / 60)}:
+                    {String(remaining % 60).padStart(2, "0")}
+                  </span>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="font-medium">{q.text}</p>
+              <div className="space-y-2">
+                {q.answers.map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => setSelected((s) => ({ ...s, [q.id]: a.id }))}
+                    className={`w-full text-left p-3 rounded-md border transition ${
+                      selected[q.id] === a.id
+                        ? "border-primary bg-primary/5"
+                        : "border-input hover:bg-accent"
+                    }`}
+                  >
+                    {a.text}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                disabled={current === 0}
+                onClick={() => setCurrent((c) => c - 1)}
+              >
+                Previous
+              </Button>
+              {current < questions.length - 1 ? (
+                <Button onClick={() => setCurrent((c) => c + 1)}>Next</Button>
+              ) : (
+                <Button onClick={submit}>Submit exam</Button>
+              )}
+            </DialogFooter>
+          </>
+        )}
+
+        {stage === "result" && result && (
+          <>
+            <DialogHeader>
+              <DialogTitle>Result</DialogTitle>
+            </DialogHeader>
+            <div className="text-center py-6 space-y-3">
+              {result.passed ? (
+                <CheckCircle2 className="h-14 w-14 mx-auto text-emerald-500" />
+              ) : (
+                <XCircle className="h-14 w-14 mx-auto text-destructive" />
+              )}
+              <div className="font-display text-4xl font-bold">{result.percent}%</div>
+              <p className="text-muted-foreground">
+                {result.correct} / {result.total} correct ·{" "}
+                {result.passed ? "Passed" : "Failed"}
+              </p>
+            </div>
+            <DialogFooter>
+              <Button onClick={onClose}>Close</Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* -------------------- Results -------------------- */
+
+function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
+  const [attempts, setAttempts] = useState<Attempt[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("standalone_exam_attempts")
+        .select(
+          "id,exam_id,user_id,score_percent,correct_count,total_questions,duration_seconds,passed,created_at",
+        )
+        .eq("exam_id", exam.id)
+        .order("created_at", { ascending: false });
+      const userIds = Array.from(new Set((data ?? []).map((a) => a.user_id)));
+      const { data: profs } = userIds.length
+        ? await supabase
+            .from("profiles")
+            .select("id,full_name,employee_id")
+            .in("id", userIds)
+        : { data: [] as any[] };
+      const merged = (data ?? []).map((a) => ({
+        ...a,
+        profile: (profs ?? []).find((p: any) => p.id === a.user_id) ?? null,
+      })) as Attempt[];
+      setAttempts(merged);
+      setLoading(false);
+    })();
+  }, [exam.id]);
+
+  const exportCSV = () => {
+    const rows = [
+      ["Employee ID", "Name", "Score %", "Correct", "Total", "Duration (s)", "Passed", "Date"],
+      ...attempts.map((a) => [
+        a.profile?.employee_id ?? "",
+        a.profile?.full_name ?? "",
+        a.score_percent,
+        a.correct_count,
+        a.total_questions,
+        a.duration_seconds,
+        a.passed ? "Yes" : "No",
+        new Date(a.created_at).toISOString(),
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${exam.title.replace(/\s+/g, "_")}_results.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between gap-2">
+            <span>Results — {exam.title}</span>
+            <Button size="sm" variant="outline" onClick={exportCSV} disabled={!attempts.length}>
+              <Download className="h-4 w-4" /> Export CSV
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : attempts.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">No attempts yet.</p>
+        ) : (
+          <div className="border rounded-md overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr className="text-left">
+                  <th className="p-2">Employee</th>
+                  <th className="p-2">Name</th>
+                  <th className="p-2 text-right">Score</th>
+                  <th className="p-2 text-right">Correct</th>
+                  <th className="p-2">Status</th>
+                  <th className="p-2">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attempts.map((a) => (
+                  <tr key={a.id} className="border-t">
+                    <td className="p-2 font-mono text-xs">{a.profile?.employee_id ?? "—"}</td>
+                    <td className="p-2">{a.profile?.full_name ?? "—"}</td>
+                    <td className="p-2 text-right font-medium">{Number(a.score_percent)}%</td>
+                    <td className="p-2 text-right">
+                      {a.correct_count}/{a.total_questions}
+                    </td>
+                    <td className="p-2">
+                      <Badge variant={a.passed ? "default" : "destructive"}>
+                        {a.passed ? "Passed" : "Failed"}
+                      </Badge>
+                    </td>
+                    <td className="p-2 text-xs text-muted-foreground">
+                      {new Date(a.created_at).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
