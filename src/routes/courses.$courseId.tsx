@@ -15,9 +15,10 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, Loader2, Trash2, BookOpen, Dumbbell, FileQuestion,
-  GraduationCap, Save, Video, FileText, FileType, Link as LinkIcon, Pencil,
+  GraduationCap, Save, Video, FileText, FileType, Link as LinkIcon, Pencil, Play,
 } from "lucide-react";
 import { toast } from "sonner";
+import { FileUpload } from "@/components/FileUpload";
 
 export const Route = createFileRoute("/courses/$courseId")({
   component: () => (
