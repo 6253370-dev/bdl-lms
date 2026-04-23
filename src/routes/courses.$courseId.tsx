@@ -185,6 +185,11 @@ function CourseBuilderPage() {
             </span>
           </p>
         </div>
+        <Button asChild variant="default">
+          <Link to="/courses/$courseId/play" params={{ courseId: course.id }}>
+            <Play className="h-4 w-4 mr-2" /> Open course player
+          </Link>
+        </Button>
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="w-full">
@@ -374,11 +379,11 @@ function BlockCard({
           </div>
           {block.block_type === "lesson" && (
             <div className="grid sm:grid-cols-2 gap-3">
-              <FileField label="External video URL" icon={LinkIcon} value={block.external_video_url} onChange={(v) => onChange({ external_video_url: v })} />
-              <FileField label="Video file URL" icon={Video} value={block.video_url} onChange={(v) => onChange({ video_url: v })} />
-              <FileField label="PDF URL" icon={FileText} value={block.pdf_url} onChange={(v) => onChange({ pdf_url: v })} />
-              <FileField label="PPTX URL" icon={FileType} value={block.pptx_url} onChange={(v) => onChange({ pptx_url: v })} />
-              <FileField label="DOCX URL" icon={FileType} value={block.docx_url} onChange={(v) => onChange({ docx_url: v })} />
+              <FileField label="External video URL (YouTube, Vimeo)" icon={LinkIcon} value={block.external_video_url} onChange={(v) => onChange({ external_video_url: v })} />
+              <FileUpload label="Video" icon={Video} value={block.video_url} onChange={(v) => onChange({ video_url: v })} accept="video/*" folder="videos" />
+              <FileUpload label="PDF" icon={FileText} value={block.pdf_url} onChange={(v) => onChange({ pdf_url: v })} accept="application/pdf" folder="pdfs" />
+              <FileUpload label="PPTX" icon={FileType} value={block.pptx_url} onChange={(v) => onChange({ pptx_url: v })} accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" folder="pptx" />
+              <FileUpload label="DOCX" icon={FileType} value={block.docx_url} onChange={(v) => onChange({ docx_url: v })} accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" folder="docx" />
             </div>
           )}
           {(block.block_type === "practice" || block.block_type === "quiz") && (
