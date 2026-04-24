@@ -273,22 +273,6 @@ function CourseBuilderPage() {
           )}
         </TabsContent>
 
-        {/* QUIZZES */}
-        <TabsContent value="quizzes" className="space-y-3">
-          {quizBlocks.length === 0 && (
-            <Card className="p-10 text-center border-dashed">
-              <p className="text-sm text-muted-foreground">{t.courses.noQuizzes}</p>
-            </Card>
-          )}
-          {quizBlocks.map((b) => (
-            <BlockCard key={b.id} block={b} isAdmin={isAdmin} onChange={(p) => updateBlock(b.id, p)} onSave={() => saveBlock(b)} onDelete={() => deleteBlock(b.id)} />
-          ))}
-          {isAdmin && (
-            <Button variant="outline" onClick={() => addBlock("quiz")}>
-              <Plus className="h-4 w-4 mr-1" /> {t.courses.addQuiz}
-            </Button>
-          )}
-        </TabsContent>
 
         {/* FINAL EXAM */}
         <TabsContent value="exam" className="space-y-3">
