@@ -68,7 +68,13 @@ function CoursePlayer() {
       supabase.from("course_blocks").select("*").eq("course_id", courseId).order("position"),
     ]);
     setCourse(c as Course);
-    const list = (b ?? []) as Block[];
+    const raw = (b ?? []) as Block[];
+    // Hide standalone "quiz" blocks from the player and ensure final_exam is the last step
+    const filtered = raw.filter((x) => x.block_type !== "quiz");
+    const list = [
+      ...filtered.filter((x) => x.block_type !== "final_exam"),
+      ...filtered.filter((x) => x.block_type === "final_exam"),
+    ];
     setBlocks(list);
     setActiveId(list[0]?.id ?? null);
     setLoading(false);
