@@ -197,7 +197,6 @@ function CourseBuilderPage() {
         <TabsList className="mb-6">
           <TabsTrigger value="details">{t.courses.details}</TabsTrigger>
           <TabsTrigger value="lessons">{t.courses.lessons}</TabsTrigger>
-          <TabsTrigger value="quizzes">{t.courses.quizzes}</TabsTrigger>
           <TabsTrigger value="exam">{t.courses.finalExam}</TabsTrigger>
           <TabsTrigger value="certificate">{t.courses.certificate}</TabsTrigger>
         </TabsList>
