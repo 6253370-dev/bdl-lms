@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { GraduationCap, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
   component: LoginPage,
@@ -28,7 +29,7 @@ function LoginPage() {
     setSubmitting(true);
     try {
       await signInWithEmployeeId(employeeId.trim(), password);
-      toast.success("Welcome back");
+      toast.success(t.login.welcomeBack);
       navigate({ to: "/dashboard" });
     } catch (err) {
       toast.error((err as Error).message);
@@ -40,24 +41,23 @@ function LoginPage() {
   return (
     <div className="min-h-screen grid lg:grid-cols-[1.1fr_1fr]">
       {/* Left: branded panel */}
-      <div className="hidden lg:flex flex-col justify-between p-12 text-sidebar-foreground" style={{ background: "var(--gradient-hero)" }}>
+      <div className="hidden lg:flex flex-col justify-between p-12 text-primary-foreground" style={{ background: "var(--gradient-hero)" }}>
         <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground">
+          <div className="h-11 w-11 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center">
             <GraduationCap className="h-6 w-6" />
           </div>
-          <div className="font-display font-bold text-xl">BE Academy</div>
+          <div className="font-display font-bold text-xl">{t.brand}</div>
         </div>
         <div className="space-y-6 max-w-lg">
           <h1 className="font-display text-5xl font-bold leading-tight">
-            Learn. Practice. <span className="text-sidebar-primary">Certify.</span>
+            {t.login.heroTitle} <span className="text-white/95">{t.login.heroAccent}</span>
           </h1>
-          <p className="text-lg text-sidebar-foreground/80">
-            The internal learning platform for structured courses, assessments,
-            and performance tracking across the company.
+          <p className="text-lg text-primary-foreground/85">
+            {t.login.heroSubtitle}
           </p>
         </div>
-        <div className="text-sm text-sidebar-foreground/60">
-          © {new Date().getFullYear()} BE Academy — Internal use only
+        <div className="text-sm text-primary-foreground/70">
+          © {new Date().getFullYear()} {t.brand} — {t.login.footer}
         </div>
       </div>
 
@@ -68,26 +68,26 @@ function LoginPage() {
             <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
               <GraduationCap className="h-5 w-5" />
             </div>
-            <div className="font-display font-bold">BE Academy</div>
+            <div className="font-display font-bold">{t.brand}</div>
           </div>
-          <h2 className="text-2xl font-display font-bold text-foreground">Sign in</h2>
+          <h2 className="text-2xl font-display font-bold text-foreground">{t.login.title}</h2>
           <p className="text-sm text-muted-foreground mt-1 mb-8">
-            Enter your Employee ID and password.
+            {t.login.subtitle}
           </p>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="employee_id">Employee ID</Label>
+              <Label htmlFor="employee_id">{t.login.employeeId}</Label>
               <Input
                 id="employee_id"
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
-                placeholder="e.g. 1336"
+                placeholder="1336"
                 required
                 autoComplete="username"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t.login.password}</Label>
               <Input
                 id="password"
                 type="password"
@@ -99,10 +99,10 @@ function LoginPage() {
             </div>
             <Button type="submit" className="w-full mt-2" size="lg" disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Sign In
+              {t.login.signIn}
             </Button>
             <p className="text-xs text-center text-muted-foreground pt-2">
-              Forgot your password? Contact your administrator.
+              {t.login.forgotPassword}
             </p>
           </form>
         </Card>
