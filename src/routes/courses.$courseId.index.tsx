@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
 import { t } from "@/lib/i18n";
 
-export const Route = createFileRoute("/courses/$courseId")({
+export const Route = createFileRoute("/courses/$courseId/")({
   component: () => (
     <ProtectedRoute>
       <CourseBuilderPage />
