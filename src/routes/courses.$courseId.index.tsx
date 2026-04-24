@@ -165,7 +165,6 @@ function CourseBuilderPage() {
   }
 
   const lessonBlocks = blocks.filter((b) => b.block_type === "lesson" || b.block_type === "practice");
-  const quizBlocks = blocks.filter((b) => b.block_type === "quiz");
   const examBlock = blocks.find((b) => b.block_type === "final_exam");
 
   return (
