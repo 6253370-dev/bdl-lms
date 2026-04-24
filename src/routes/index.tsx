@@ -81,7 +81,6 @@ function LoginPage() {
                 id="employee_id"
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
-                placeholder="1336"
                 required
                 autoComplete="username"
               />
