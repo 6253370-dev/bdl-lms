@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/courses/$courseId")({
   component: () => (
@@ -56,10 +57,10 @@ interface Block {
 }
 
 const blockMeta: Record<BlockType, { icon: typeof BookOpen; label: string; tone: string }> = {
-  lesson: { icon: BookOpen, label: "Lesson", tone: "bg-primary/10 text-primary" },
-  practice: { icon: Dumbbell, label: "Practice", tone: "bg-accent/15 text-accent-foreground" },
+  lesson: { icon: BookOpen, label: "Dərs", tone: "bg-primary/10 text-primary" },
+  practice: { icon: Dumbbell, label: "Məşq", tone: "bg-accent text-accent-foreground" },
   quiz: { icon: FileQuestion, label: "Quiz", tone: "bg-warning/15 text-warning-foreground" },
-  final_exam: { icon: GraduationCap, label: "Final Exam", tone: "bg-success/15 text-success" },
+  final_exam: { icon: GraduationCap, label: "Son imtahan", tone: "bg-success/15 text-success" },
 };
 
 function CourseBuilderPage() {
@@ -103,7 +104,7 @@ function CourseBuilderPage() {
       .eq("id", course.id);
     setSavingDetails(false);
     if (error) toast.error(error.message);
-    else toast.success("Saved");
+    else toast.success("Yadda saxlanıldı");
   };
 
   const addBlock = async (type: BlockType) => {
@@ -122,7 +123,7 @@ function CourseBuilderPage() {
       .single();
     if (error) { toast.error(error.message); return; }
     setBlocks((b) => [...b, data as Block]);
-    toast.success(`${blockMeta[type].label} added`);
+    toast.success(`${blockMeta[type].label} əlavə olundu`);
   };
 
   const updateBlock = (id: string, patch: Partial<Block>) => {
@@ -145,14 +146,14 @@ function CourseBuilderPage() {
       })
       .eq("id", block.id);
     if (error) toast.error(error.message);
-    else toast.success("Saved");
+    else toast.success("Yadda saxlanıldı");
   };
 
   const deleteBlock = async (id: string) => {
     const { error } = await supabase.from("course_blocks").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     setBlocks((bs) => bs.filter((b) => b.id !== id));
-    toast.success("Removed");
+    toast.success("Silindi");
   };
 
   if (loading || !course) {
@@ -173,39 +174,39 @@ function CourseBuilderPage() {
         onClick={() => navigate({ to: "/courses" })}
         className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to courses
+        <ArrowLeft className="h-4 w-4" /> {t.courses.backToCourses}
       </button>
       <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-3xl font-bold">{course.title}</h1>
           <p className="text-muted-foreground mt-1">
-            {blocks.length} block{blocks.length === 1 ? "" : "s"} ·{" "}
+            {blocks.length} {blocks.length === 1 ? t.courses.block : t.courses.blocks} ·{" "}
             <span className={course.is_published ? "text-success" : ""}>
-              {course.is_published ? "Published" : "Draft"}
+              {course.is_published ? t.common.published : t.common.draft}
             </span>
           </p>
         </div>
         <Button asChild variant="default">
           <Link to="/courses/$courseId/play" params={{ courseId: course.id }}>
-            <Play className="h-4 w-4 mr-2" /> Open course player
+            <Play className="h-4 w-4 mr-2" /> {t.courses.coursePlayer}
           </Link>
         </Button>
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsList className="mb-6">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="lessons">Lessons & Practice</TabsTrigger>
-          <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
-          <TabsTrigger value="exam">Final Exam</TabsTrigger>
-          <TabsTrigger value="certificate">Certificate</TabsTrigger>
+          <TabsTrigger value="details">{t.courses.details}</TabsTrigger>
+          <TabsTrigger value="lessons">{t.courses.lessons}</TabsTrigger>
+          <TabsTrigger value="quizzes">{t.courses.quizzes}</TabsTrigger>
+          <TabsTrigger value="exam">{t.courses.finalExam}</TabsTrigger>
+          <TabsTrigger value="certificate">{t.courses.certificate}</TabsTrigger>
         </TabsList>
 
         {/* DETAILS */}
         <TabsContent value="details" className="space-y-4">
           <Card className="p-6 space-y-4">
             <div className="space-y-2">
-              <Label>Title</Label>
+              <Label>{t.courses.title_field}</Label>
               <Input
                 value={course.title}
                 onChange={(e) => updateCourseField({ title: e.target.value })}
@@ -213,7 +214,7 @@ function CourseBuilderPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Description</Label>
+              <Label>{t.courses.description}</Label>
               <Textarea
                 value={course.description ?? ""}
                 onChange={(e) => updateCourseField({ description: e.target.value })}
@@ -223,7 +224,7 @@ function CourseBuilderPage() {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Passing score (%)</Label>
+                <Label>{t.courses.passingScore}</Label>
                 <Input
                   type="number" min={0} max={100}
                   value={course.passing_score}
@@ -237,14 +238,14 @@ function CourseBuilderPage() {
                   onCheckedChange={(v) => updateCourseField({ is_published: v })}
                   disabled={!isAdmin}
                 />
-                <Label>Published</Label>
+                <Label>{t.courses.publishedSwitch}</Label>
               </div>
             </div>
             {isAdmin && (
               <div className="flex justify-end pt-2">
                 <Button onClick={saveDetails} disabled={savingDetails}>
                   {savingDetails ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                  Save details
+                  {t.courses.saveDetails}
                 </Button>
               </div>
             )}
@@ -255,7 +256,7 @@ function CourseBuilderPage() {
         <TabsContent value="lessons" className="space-y-3">
           {lessonBlocks.length === 0 && (
             <Card className="p-10 text-center border-dashed">
-              <p className="text-sm text-muted-foreground">No lessons yet.</p>
+              <p className="text-sm text-muted-foreground">{t.courses.noLessons}</p>
             </Card>
           )}
           {lessonBlocks.map((b) => (
@@ -264,10 +265,10 @@ function CourseBuilderPage() {
           {isAdmin && (
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={() => addBlock("lesson")}>
-                <Plus className="h-4 w-4 mr-1" /> Add Lesson
+                <Plus className="h-4 w-4 mr-1" /> {t.courses.addLesson}
               </Button>
               <Button variant="outline" onClick={() => addBlock("practice")}>
-                <Plus className="h-4 w-4 mr-1" /> Add Practice
+                <Plus className="h-4 w-4 mr-1" /> {t.courses.addPractice}
               </Button>
             </div>
           )}
@@ -277,7 +278,7 @@ function CourseBuilderPage() {
         <TabsContent value="quizzes" className="space-y-3">
           {quizBlocks.length === 0 && (
             <Card className="p-10 text-center border-dashed">
-              <p className="text-sm text-muted-foreground">No quizzes yet.</p>
+              <p className="text-sm text-muted-foreground">{t.courses.noQuizzes}</p>
             </Card>
           )}
           {quizBlocks.map((b) => (
@@ -285,7 +286,7 @@ function CourseBuilderPage() {
           ))}
           {isAdmin && (
             <Button variant="outline" onClick={() => addBlock("quiz")}>
-              <Plus className="h-4 w-4 mr-1" /> Add Quiz
+              <Plus className="h-4 w-4 mr-1" /> {t.courses.addQuiz}
             </Button>
           )}
         </TabsContent>
@@ -294,10 +295,10 @@ function CourseBuilderPage() {
         <TabsContent value="exam" className="space-y-3">
           {!examBlock ? (
             <Card className="p-10 text-center border-dashed space-y-4">
-              <p className="text-sm text-muted-foreground">No final exam yet.</p>
+              <p className="text-sm text-muted-foreground">{t.courses.noFinalExam}</p>
               {isAdmin && (
                 <Button onClick={() => addBlock("final_exam")}>
-                  <Plus className="h-4 w-4 mr-1" /> Add Final Exam
+                  <Plus className="h-4 w-4 mr-1" /> {t.courses.addFinalExam}
                 </Button>
               )}
             </Card>
