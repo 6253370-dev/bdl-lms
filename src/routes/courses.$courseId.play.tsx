@@ -282,7 +282,7 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
 
   const startAttempt = () => {
     if (questions.length === 0) {
-      toast.error("No questions in this assessment yet");
+      toast.error("Bu qiymətləndirmədə hələ sual yoxdur");
       return;
     }
     setIdx(0);
@@ -310,7 +310,7 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
   }, [idx, questions, questionStart, results]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const finalize = async (allResults: ResultRow[]) => {
-    if (!user) { toast.error("Not signed in"); return; }
+    if (!user) { toast.error(t.common.notSignedIn); return; }
     setSubmitting(true);
     const correct = allResults.filter((r) => r.isCorrect).length;
     const total = allResults.length;
@@ -333,7 +333,7 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
       .select().single();
 
     if (error || !attempt) {
-      toast.error(error?.message ?? "Failed to save attempt");
+      toast.error(error?.message ?? "Cəhdi yadda saxlamaq mümkün olmadı");
       setSubmitting(false);
       return;
     }
@@ -383,15 +383,15 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
 
         <Card className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <Stat label="Questions" value={String(questions.length)} />
-            {timePer && <Stat label="Time per question" value={`${timePer}s`} icon={Clock} />}
+            <Stat label={t.common.questions} value={String(questions.length)} />
+            {timePer && <Stat label={t.common.timePerQuestion} value={`${timePer}s`} icon={Clock} />}
             {block.block_type === "final_exam" && (
-              <Stat label="Pass score" value={`${passingScore}%`} icon={Trophy} />
+              <Stat label={t.common.passScore} value={`${passingScore}%`} icon={Trophy} />
             )}
           </div>
           <Button size="lg" className="w-full" onClick={startAttempt} disabled={questions.length === 0}>
             <Play className="h-4 w-4 mr-2" />
-            {questions.length === 0 ? "No questions yet" : `Start ${meta[block.block_type].label}`}
+            {questions.length === 0 ? t.courses.noQuestionsYet : `${t.common.start} ${meta[block.block_type].label}`}
           </Button>
         </Card>
       </div>
@@ -404,7 +404,7 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
     return (
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-4 text-sm">
-          <span className="text-muted-foreground">Question {idx + 1} of {questions.length}</span>
+          <span className="text-muted-foreground">{t.common.questionOf} {idx + 1} {t.common.of} {questions.length}</span>
           {timePer && <span className="text-muted-foreground inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {timePer}s</span>}
         </div>
         <div className="h-1.5 w-full rounded-full bg-muted mb-6 overflow-hidden">
@@ -438,7 +438,7 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
             disabled={!selected || submitting}
             onClick={() => recordAndAdvance(selected)}
           >
-            {idx + 1 === questions.length ? "Finish" : "Next question"}
+            {idx + 1 === questions.length ? t.common.finish : t.common.nextQuestion}
           </Button>
         </Card>
       </div>
@@ -455,24 +455,24 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
       </div>
       <h1 className="font-display text-3xl font-bold mb-2">
         {block.block_type === "final_exam"
-          ? score.passed ? "Congratulations!" : "Not quite there"
-          : "Attempt complete"}
+          ? score.passed ? t.common.congrats : t.common.notQuiteThere
+          : t.common.attemptComplete}
       </h1>
       <p className="text-muted-foreground mb-6">
-        {score.correct} / {score.total} correct
+        {score.correct} / {score.total} {t.common.correct}
       </p>
       <Card className="p-6 mb-6">
         <div className="text-5xl font-display font-bold mb-1">{score.percent}%</div>
         <div className="text-sm text-muted-foreground">
-          {block.block_type === "final_exam" ? `Pass mark: ${passingScore}%` : "Score"}
+          {block.block_type === "final_exam" ? `${t.common.passScore}: ${passingScore}%` : "Bal"}
         </div>
       </Card>
       <div className="flex gap-3 justify-center">
         <Button variant="outline" onClick={() => { setStage("intro"); setScore(null); }}>
-          Try again
+          Yenidən cəhd et
         </Button>
         <Button asChild>
-          <Link to="/dashboard">Back to dashboard</Link>
+          <Link to="/dashboard">Ana səhifəyə qayıt</Link>
         </Button>
       </div>
     </div>
