@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/courses/$courseId/play")({
   component: () => (
@@ -46,10 +47,10 @@ interface Course {
 }
 
 const meta: Record<BlockType, { icon: typeof BookOpen; label: string; tone: string }> = {
-  lesson: { icon: BookOpen, label: "Lesson", tone: "bg-primary/10 text-primary" },
-  practice: { icon: Dumbbell, label: "Practice", tone: "bg-accent/15 text-accent-foreground" },
+  lesson: { icon: BookOpen, label: "Dərs", tone: "bg-primary/10 text-primary" },
+  practice: { icon: Dumbbell, label: "Məşq", tone: "bg-accent text-accent-foreground" },
   quiz: { icon: FileQuestion, label: "Quiz", tone: "bg-warning/15 text-warning-foreground" },
-  final_exam: { icon: GraduationCap, label: "Final Exam", tone: "bg-success/15 text-success" },
+  final_exam: { icon: GraduationCap, label: "Son imtahan", tone: "bg-success/15 text-success" },
 };
 
 function CoursePlayer() {
@@ -91,14 +92,14 @@ function CoursePlayer() {
             onClick={() => navigate({ to: "/courses" })}
             className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-3"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> All courses
+            <ArrowLeft className="h-3.5 w-3.5" /> {t.player.allCourses}
           </button>
           <h2 className="font-display font-bold text-lg leading-tight">{course.title}</h2>
           {course.description && <p className="text-xs text-muted-foreground mt-1">{course.description}</p>}
         </div>
         <div className="p-3 space-y-1">
           {blocks.length === 0 && (
-            <div className="text-sm text-muted-foreground p-4 text-center">No content yet.</div>
+            <div className="text-sm text-muted-foreground p-4 text-center">{t.player.noContent}</div>
           )}
           {blocks.map((b, i) => {
             const Icon = meta[b.block_type].icon;
@@ -134,7 +135,7 @@ function CoursePlayer() {
         {!active ? (
           <Card className="p-12 text-center border-dashed">
             <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">No content available.</p>
+            <p className="text-muted-foreground">{t.player.noContent}</p>
           </Card>
         ) : active.block_type === "lesson" ? (
           <LessonView block={active} />
@@ -150,7 +151,7 @@ function LessonView({ block }: { block: Block }) {
   return (
     <div className="space-y-6">
       <div>
-        <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Lesson</div>
+        <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">{t.player.lesson}</div>
         <h1 className="font-display text-3xl font-bold">{block.title}</h1>
         {block.description && <p className="text-muted-foreground mt-2">{block.description}</p>}
       </div>
@@ -193,10 +194,10 @@ function LessonView({ block }: { block: Block }) {
         <Card className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="h-5 w-5 text-muted-foreground" />
-            <span className="font-medium">Word document</span>
+            <span className="font-medium">{t.player.wordDoc}</span>
           </div>
           <Button asChild variant="outline" size="sm">
-            <a href={block.docx_url} target="_blank" rel="noopener noreferrer">Download</a>
+            <a href={block.docx_url} target="_blank" rel="noopener noreferrer">{t.common.download}</a>
           </Button>
         </Card>
       )}
@@ -204,7 +205,7 @@ function LessonView({ block }: { block: Block }) {
       {!block.external_video_url && !block.video_url && !block.pdf_url && !block.pptx_url && !block.docx_url && (
         <Card className="p-12 text-center border-dashed">
           <Video className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">No media uploaded for this lesson yet.</p>
+          <p className="text-muted-foreground">{t.courses.noMedia}</p>
         </Card>
       )}
     </div>
