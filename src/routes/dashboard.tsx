@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { BookOpen, ClipboardList, Trophy, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/dashboard")({
   component: () => (
@@ -31,23 +32,23 @@ function Dashboard() {
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold">Welcome, {profile?.full_name?.split(" ")[0]}</h1>
+        <h1 className="font-display text-3xl font-bold">{t.dashboard.title}, {profile?.full_name?.split(" ")[0]}</h1>
         <p className="text-muted-foreground mt-1">
-          Here's what's happening on your learning platform.
+          {t.dashboard.subtitle}
         </p>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={BookOpen} label="Courses" value={stats.courses} tone="primary" />
-        <StatCard icon={ClipboardList} label="Exams" value={0} tone="accent" />
-        <StatCard icon={Trophy} label="Certificates" value={0} tone="success" />
-        {isAdmin && <StatCard icon={Users} label="Total Users" value={stats.users} tone="primary" />}
+        <StatCard icon={BookOpen} label={t.dashboard.courses} value={stats.courses} tone="primary" />
+        <StatCard icon={ClipboardList} label={t.dashboard.exams} value={0} tone="accent" />
+        <StatCard icon={Trophy} label={t.dashboard.certificates} value={0} tone="success" />
+        {isAdmin && <StatCard icon={Users} label={t.dashboard.totalUsers} value={stats.users} tone="primary" />}
       </div>
 
       <Card className="mt-8 p-8 text-center border-dashed">
-        <h3 className="font-display text-lg font-semibold mb-2">More coming soon</h3>
+        <h3 className="font-display text-lg font-semibold mb-2">{t.dashboard.moreSoon}</h3>
         <p className="text-sm text-muted-foreground">
-          Course-based accordion cards with average exam scores, top performers and analytics will appear here as the platform fills with data.
+          {t.dashboard.moreSoonDesc}
         </p>
       </Card>
     </div>

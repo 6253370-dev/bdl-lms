@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/courses/$courseId/play")({
   component: () => (
@@ -46,10 +47,10 @@ interface Course {
 }
 
 const meta: Record<BlockType, { icon: typeof BookOpen; label: string; tone: string }> = {
-  lesson: { icon: BookOpen, label: "Lesson", tone: "bg-primary/10 text-primary" },
-  practice: { icon: Dumbbell, label: "Practice", tone: "bg-accent/15 text-accent-foreground" },
+  lesson: { icon: BookOpen, label: "Dərs", tone: "bg-primary/10 text-primary" },
+  practice: { icon: Dumbbell, label: "Məşq", tone: "bg-accent text-accent-foreground" },
   quiz: { icon: FileQuestion, label: "Quiz", tone: "bg-warning/15 text-warning-foreground" },
-  final_exam: { icon: GraduationCap, label: "Final Exam", tone: "bg-success/15 text-success" },
+  final_exam: { icon: GraduationCap, label: "Son imtahan", tone: "bg-success/15 text-success" },
 };
 
 function CoursePlayer() {
@@ -91,14 +92,14 @@ function CoursePlayer() {
             onClick={() => navigate({ to: "/courses" })}
             className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-3"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> All courses
+            <ArrowLeft className="h-3.5 w-3.5" /> {t.player.allCourses}
           </button>
           <h2 className="font-display font-bold text-lg leading-tight">{course.title}</h2>
           {course.description && <p className="text-xs text-muted-foreground mt-1">{course.description}</p>}
         </div>
         <div className="p-3 space-y-1">
           {blocks.length === 0 && (
-            <div className="text-sm text-muted-foreground p-4 text-center">No content yet.</div>
+            <div className="text-sm text-muted-foreground p-4 text-center">{t.player.noContent}</div>
           )}
           {blocks.map((b, i) => {
             const Icon = meta[b.block_type].icon;
@@ -134,7 +135,7 @@ function CoursePlayer() {
         {!active ? (
           <Card className="p-12 text-center border-dashed">
             <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">No content available.</p>
+            <p className="text-muted-foreground">{t.player.noContent}</p>
           </Card>
         ) : active.block_type === "lesson" ? (
           <LessonView block={active} />
@@ -150,7 +151,7 @@ function LessonView({ block }: { block: Block }) {
   return (
     <div className="space-y-6">
       <div>
-        <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Lesson</div>
+        <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">{t.player.lesson}</div>
         <h1 className="font-display text-3xl font-bold">{block.title}</h1>
         {block.description && <p className="text-muted-foreground mt-2">{block.description}</p>}
       </div>
@@ -193,10 +194,10 @@ function LessonView({ block }: { block: Block }) {
         <Card className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="h-5 w-5 text-muted-foreground" />
-            <span className="font-medium">Word document</span>
+            <span className="font-medium">{t.player.wordDoc}</span>
           </div>
           <Button asChild variant="outline" size="sm">
-            <a href={block.docx_url} target="_blank" rel="noopener noreferrer">Download</a>
+            <a href={block.docx_url} target="_blank" rel="noopener noreferrer">{t.common.download}</a>
           </Button>
         </Card>
       )}
@@ -204,7 +205,7 @@ function LessonView({ block }: { block: Block }) {
       {!block.external_video_url && !block.video_url && !block.pdf_url && !block.pptx_url && !block.docx_url && (
         <Card className="p-12 text-center border-dashed">
           <Video className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground">No media uploaded for this lesson yet.</p>
+          <p className="text-muted-foreground">{t.courses.noMedia}</p>
         </Card>
       )}
     </div>
@@ -281,7 +282,7 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
 
   const startAttempt = () => {
     if (questions.length === 0) {
-      toast.error("No questions in this assessment yet");
+      toast.error("Bu qiymətləndirmədə hələ sual yoxdur");
       return;
     }
     setIdx(0);
@@ -309,7 +310,7 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
   }, [idx, questions, questionStart, results]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const finalize = async (allResults: ResultRow[]) => {
-    if (!user) { toast.error("Not signed in"); return; }
+    if (!user) { toast.error(t.common.notSignedIn); return; }
     setSubmitting(true);
     const correct = allResults.filter((r) => r.isCorrect).length;
     const total = allResults.length;
@@ -332,7 +333,7 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
       .select().single();
 
     if (error || !attempt) {
-      toast.error(error?.message ?? "Failed to save attempt");
+      toast.error(error?.message ?? "Cəhdi yadda saxlamaq mümkün olmadı");
       setSubmitting(false);
       return;
     }
@@ -382,15 +383,15 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
 
         <Card className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <Stat label="Questions" value={String(questions.length)} />
-            {timePer && <Stat label="Time per question" value={`${timePer}s`} icon={Clock} />}
+            <Stat label={t.common.questions} value={String(questions.length)} />
+            {timePer && <Stat label={t.common.timePerQuestion} value={`${timePer}s`} icon={Clock} />}
             {block.block_type === "final_exam" && (
-              <Stat label="Pass score" value={`${passingScore}%`} icon={Trophy} />
+              <Stat label={t.common.passScore} value={`${passingScore}%`} icon={Trophy} />
             )}
           </div>
           <Button size="lg" className="w-full" onClick={startAttempt} disabled={questions.length === 0}>
             <Play className="h-4 w-4 mr-2" />
-            {questions.length === 0 ? "No questions yet" : `Start ${meta[block.block_type].label}`}
+            {questions.length === 0 ? t.courses.noQuestionsYet : `${t.common.start} ${meta[block.block_type].label}`}
           </Button>
         </Card>
       </div>
@@ -403,7 +404,7 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
     return (
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-4 text-sm">
-          <span className="text-muted-foreground">Question {idx + 1} of {questions.length}</span>
+          <span className="text-muted-foreground">{t.common.questionOf} {idx + 1} {t.common.of} {questions.length}</span>
           {timePer && <span className="text-muted-foreground inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {timePer}s</span>}
         </div>
         <div className="h-1.5 w-full rounded-full bg-muted mb-6 overflow-hidden">
@@ -437,7 +438,7 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
             disabled={!selected || submitting}
             onClick={() => recordAndAdvance(selected)}
           >
-            {idx + 1 === questions.length ? "Finish" : "Next question"}
+            {idx + 1 === questions.length ? t.common.finish : t.common.nextQuestion}
           </Button>
         </Card>
       </div>
@@ -454,24 +455,24 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
       </div>
       <h1 className="font-display text-3xl font-bold mb-2">
         {block.block_type === "final_exam"
-          ? score.passed ? "Congratulations!" : "Not quite there"
-          : "Attempt complete"}
+          ? score.passed ? t.common.congrats : t.common.notQuiteThere
+          : t.common.attemptComplete}
       </h1>
       <p className="text-muted-foreground mb-6">
-        {score.correct} / {score.total} correct
+        {score.correct} / {score.total} {t.common.correct}
       </p>
       <Card className="p-6 mb-6">
         <div className="text-5xl font-display font-bold mb-1">{score.percent}%</div>
         <div className="text-sm text-muted-foreground">
-          {block.block_type === "final_exam" ? `Pass mark: ${passingScore}%` : "Score"}
+          {block.block_type === "final_exam" ? `${t.common.passScore}: ${passingScore}%` : "Bal"}
         </div>
       </Card>
       <div className="flex gap-3 justify-center">
         <Button variant="outline" onClick={() => { setStage("intro"); setScore(null); }}>
-          Try again
+          Yenidən cəhd et
         </Button>
         <Button asChild>
-          <Link to="/dashboard">Back to dashboard</Link>
+          <Link to="/dashboard">Ana səhifəyə qayıt</Link>
         </Button>
       </div>
     </div>
