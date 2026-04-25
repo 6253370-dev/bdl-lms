@@ -9,6 +9,7 @@ import {
   Trophy,
   ClipboardList,
   BarChart3,
+  MessageSquare,
   LogOut,
   Menu,
 } from "lucide-react";
