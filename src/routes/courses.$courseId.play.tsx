@@ -146,7 +146,7 @@ function CoursePlayer() {
         ) : active.block_type === "lesson" ? (
           <LessonView block={active} />
         ) : (
-          <AssessmentView key={active.id} block={active} courseId={course.id} coursePassingScore={course.passing_score} />
+          <AssessmentView key={active.id} block={active} course={course} />
         )}
       </section>
     </div>
