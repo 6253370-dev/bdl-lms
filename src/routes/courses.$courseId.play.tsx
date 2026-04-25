@@ -262,8 +262,10 @@ interface ResultRow {
   timeSpent: number;
 }
 
-function AssessmentView({ block, courseId, coursePassingScore }: { block: Block; courseId: string; coursePassingScore: number }) {
-  const { user } = useAuth();
+function AssessmentView({ block, course }: { block: Block; course: Course }) {
+  const { user, profile } = useAuth();
+  const courseId = course.id;
+  const coursePassingScore = course.passing_score;
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [stage, setStage] = useState<"intro" | "running" | "done">("intro");
@@ -273,6 +275,7 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
   const [questionStart, setQuestionStart] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState<{ correct: number; total: number; percent: number; passed: boolean } | null>(null);
+  const [certificate, setCertificate] = useState<{ serial: string; issued_at: string } | null>(null);
 
   const passingScore = block.block_type === "final_exam" ? (block.passing_score ?? coursePassingScore) : 0;
   const timePer = block.time_limit_seconds ?? null;
