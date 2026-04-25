@@ -7,11 +7,13 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, BookOpen, Dumbbell, FileQuestion, GraduationCap,
-  Loader2, CheckCircle2, XCircle, Play, Trophy, Clock, FileText, Video,
+  Loader2, CheckCircle2, XCircle, Play, Trophy, Clock, FileText, Video, Award,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
+import { LessonComments } from "@/components/LessonComments";
+import { downloadCertificate } from "@/lib/certificate";
 
 export const Route = createFileRoute("/courses/$courseId/play")({
   component: () => (
@@ -146,7 +148,7 @@ function CoursePlayer() {
         ) : active.block_type === "lesson" ? (
           <LessonView block={active} />
         ) : (
-          <AssessmentView key={active.id} block={active} courseId={course.id} coursePassingScore={course.passing_score} />
+          <AssessmentView key={active.id} block={active} course={course} />
         )}
       </section>
     </div>
@@ -154,6 +156,16 @@ function CoursePlayer() {
 }
 
 function LessonView({ block }: { block: Block }) {
+  // unwrap to allow full content + comments stacked
+  return (
+    <div className="space-y-6">
+      <LessonContent block={block} />
+      <LessonComments blockId={block.id} courseId={block.course_id} />
+    </div>
+  );
+}
+
+function LessonContent({ block }: { block: Block }) {
   return (
     <div className="space-y-6">
       <div>
@@ -250,8 +262,10 @@ interface ResultRow {
   timeSpent: number;
 }
 
-function AssessmentView({ block, courseId, coursePassingScore }: { block: Block; courseId: string; coursePassingScore: number }) {
-  const { user } = useAuth();
+function AssessmentView({ block, course }: { block: Block; course: Course }) {
+  const { user, profile } = useAuth();
+  const courseId = course.id;
+  const coursePassingScore = course.passing_score;
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [stage, setStage] = useState<"intro" | "running" | "done">("intro");
@@ -261,6 +275,7 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
   const [questionStart, setQuestionStart] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState<{ correct: number; total: number; percent: number; passed: boolean } | null>(null);
+  const [certificate, setCertificate] = useState<{ serial: string; issued_at: string } | null>(null);
 
   const passingScore = block.block_type === "final_exam" ? (block.passing_score ?? coursePassingScore) : 0;
   const timePer = block.time_limit_seconds ?? null;
@@ -360,6 +375,39 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
     setScore({ correct, total, percent, passed });
     setStage("done");
     setSubmitting(false);
+
+    // Issue certificate when final exam is passed
+    if (block.block_type === "final_exam" && passed && profile) {
+      // Upsert: only one certificate per user/course (UNIQUE constraint)
+      const { data: existing } = await supabase
+        .from("certificates")
+        .select("serial, issued_at")
+        .eq("user_id", user.id)
+        .eq("course_id", courseId)
+        .maybeSingle();
+
+      if (existing) {
+        setCertificate(existing as { serial: string; issued_at: string });
+      } else {
+        const { data: cert, error: cErr } = await supabase
+          .from("certificates")
+          .insert({
+            user_id: user.id,
+            course_id: courseId,
+            full_name: profile.full_name,
+            course_title: course.title,
+            score_percent: percent,
+          })
+          .select("serial, issued_at")
+          .single();
+        if (cErr) {
+          toast.error(cErr.message);
+        } else if (cert) {
+          setCertificate(cert as { serial: string; issued_at: string });
+          toast.success(t.cert.issuedToast);
+        }
+      }
+    }
   };
 
   // Per-question timer
@@ -473,6 +521,33 @@ function AssessmentView({ block, courseId, coursePassingScore }: { block: Block;
           {block.block_type === "final_exam" ? `${t.common.passScore}: ${passingScore}%` : "Bal"}
         </div>
       </Card>
+
+      {certificate && profile && (
+        <Card className="p-5 mb-6 border-primary/30 bg-primary/5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-10 w-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+              <Award className="h-5 w-5" />
+            </div>
+            <div className="text-left">
+              <div className="font-display font-semibold">{t.cert.title}</div>
+              <div className="text-xs text-muted-foreground">{t.cert.serial}: {certificate.serial}</div>
+            </div>
+          </div>
+          <Button
+            className="w-full"
+            onClick={() => downloadCertificate({
+              fullName: profile.full_name,
+              courseTitle: course.title,
+              scorePercent: score.percent,
+              serial: certificate.serial,
+              issuedAt: certificate.issued_at,
+            })}
+          >
+            <Award className="h-4 w-4 mr-2" /> {t.cert.download}
+          </Button>
+        </Card>
+      )}
+
       <div className="flex gap-3 justify-center">
         <Button variant="outline" onClick={() => { setStage("intro"); setScore(null); }}>
           Yenidən cəhd et

@@ -124,4 +124,49 @@ export const t = {
     lesson: "DƏRS",
     wordDoc: "Word sənədi",
   },
+
+  // Comments
+  comments: {
+    title: "Şəxsi şərhlər",
+    subtitle: "Yalnız sən və admin görür.",
+    placeholder: "Sual ver və ya rəy yaz...",
+    send: "Göndər",
+    empty: "Hələ şərh yoxdur.",
+    you: "Sən",
+    admin: "Admin",
+    reply: "Cavab yaz",
+    delete: "Sil",
+  },
+
+  // Certificates
+  cert: {
+    title: "Sertifikat",
+    issued: "Verilib",
+    serial: "Seriya",
+    download: "Sertifikatı yüklə",
+    generating: "Hazırlanır...",
+    issuedToast: "Təbriklər! Sertifikatın yaradıldı.",
+    notReady: "Sertifikat yalnız son imtahanı keçdikdən sonra mövcuddur.",
+    heading: "TƏLİM SERTİFİKATI",
+    presentedTo: "Bu sertifikat təqdim olunur",
+    forCompleting: "aşağıdakı kursu uğurla tamamladığı üçün:",
+    score: "Nəticə",
+    date: "Tarix",
+    signature: "BE Academy",
+    myCerts: "Mənim sertifikatlarım",
+    noneYet: "Hələ sertifikat qazanmamısan.",
+  },
+
+  // Champions
+  champions: {
+    title: "Çempionlar",
+    subtitle: "Hər kurs üzrə top-5 nəticə.",
+    selectCourse: "Kurs seç",
+    rank: "Sıra",
+    name: "Ad",
+    score: "Bal",
+    time: "Vaxt",
+    noResults: "Bu kurs üçün hələ nəticə yoxdur.",
+    you: "Sən",
+  },
 } as const;
