@@ -13,6 +13,7 @@ export const t = {
     champions: "Çempionlar",
     reports: "Hesabatlar",
     users: "İstifadəçilər",
+    adminComments: "Şərhlər",
     signOut: "Çıxış",
   },
 
