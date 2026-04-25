@@ -521,6 +521,33 @@ function AssessmentView({ block, course }: { block: Block; course: Course }) {
           {block.block_type === "final_exam" ? `${t.common.passScore}: ${passingScore}%` : "Bal"}
         </div>
       </Card>
+
+      {certificate && profile && (
+        <Card className="p-5 mb-6 border-primary/30 bg-primary/5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-10 w-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+              <Award className="h-5 w-5" />
+            </div>
+            <div className="text-left">
+              <div className="font-display font-semibold">{t.cert.title}</div>
+              <div className="text-xs text-muted-foreground">{t.cert.serial}: {certificate.serial}</div>
+            </div>
+          </div>
+          <Button
+            className="w-full"
+            onClick={() => downloadCertificate({
+              fullName: profile.full_name,
+              courseTitle: course.title,
+              scorePercent: score.percent,
+              serial: certificate.serial,
+              issuedAt: certificate.issued_at,
+            })}
+          >
+            <Award className="h-4 w-4 mr-2" /> {t.cert.download}
+          </Button>
+        </Card>
+      )}
+
       <div className="flex gap-3 justify-center">
         <Button variant="outline" onClick={() => { setStage("intro"); setScore(null); }}>
           Yenidən cəhd et
