@@ -152,6 +152,39 @@ export type Database = {
           },
         ]
       }
+      certificates: {
+        Row: {
+          course_id: string
+          course_title: string
+          full_name: string
+          id: string
+          issued_at: string
+          score_percent: number
+          serial: string
+          user_id: string
+        }
+        Insert: {
+          course_id: string
+          course_title: string
+          full_name: string
+          id?: string
+          issued_at?: string
+          score_percent?: number
+          serial?: string
+          user_id: string
+        }
+        Update: {
+          course_id?: string
+          course_title?: string
+          full_name?: string
+          id?: string
+          issued_at?: string
+          score_percent?: number
+          serial?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       course_blocks: {
         Row: {
           block_type: Database["public"]["Enums"]["block_type"]
@@ -292,6 +325,47 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_comments: {
+        Row: {
+          author_id: string
+          block_id: string
+          body: string
+          course_id: string
+          created_at: string
+          id: string
+          parent_id: string | null
+          user_id: string
+        }
+        Insert: {
+          author_id: string
+          block_id: string
+          body: string
+          course_id: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          user_id: string
+        }
+        Update: {
+          author_id?: string
+          block_id?: string
+          body?: string
+          course_id?: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_comments"
             referencedColumns: ["id"]
           },
         ]
