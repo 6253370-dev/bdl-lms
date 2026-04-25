@@ -156,6 +156,16 @@ function CoursePlayer() {
 }
 
 function LessonView({ block }: { block: Block }) {
+  // unwrap to allow full content + comments stacked
+  return (
+    <div className="space-y-6">
+      <LessonContent block={block} />
+      <LessonComments blockId={block.id} courseId={block.course_id} />
+    </div>
+  );
+}
+
+function LessonContent({ block }: { block: Block }) {
   return (
     <div className="space-y-6">
       <div>
