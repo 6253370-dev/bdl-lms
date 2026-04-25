@@ -7,11 +7,13 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, BookOpen, Dumbbell, FileQuestion, GraduationCap,
-  Loader2, CheckCircle2, XCircle, Play, Trophy, Clock, FileText, Video,
+  Loader2, CheckCircle2, XCircle, Play, Trophy, Clock, FileText, Video, Award,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
+import { LessonComments } from "@/components/LessonComments";
+import { downloadCertificate } from "@/lib/certificate";
 
 export const Route = createFileRoute("/courses/$courseId/play")({
   component: () => (
