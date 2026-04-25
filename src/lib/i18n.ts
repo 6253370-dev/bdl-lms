@@ -11,6 +11,7 @@ export const t = {
     exams: "İmtahanlar",
     quiz: "Quiz",
     champions: "Çempionlar",
+    certificates: "Sertifikatlar",
     reports: "Hesabatlar",
     users: "İstifadəçilər",
     adminComments: "Şərhlər",
