@@ -13,6 +13,7 @@ export const t = {
     champions: "Çempionlar",
     reports: "Hesabatlar",
     users: "İstifadəçilər",
+    adminComments: "Şərhlər",
     signOut: "Çıxış",
   },
 
@@ -136,6 +137,15 @@ export const t = {
     admin: "Admin",
     reply: "Cavab yaz",
     delete: "Sil",
+    adminTitle: "İstifadəçi şərhləri",
+    adminSubtitle: "Bütün açıq söhbətlərə cavab ver.",
+    adminEmpty: "Hələ heç bir şərh yoxdur.",
+    inThread: "söhbət",
+    lastMessage: "Son mesaj",
+    selectThread: "Sol tərəfdən bir söhbət seç.",
+    replyPlaceholder: "Cavabını yaz...",
+    course: "Kurs",
+    lesson: "Dərs",
   },
 
   // Certificates

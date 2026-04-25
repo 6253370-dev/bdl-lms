@@ -9,6 +9,7 @@ import {
   Trophy,
   ClipboardList,
   BarChart3,
+  MessageSquare,
   LogOut,
   Menu,
 } from "lucide-react";
@@ -30,6 +31,7 @@ const NAV: NavItem[] = [
   { to: "/exams", label: t.nav.exams, icon: ClipboardList },
   { to: "/quiz", label: t.nav.quiz, icon: FileQuestion },
   { to: "/champions", label: t.nav.champions, icon: Trophy },
+  { to: "/admin/comments", label: t.nav.adminComments, icon: MessageSquare, adminOnly: true },
   { to: "/reports", label: t.nav.reports, icon: BarChart3, adminOnly: true },
   { to: "/users", label: t.nav.users, icon: Users, adminOnly: true },
 ];
