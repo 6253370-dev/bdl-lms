@@ -375,6 +375,39 @@ function AssessmentView({ block, course }: { block: Block; course: Course }) {
     setScore({ correct, total, percent, passed });
     setStage("done");
     setSubmitting(false);
+
+    // Issue certificate when final exam is passed
+    if (block.block_type === "final_exam" && passed && profile) {
+      // Upsert: only one certificate per user/course (UNIQUE constraint)
+      const { data: existing } = await supabase
+        .from("certificates")
+        .select("serial, issued_at")
+        .eq("user_id", user.id)
+        .eq("course_id", courseId)
+        .maybeSingle();
+
+      if (existing) {
+        setCertificate(existing as { serial: string; issued_at: string });
+      } else {
+        const { data: cert, error: cErr } = await supabase
+          .from("certificates")
+          .insert({
+            user_id: user.id,
+            course_id: courseId,
+            full_name: profile.full_name,
+            course_title: course.title,
+            score_percent: percent,
+          })
+          .select("serial, issued_at")
+          .single();
+        if (cErr) {
+          toast.error(cErr.message);
+        } else if (cert) {
+          setCertificate(cert as { serial: string; issued_at: string });
+          toast.success(t.cert.issuedToast);
+        }
+      }
+    }
   };
 
   // Per-question timer
