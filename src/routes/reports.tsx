@@ -255,10 +255,10 @@ function ReportsPage() {
       {/* Per-course accordion */}
       <Card className="p-4">
         <h2 className="font-display font-semibold flex items-center gap-2 mb-3">
-          <BookOpen className="h-4 w-4 text-primary" /> Courses
+          <BookOpen className="h-4 w-4 text-primary" /> {t.reports.courses}
         </h2>
         {courses.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No courses yet.</p>
+          <p className="text-sm text-muted-foreground">{t.reports.noCourses}</p>
         ) : (
           <Accordion type="multiple" className="w-full">
             {courses.map((c) => {
@@ -279,10 +279,10 @@ function ReportsPage() {
       {/* Per-exam accordion */}
       <Card className="p-4">
         <h2 className="font-display font-semibold flex items-center gap-2 mb-3">
-          <ClipboardList className="h-4 w-4 text-primary" /> Standalone Exams
+          <ClipboardList className="h-4 w-4 text-primary" /> {t.reports.standaloneExams}
         </h2>
         {exams.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No exams yet.</p>
+          <p className="text-sm text-muted-foreground">{t.reports.noExams}</p>
         ) : (
           <Accordion type="multiple" className="w-full">
             {exams.map((e) => {
