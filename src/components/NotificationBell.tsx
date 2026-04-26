@@ -51,8 +51,8 @@ export function NotificationBell() {
   useEffect(() => {
     load();
     if (!user) return;
-    const channel = supabase
-      .channel(`notifications:${user.id}`)
+    const channel = supabase.channel(`notifications-${user.id}-${Date.now()}`);
+    channel
       .on(
         "postgres_changes",
         {
