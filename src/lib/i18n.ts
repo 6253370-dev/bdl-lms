@@ -175,6 +175,51 @@ export const t = {
     markAllRead: "Hamısını oxu",
   },
 
+  // Reports
+  reports: {
+    title: "Hesabatlar",
+    subtitle: "Cəhdləri istifadəçi, status və tarix aralığına görə süz. Kurs və imtahanlar üzrə analitikaya bax.",
+    exportCsv: "CSV ixrac et",
+    from: "Tarixdən",
+    to: "Tarixə qədər",
+    user: "İstifadəçi",
+    status: "Status",
+    allUsers: "Bütün istifadəçilər",
+    all: "Hamısı",
+    passed: "Keçib",
+    failed: "Keçməyib",
+    attempts: "Cəhdlər",
+    avgScore: "Orta bal",
+    courses: "Kurslar",
+    standaloneExams: "Müstəqil imtahanlar",
+    noCourses: "Hələ kurs yoxdur.",
+    noExams: "Hələ imtahan yoxdur.",
+    noAttemptsFilter: "Bu süzgəcdə cəhd yoxdur.",
+    employee: "Əməkdaş",
+    name: "Ad",
+    score: "Bal",
+    time: "Vaxt",
+    date: "Tarix",
+    uniqueUsers: "istifadəçi",
+    inAttempts: "cəhd",
+    inPassed: "keçib",
+  },
+
+  // Folders
+  folders: {
+    all: "Bütün kurslar",
+    uncategorized: "Kateqoriyasız",
+    new: "Yeni qovluq",
+    name: "Qovluq adı",
+    create: "Yarat",
+    rename: "Adını dəyiş",
+    delete: "Sil",
+    moveTo: "Qovluğa köçür",
+    search: "Kurs axtar...",
+    noResults: "Heç bir kurs tapılmadı.",
+    confirmDelete: "Bu qovluğu silmək istədiyinizə əminsiniz? Daxilindəki kurslar 'Kateqoriyasız'a köçəcək.",
+  },
+
   // Champions
   champions: {
     title: "Çempionlar",
