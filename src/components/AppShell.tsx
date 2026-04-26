@@ -140,6 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="ml-3 font-display font-bold">{t.brand}</div>
+          <div className="ml-auto"><NotificationBell /></div>
         </header>
         <main className="flex-1 overflow-x-hidden">{children}</main>
       </div>
