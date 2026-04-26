@@ -453,7 +453,7 @@ function AttemptsTable({
               <td className="p-2 text-right font-medium">{r.score}%</td>
               <td className="p-2">
                 <Badge variant={r.passed ? "default" : "destructive"}>
-                  {r.passed ? "Passed" : "Failed"}
+                  {r.passed ? t.reports.passed : t.reports.failed}
                 </Badge>
               </td>
               <td className="p-2 text-right text-xs text-muted-foreground">
