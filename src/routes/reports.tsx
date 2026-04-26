@@ -194,14 +194,14 @@ function ReportsPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold mb-1 flex items-center gap-2">
-            <BarChart3 className="h-7 w-7 text-primary" /> Reports
+            <BarChart3 className="h-7 w-7 text-primary" /> {t.reports.title}
           </h1>
           <p className="text-muted-foreground">
-            Filter attempts by user, status, and date range. Drill into per-course or per-exam analytics.
+            {t.reports.subtitle}
           </p>
         </div>
         <Button onClick={exportCSV}>
-          <Download className="h-4 w-4" /> Export CSV
+          <Download className="h-4 w-4" /> {t.reports.exportCsv}
         </Button>
       </div>
 
