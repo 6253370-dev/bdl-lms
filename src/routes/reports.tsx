@@ -31,6 +31,7 @@ import {
   BookOpen,
   ClipboardList,
 } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/reports")({
   component: () => (
@@ -193,14 +194,14 @@ function ReportsPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold mb-1 flex items-center gap-2">
-            <BarChart3 className="h-7 w-7 text-primary" /> Reports
+            <BarChart3 className="h-7 w-7 text-primary" /> {t.reports.title}
           </h1>
           <p className="text-muted-foreground">
-            Filter attempts by user, status, and date range. Drill into per-course or per-exam analytics.
+            {t.reports.subtitle}
           </p>
         </div>
         <Button onClick={exportCSV}>
-          <Download className="h-4 w-4" /> Export CSV
+          <Download className="h-4 w-4" /> {t.reports.exportCsv}
         </Button>
       </div>
 
@@ -208,19 +209,19 @@ function ReportsPage() {
       <Card className="p-4">
         <div className="grid gap-3 md:grid-cols-4">
           <div className="grid gap-1.5">
-            <Label className="text-xs">From</Label>
+            <Label className="text-xs">{t.reports.from}</Label>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
           <div className="grid gap-1.5">
-            <Label className="text-xs">To</Label>
+            <Label className="text-xs">{t.reports.to}</Label>
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
           <div className="grid gap-1.5">
-            <Label className="text-xs">User</Label>
+            <Label className="text-xs">{t.reports.user}</Label>
             <Select value={userFilter} onValueChange={setUserFilter}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All users</SelectItem>
+                <SelectItem value="all">{t.reports.allUsers}</SelectItem>
                 {profiles.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.full_name} ({p.employee_id})
@@ -230,13 +231,13 @@ function ReportsPage() {
             </Select>
           </div>
           <div className="grid gap-1.5">
-            <Label className="text-xs">Status</Label>
+            <Label className="text-xs">{t.reports.status}</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="passed">Passed</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="all">{t.reports.all}</SelectItem>
+                <SelectItem value="passed">{t.reports.passed}</SelectItem>
+                <SelectItem value="failed">{t.reports.failed}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -245,19 +246,19 @@ function ReportsPage() {
 
       {/* KPIs */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Kpi icon={TrendingUp} label="Attempts" value={totals.total} tone="primary" />
-        <Kpi icon={CheckCircle2} label="Passed" value={totals.passed} tone="success" />
-        <Kpi icon={XCircle} label="Failed" value={totals.failed} tone="destructive" />
-        <Kpi icon={BarChart3} label="Avg score" value={`${totals.avg}%`} tone="accent" />
+        <Kpi icon={TrendingUp} label={t.reports.attempts} value={totals.total} tone="primary" />
+        <Kpi icon={CheckCircle2} label={t.reports.passed} value={totals.passed} tone="success" />
+        <Kpi icon={XCircle} label={t.reports.failed} value={totals.failed} tone="destructive" />
+        <Kpi icon={BarChart3} label={t.reports.avgScore} value={`${totals.avg}%`} tone="accent" />
       </div>
 
       {/* Per-course accordion */}
       <Card className="p-4">
         <h2 className="font-display font-semibold flex items-center gap-2 mb-3">
-          <BookOpen className="h-4 w-4 text-primary" /> Courses
+          <BookOpen className="h-4 w-4 text-primary" /> {t.reports.courses}
         </h2>
         {courses.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No courses yet.</p>
+          <p className="text-sm text-muted-foreground">{t.reports.noCourses}</p>
         ) : (
           <Accordion type="multiple" className="w-full">
             {courses.map((c) => {
@@ -278,10 +279,10 @@ function ReportsPage() {
       {/* Per-exam accordion */}
       <Card className="p-4">
         <h2 className="font-display font-semibold flex items-center gap-2 mb-3">
-          <ClipboardList className="h-4 w-4 text-primary" /> Standalone Exams
+          <ClipboardList className="h-4 w-4 text-primary" /> {t.reports.standaloneExams}
         </h2>
         {exams.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No exams yet.</p>
+          <p className="text-sm text-muted-foreground">{t.reports.noExams}</p>
         ) : (
           <Accordion type="multiple" className="w-full">
             {exams.map((e) => {
@@ -356,14 +357,14 @@ function CourseRow({
             <UsersIcon className="h-3 w-3" /> {uniqueUsers}
           </div>
           <div className="text-xs text-muted-foreground">
-            {attempts.length} attempts · {passed} passed
+            {attempts.length} {t.reports.inAttempts} · {passed} {t.reports.inPassed}
           </div>
-          <div className="text-xs font-medium">Avg {stats.avg}%</div>
+          <div className="text-xs font-medium">{t.reports.avgScore} {stats.avg}%</div>
         </div>
       </AccordionTrigger>
       <AccordionContent>
         {attempts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">No attempts in current filter.</p>
+          <p className="text-sm text-muted-foreground py-2">{t.reports.noAttemptsFilter}</p>
         ) : (
           <AttemptsTable
             rows={attempts.map((a) => ({
@@ -402,14 +403,14 @@ function ExamRow({
             <UsersIcon className="h-3 w-3" /> {uniqueUsers}
           </div>
           <div className="text-xs text-muted-foreground">
-            {attempts.length} attempts · {passed} passed
+            {attempts.length} {t.reports.inAttempts} · {passed} {t.reports.inPassed}
           </div>
-          <div className="text-xs font-medium">Avg {stats.avg}%</div>
+          <div className="text-xs font-medium">{t.reports.avgScore} {stats.avg}%</div>
         </div>
       </AccordionTrigger>
       <AccordionContent>
         {attempts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">No attempts in current filter.</p>
+          <p className="text-sm text-muted-foreground py-2">{t.reports.noAttemptsFilter}</p>
         ) : (
           <AttemptsTable
             rows={attempts.map((a) => ({
@@ -436,12 +437,12 @@ function AttemptsTable({
       <table className="w-full text-sm">
         <thead className="bg-muted/50">
           <tr className="text-left">
-            <th className="p-2">Employee</th>
-            <th className="p-2">Name</th>
-            <th className="p-2 text-right">Score</th>
-            <th className="p-2">Status</th>
-            <th className="p-2 text-right">Time</th>
-            <th className="p-2">Date</th>
+            <th className="p-2">{t.reports.employee}</th>
+            <th className="p-2">{t.reports.name}</th>
+            <th className="p-2 text-right">{t.reports.score}</th>
+            <th className="p-2">{t.reports.status}</th>
+            <th className="p-2 text-right">{t.reports.time}</th>
+            <th className="p-2">{t.reports.date}</th>
           </tr>
         </thead>
         <tbody>
@@ -452,7 +453,7 @@ function AttemptsTable({
               <td className="p-2 text-right font-medium">{r.score}%</td>
               <td className="p-2">
                 <Badge variant={r.passed ? "default" : "destructive"}>
-                  {r.passed ? "Passed" : "Failed"}
+                  {r.passed ? t.reports.passed : t.reports.failed}
                 </Badge>
               </td>
               <td className="p-2 text-right text-xs text-muted-foreground">
