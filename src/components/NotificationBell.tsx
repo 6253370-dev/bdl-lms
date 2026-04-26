@@ -51,19 +51,31 @@ export function NotificationBell() {
   useEffect(() => {
     load();
     if (!user) return;
-    const channel = supabase.channel(`notifications-${user.id}-${Date.now()}`);
-    channel
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => load(),
-      )
-      .subscribe();
+
+    const channelId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    const channel = supabase.channel(`notifications-${user.id}-${channelId}`);
+
+    try {
+      channel
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => load(),
+        )
+        .subscribe();
+    } catch (error) {
+      console.error("Notification realtime setup failed", error);
+    }
+
     return () => {
       supabase.removeChannel(channel);
     };
