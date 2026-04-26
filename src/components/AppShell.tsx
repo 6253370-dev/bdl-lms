@@ -15,6 +15,7 @@ import {
   Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
@@ -113,6 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 ID {profile?.employee_id} · {roleLabel}
               </div>
             </div>
+            <NotificationBell />
           </div>
           <Button
             variant="ghost"
@@ -138,6 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu className="h-5 w-5" />
           </Button>
           <div className="ml-3 font-display font-bold">{t.brand}</div>
+          <div className="ml-auto"><NotificationBell /></div>
         </header>
         <main className="flex-1 overflow-x-hidden">{children}</main>
       </div>

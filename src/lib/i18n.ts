@@ -168,6 +168,13 @@ export const t = {
     noneYet: "Hələ sertifikat qazanmamısan.",
   },
 
+  // Notifications
+  notifications: {
+    title: "Bildirişlər",
+    empty: "Hələ bildiriş yoxdur.",
+    markAllRead: "Hamısını oxu",
+  },
+
   // Champions
   champions: {
     title: "Çempionlar",
