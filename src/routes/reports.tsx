@@ -437,12 +437,12 @@ function AttemptsTable({
       <table className="w-full text-sm">
         <thead className="bg-muted/50">
           <tr className="text-left">
-            <th className="p-2">Employee</th>
-            <th className="p-2">Name</th>
-            <th className="p-2 text-right">Score</th>
-            <th className="p-2">Status</th>
-            <th className="p-2 text-right">Time</th>
-            <th className="p-2">Date</th>
+            <th className="p-2">{t.reports.employee}</th>
+            <th className="p-2">{t.reports.name}</th>
+            <th className="p-2 text-right">{t.reports.score}</th>
+            <th className="p-2">{t.reports.status}</th>
+            <th className="p-2 text-right">{t.reports.time}</th>
+            <th className="p-2">{t.reports.date}</th>
           </tr>
         </thead>
         <tbody>
