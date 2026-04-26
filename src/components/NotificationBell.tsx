@@ -51,21 +51,9 @@ export function NotificationBell() {
   useEffect(() => {
     load();
     if (!user) return;
-    const channel = supabase.channel(`notifications-${user.id}-${Date.now()}`);
-    channel
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => load(),
-      )
-      .subscribe();
+    const intervalId = window.setInterval(load, 30000);
     return () => {
-      supabase.removeChannel(channel);
+      window.clearInterval(intervalId);
     };
   }, [user, load]);
 
