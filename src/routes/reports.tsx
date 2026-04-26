@@ -357,14 +357,14 @@ function CourseRow({
             <UsersIcon className="h-3 w-3" /> {uniqueUsers}
           </div>
           <div className="text-xs text-muted-foreground">
-            {attempts.length} attempts · {passed} passed
+            {attempts.length} {t.reports.inAttempts} · {passed} {t.reports.inPassed}
           </div>
-          <div className="text-xs font-medium">Avg {stats.avg}%</div>
+          <div className="text-xs font-medium">{t.reports.avgScore} {stats.avg}%</div>
         </div>
       </AccordionTrigger>
       <AccordionContent>
         {attempts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-2">No attempts in current filter.</p>
+          <p className="text-sm text-muted-foreground py-2">{t.reports.noAttemptsFilter}</p>
         ) : (
           <AttemptsTable
             rows={attempts.map((a) => ({
