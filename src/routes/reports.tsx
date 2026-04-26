@@ -30,7 +30,7 @@ import {
   XCircle,
   BookOpen,
   ClipboardList,
-} from "lucide-react";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/reports")({
   component: () => (
