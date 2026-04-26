@@ -114,6 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 ID {profile?.employee_id} · {roleLabel}
               </div>
             </div>
+            <NotificationBell />
           </div>
           <Button
             variant="ghost"
