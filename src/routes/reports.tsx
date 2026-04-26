@@ -209,19 +209,19 @@ function ReportsPage() {
       <Card className="p-4">
         <div className="grid gap-3 md:grid-cols-4">
           <div className="grid gap-1.5">
-            <Label className="text-xs">From</Label>
+            <Label className="text-xs">{t.reports.from}</Label>
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
           <div className="grid gap-1.5">
-            <Label className="text-xs">To</Label>
+            <Label className="text-xs">{t.reports.to}</Label>
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
           <div className="grid gap-1.5">
-            <Label className="text-xs">User</Label>
+            <Label className="text-xs">{t.reports.user}</Label>
             <Select value={userFilter} onValueChange={setUserFilter}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All users</SelectItem>
+                <SelectItem value="all">{t.reports.allUsers}</SelectItem>
                 {profiles.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.full_name} ({p.employee_id})
@@ -231,13 +231,13 @@ function ReportsPage() {
             </Select>
           </div>
           <div className="grid gap-1.5">
-            <Label className="text-xs">Status</Label>
+            <Label className="text-xs">{t.reports.status}</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="passed">Passed</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="all">{t.reports.all}</SelectItem>
+                <SelectItem value="passed">{t.reports.passed}</SelectItem>
+                <SelectItem value="failed">{t.reports.failed}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -246,10 +246,10 @@ function ReportsPage() {
 
       {/* KPIs */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Kpi icon={TrendingUp} label="Attempts" value={totals.total} tone="primary" />
-        <Kpi icon={CheckCircle2} label="Passed" value={totals.passed} tone="success" />
-        <Kpi icon={XCircle} label="Failed" value={totals.failed} tone="destructive" />
-        <Kpi icon={BarChart3} label="Avg score" value={`${totals.avg}%`} tone="accent" />
+        <Kpi icon={TrendingUp} label={t.reports.attempts} value={totals.total} tone="primary" />
+        <Kpi icon={CheckCircle2} label={t.reports.passed} value={totals.passed} tone="success" />
+        <Kpi icon={XCircle} label={t.reports.failed} value={totals.failed} tone="destructive" />
+        <Kpi icon={BarChart3} label={t.reports.avgScore} value={`${totals.avg}%`} tone="accent" />
       </div>
 
       {/* Per-course accordion */}
