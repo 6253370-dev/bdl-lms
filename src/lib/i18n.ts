@@ -75,8 +75,16 @@ export const t = {
     subtitle: "Təlim platformanızda baş verənlər.",
     courses: "Kurslar",
     exams: "İmtahanlar",
+    quizzes: "Quizlər",
     certificates: "Sertifikatlar",
     totalUsers: "İstifadəçi sayı",
+    avgScore: "Orta bal",
+    passRate: "Keçmə nisbəti",
+    attempts: "Cəhdlər",
+    recentlyViewed: "Son baxılan kurslar",
+    noRecent: "Hələ heç bir kursa baxmamısınız.",
+    topCourses: "Ən aktiv kurslar",
+    topUsers: "Ən aktiv istifadəçilər",
     moreSoon: "Daha çox tezliklə",
     moreSoonDesc: "Kurslar üzrə akkordeon kartları, orta imtahan balları, lider istifadəçilər və analitika burada görünəcək.",
   },
@@ -179,7 +187,7 @@ export const t = {
   reports: {
     title: "Hesabatlar",
     subtitle: "Cəhdləri istifadəçi, status və tarix aralığına görə süz. Kurs və imtahanlar üzrə analitikaya bax.",
-    exportCsv: "CSV ixrac et",
+    exportCsv: "Excel ixrac et",
     from: "Tarixdən",
     to: "Tarixə qədər",
     user: "İstifadəçi",
@@ -218,6 +226,41 @@ export const t = {
     search: "Kurs axtar...",
     noResults: "Heç bir kurs tapılmadı.",
     confirmDelete: "Bu qovluğu silmək istədiyinizə əminsiniz? Daxilindəki kurslar 'Kateqoriyasız'a köçəcək.",
+  },
+
+  // Users / Access
+  users: {
+    title: "İstifadəçilər",
+    search: "Ad, ID və ya e-mail axtar...",
+    view: "Bax",
+    edit: "Redaktə et",
+    delete: "Sil",
+    new: "Yeni istifadəçi",
+    confirmPassword: "Şifrəni təsdiq et",
+    passwordMismatch: "Şifrələr uyğun gəlmir",
+    accessTitle: "Kursa giriş",
+    accessHint: "Boş buraxılarsa istifadəçi bütün kursları görə bilər. Qovluq seçilərsə daxilindəki bütün kurslar açılır.",
+    selectFolders: "Qovluqlar",
+    selectCourses: "Tək kurslar",
+    save: "Yadda saxla",
+    details: "Ümumi baxış",
+  },
+
+  // Quiz extras
+  quizExtras: {
+    search: "Quiz axtar...",
+    confirmDelete: "Bu quizi silmək istədiyinizə əminsiniz?",
+  },
+
+  // Exam extras
+  examExtras: {
+    confirmDelete: "Bu imtahanı silmək istədiyinizə əminsiniz?",
+  },
+
+  // Course extras
+  courseExtras: {
+    confirmDelete: "Bu kursu və bütün məzmununu silmək istədiyinizə əminsiniz?",
+    delete: "Kursu sil",
   },
 
   // Champions

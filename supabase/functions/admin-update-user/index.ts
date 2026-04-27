@@ -1,4 +1,4 @@
-// Update user (roles, phone, password). Requires admin or super_admin.
+// Update user (roles, phone, password, email, employee_id, full_name). Requires admin or super_admin.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
@@ -23,18 +23,30 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: callerRoles } = await admin.from("user_roles").select("role").eq("user_id", user.id);
     const isAdmin = callerRoles?.some((r) => ["admin", "super_admin"].includes(r.role));
+    const isSuper = callerRoles?.some((r) => r.role === "super_admin");
     if (!isAdmin) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
-    const { user_id, phone, password, roles, full_name } = await req.json();
+    const { user_id, phone, password, roles, full_name, email, employee_id } = await req.json();
     if (!user_id) throw new Error("user_id required");
 
     if (password) {
       const { error } = await admin.auth.admin.updateUserById(user_id, { password });
       if (error) throw error;
     }
+    // Email update: super_admin only (touches auth.users)
+    if (email !== undefined) {
+      if (!isSuper) throw new Error("Only super_admin can change email");
+      const { error } = await admin.auth.admin.updateUserById(user_id, { email, email_confirm: true });
+      if (error) throw error;
+    }
     const profileUpdates: Record<string, unknown> = {};
     if (phone !== undefined) profileUpdates.phone = phone;
     if (full_name !== undefined) profileUpdates.full_name = full_name;
+    if (email !== undefined) profileUpdates.email = email;
+    if (employee_id !== undefined) {
+      if (!isSuper) throw new Error("Only super_admin can change Employee ID");
+      profileUpdates.employee_id = employee_id;
+    }
     if (Object.keys(profileUpdates).length > 0) {
       const { error } = await admin.from("profiles").update(profileUpdates).eq("id", user_id);
       if (error) throw error;
