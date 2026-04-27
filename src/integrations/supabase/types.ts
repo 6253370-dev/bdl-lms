@@ -247,6 +247,27 @@ export type Database = {
           },
         ]
       }
+      course_views: {
+        Row: {
+          course_id: string
+          id: string
+          user_id: string
+          viewed_at: string
+        }
+        Insert: {
+          course_id: string
+          id?: string
+          user_id: string
+          viewed_at?: string
+        }
+        Update: {
+          course_id?: string
+          id?: string
+          user_id?: string
+          viewed_at?: string
+        }
+        Relationships: []
+      }
       courses: {
         Row: {
           certificate_template_url: string | null
@@ -806,6 +827,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_course_access: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_folder_access: {
+        Row: {
+          created_at: string
+          folder_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          folder_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          folder_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -844,6 +907,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_super: { Args: { _user_id: string }; Returns: boolean }
+      user_can_view_course: {
+        Args: { _course_id: string; _user_id: string }
+        Returns: boolean
+      }
       verify_exam_password: {
         Args: { _exam_id: string; _password: string }
         Returns: boolean
