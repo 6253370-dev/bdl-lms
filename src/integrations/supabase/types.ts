@@ -468,6 +468,156 @@ export type Database = {
           },
         ]
       }
+      quiz_answers: {
+        Row: {
+          id: string
+          is_correct: boolean
+          position: number
+          question_id: string
+          text: string
+        }
+        Insert: {
+          id?: string
+          is_correct?: boolean
+          position?: number
+          question_id: string
+          text: string
+        }
+        Update: {
+          id?: string
+          is_correct?: boolean
+          position?: number
+          question_id?: string
+          text?: string
+        }
+        Relationships: []
+      }
+      quiz_attempts: {
+        Row: {
+          correct_count: number
+          created_at: string
+          duration_seconds: number
+          id: string
+          passed: boolean
+          quiz_id: string
+          score_percent: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          correct_count?: number
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          passed?: boolean
+          quiz_id: string
+          score_percent?: number
+          total_questions?: number
+          user_id: string
+        }
+        Update: {
+          correct_count?: number
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          passed?: boolean
+          quiz_id?: string
+          score_percent?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quiz_questions: {
+        Row: {
+          created_at: string
+          id: string
+          is_multiple: boolean
+          position: number
+          quiz_id: string
+          text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_multiple?: boolean
+          position?: number
+          quiz_id: string
+          text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_multiple?: boolean
+          position?: number
+          quiz_id?: string
+          text?: string
+        }
+        Relationships: []
+      }
+      quiz_responses: {
+        Row: {
+          answer_id: string | null
+          attempt_id: string
+          created_at: string
+          id: string
+          is_correct: boolean
+          question_id: string
+        }
+        Insert: {
+          answer_id?: string | null
+          attempt_id: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id: string
+        }
+        Update: {
+          answer_id?: string | null
+          attempt_id?: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+        }
+        Relationships: []
+      }
+      quizzes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_published: boolean
+          passing_score: number
+          time_limit_seconds: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          passing_score?: number
+          time_limit_seconds?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          passing_score?: number
+          time_limit_seconds?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       standalone_exam_answers: {
         Row: {
           id: string
