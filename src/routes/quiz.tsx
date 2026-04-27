@@ -87,6 +87,7 @@ function QuizPage() {
   const [playing, setPlaying] = useState<Quiz | null>(null);
   const [viewingHistory, setViewingHistory] = useState<Quiz | null>(null);
   const [viewingBoard, setViewingBoard] = useState<Quiz | null>(null);
+  const [search, setSearch] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -102,11 +103,16 @@ function QuizPage() {
     load();
   }, []);
 
-  const visible = isAdmin ? quizzes : quizzes.filter((q) => q.is_published);
+  const visible = useMemo(() => {
+    let list = isAdmin ? quizzes : quizzes.filter((q) => q.is_published);
+    const q = search.trim().toLowerCase();
+    if (q) list = list.filter((x) => x.title.toLowerCase().includes(q) || (x.description ?? "").toLowerCase().includes(q));
+    return list;
+  }, [quizzes, isAdmin, search]);
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-8 gap-4">
+      <div className="flex items-center justify-between mb-6 gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold mb-2">Quizlər</h1>
           <p className="text-muted-foreground">
@@ -118,6 +124,16 @@ function QuizPage() {
             <Plus className="h-4 w-4" /> Yeni quiz
           </Button>
         )}
+      </div>
+
+      <div className="mb-6 relative max-w-md">
+        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Quiz axtar..."
+          className="pl-9"
+        />
       </div>
 
       {loading ? (
