@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,9 +12,7 @@ import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/certificates")({
   component: () => (
     <ProtectedRoute>
-      <AppShell>
-        <CertificatesPage />
-      </AppShell>
+      <CertificatesPage />
     </ProtectedRoute>
   ),
 });
