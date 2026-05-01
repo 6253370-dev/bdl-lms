@@ -84,6 +84,13 @@ function CoursePlayer() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Record course view for "recently viewed" dashboard
+  const { user } = useAuth();
+  useEffect(() => {
+    if (!user?.id || !courseId) return;
+    supabase.from("course_views").insert({ user_id: user.id, course_id: courseId }).then(() => {});
+  }, [user?.id, courseId]);
+
   if (loading) {
     return <div className="p-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
