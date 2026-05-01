@@ -78,12 +78,30 @@ function CoursesPage() {
       supabase.from("courses").select("id,title,description,is_published,passing_score,folder_id").order("created_at", { ascending: false }),
       supabase.from("folders").select("id,name,parent_id").order("name"),
     ]);
-    setCourses((cRes.data ?? []) as CourseRow[]);
+    let list = (cRes.data ?? []) as CourseRow[];
+    if (!isAdmin) {
+      // Hide unpublished
+      list = list.filter((c) => c.is_published);
+      // Apply per-user access rules
+      if (user?.id) {
+        const [{ data: ca }, { data: fa }] = await Promise.all([
+          supabase.from("user_course_access").select("course_id").eq("user_id", user.id),
+          supabase.from("user_folder_access").select("folder_id").eq("user_id", user.id),
+        ]);
+        const courseIds = new Set((ca ?? []).map((r) => r.course_id));
+        const folderIds = new Set((fa ?? []).map((r) => r.folder_id));
+        const hasRules = courseIds.size > 0 || folderIds.size > 0;
+        if (hasRules) {
+          list = list.filter((c) => courseIds.has(c.id) || (c.folder_id && folderIds.has(c.folder_id)));
+        }
+      }
+    }
+    setCourses(list);
     setFolders((fRes.data ?? []) as FolderRow[]);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [isAdmin, user?.id]);
 
   const handleCreate = async () => {
     if (!title.trim()) return;
