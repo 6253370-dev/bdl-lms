@@ -137,48 +137,43 @@ function ReportsPage() {
     return { total: all.length, passed, failed: all.length - passed, avg };
   }, [filteredCourseAttempts, filteredExamAttempts]);
 
-  const exportCSV = () => {
-    const rows: (string | number)[][] = [
-      ["Type", "Title", "Employee ID", "Name", "Score %", "Status", "Duration (s)", "Date"],
-    ];
+  const exportExcel = async () => {
+    const XLSX = await import("xlsx");
+    const header = ["Tip", "Başlıq", "Əməkdaş ID", "Ad", "Bal %", "Status", "Müddət (san)", "Tarix"];
+    const rows: (string | number)[][] = [header];
     filteredCourseAttempts.forEach((a) => {
       const p = profileMap.get(a.user_id);
       const c = courses.find((x) => x.id === a.course_id);
       rows.push([
-        "Course",
+        "Kurs",
         c?.title ?? "",
         p?.employee_id ?? "",
         p?.full_name ?? "",
         Number(a.score_percent),
-        a.passed ? "Passed" : "Failed",
+        a.passed ? "Keçib" : "Keçməyib",
         a.duration_seconds,
-        new Date(a.created_at).toISOString(),
+        new Date(a.created_at).toLocaleString(),
       ]);
     });
     filteredExamAttempts.forEach((a) => {
       const p = profileMap.get(a.user_id);
       const e = exams.find((x) => x.id === a.exam_id);
       rows.push([
-        "Exam",
+        "İmtahan",
         e?.title ?? "",
         p?.employee_id ?? "",
         p?.full_name ?? "",
         Number(a.score_percent),
-        a.passed ? "Passed" : "Failed",
+        a.passed ? "Keçib" : "Keçməyib",
         a.duration_seconds,
-        new Date(a.created_at).toISOString(),
+        new Date(a.created_at).toLocaleString(),
       ]);
     });
-    const csv = rows
-      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `be_academy_report_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [{ wch: 10 }, { wch: 30 }, { wch: 14 }, { wch: 22 }, { wch: 8 }, { wch: 12 }, { wch: 14 }, { wch: 20 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Hesabat");
+    XLSX.writeFile(wb, `be_academy_report_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   if (loading) {
@@ -200,7 +195,7 @@ function ReportsPage() {
             {t.reports.subtitle}
           </p>
         </div>
-        <Button onClick={exportCSV}>
+        <Button onClick={exportExcel}>
           <Download className="h-4 w-4" /> {t.reports.exportCsv}
         </Button>
       </div>

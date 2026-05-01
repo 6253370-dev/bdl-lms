@@ -57,6 +57,7 @@ const meta: Record<BlockType, { icon: typeof BookOpen; label: string; tone: stri
 
 function CoursePlayer() {
   const { courseId } = Route.useParams();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -83,6 +84,12 @@ function CoursePlayer() {
   }, [courseId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Record course view for "recently viewed" dashboard
+  useEffect(() => {
+    if (!user?.id || !courseId) return;
+    supabase.from("course_views").insert({ user_id: user.id, course_id: courseId }).then(() => {});
+  }, [user?.id, courseId]);
 
   if (loading) {
     return <div className="p-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;

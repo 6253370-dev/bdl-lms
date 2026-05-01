@@ -185,11 +185,27 @@ function CourseBuilderPage() {
             </span>
           </p>
         </div>
-        <Button asChild variant="default">
-          <Link to="/courses/$courseId/play" params={{ courseId: course.id }}>
-            <Play className="h-4 w-4 mr-2" /> {t.courses.coursePlayer}
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          {isAdmin && (
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!confirm(t.courseExtras.confirmDelete)) return;
+                const { error } = await supabase.from("courses").delete().eq("id", course.id);
+                if (error) { toast.error(error.message); return; }
+                toast.success("Silindi");
+                navigate({ to: "/courses" });
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> {t.courseExtras.delete}
+            </Button>
+          )}
+          <Button asChild variant="default">
+            <Link to="/courses/$courseId/play" params={{ courseId: course.id }}>
+              <Play className="h-4 w-4 mr-2" /> {t.courses.coursePlayer}
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="w-full">
