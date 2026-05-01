@@ -57,6 +57,7 @@ const meta: Record<BlockType, { icon: typeof BookOpen; label: string; tone: stri
 
 function CoursePlayer() {
   const { courseId } = Route.useParams();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -85,7 +86,6 @@ function CoursePlayer() {
   useEffect(() => { load(); }, [load]);
 
   // Record course view for "recently viewed" dashboard
-  const { user } = useAuth();
   useEffect(() => {
     if (!user?.id || !courseId) return;
     supabase.from("course_views").insert({ user_id: user.id, course_id: courseId }).then(() => {});
