@@ -182,6 +182,21 @@ function ExamsPage() {
                     <Button size="sm" variant="outline" onClick={() => setResultsExam(exam)}>
                       <ListChecks className="h-4 w-4" /> Results
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={async () => {
+                        if (!confirm(`"${exam.title}" silinsin?`)) return;
+                        const { error } = await supabase.from("standalone_exams").delete().eq("id", exam.id);
+                        if (error) toast.error(error.message);
+                        else {
+                          toast.success("Silindi");
+                          load();
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" /> Sil
+                    </Button>
                   </>
                 )}
               </div>
