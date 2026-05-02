@@ -37,6 +37,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { FileUpload } from "@/components/FileUpload";
 
 export const Route = createFileRoute("/exams")({
   component: () => (
