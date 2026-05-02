@@ -101,6 +101,7 @@ function CourseBuilderPage() {
         description: course.description,
         passing_score: course.passing_score,
         is_published: course.is_published,
+        cover_image_url: course.cover_image_url,
       })
       .eq("id", course.id);
     setSavingDetails(false);
