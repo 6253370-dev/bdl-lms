@@ -52,6 +52,7 @@ type Exam = {
   passing_score: number;
   is_published: boolean;
   created_at: string;
+  cover_image_url: string | null;
 };
 
 type ExamQuestion = {
