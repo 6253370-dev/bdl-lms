@@ -216,14 +216,12 @@ function LessonContent({ block }: { block: Block }) {
       )}
 
       {block.docx_url && (
-        <Card className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <FileText className="h-5 w-5 text-muted-foreground" />
-            <span className="font-medium">{t.player.wordDoc}</span>
-          </div>
-          <Button asChild variant="outline" size="sm">
-            <a href={block.docx_url} target="_blank" rel="noopener noreferrer">{t.common.download}</a>
-          </Button>
+        <Card className="overflow-hidden h-[70vh]">
+          <iframe
+            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(block.docx_url)}`}
+            className="w-full h-full"
+            title={`${block.title} DOCX`}
+          />
         </Card>
       )}
 
