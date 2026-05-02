@@ -85,12 +85,13 @@ function ExamsPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [runnerExam, setRunnerExam] = useState<Exam | null>(null);
   const [resultsExam, setResultsExam] = useState<Exam | null>(null);
+  const [search, setSearch] = useState("");
 
   const load = async () => {
     setLoading(true);
     const { data } = await supabase
       .from("standalone_exams")
-      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at")
+      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at,cover_image_url")
       .order("created_at", { ascending: false });
     setExams((data ?? []) as Exam[]);
     setLoading(false);
@@ -99,6 +100,15 @@ function ExamsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const visibleExams = exams.filter((e) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      e.title.toLowerCase().includes(q) ||
+      (e.description ?? "").toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl mx-auto">
