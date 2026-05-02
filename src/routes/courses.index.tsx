@@ -412,28 +412,3 @@ function CoursesPage() {
   );
 }
 
-function FolderItem({
-  label, count, active, icon: Icon, onClick, actions,
-}: {
-  label: string;
-  count: number;
-  active: boolean;
-  icon: typeof Folder;
-  onClick: () => void;
-  actions?: React.ReactNode;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      className={cn(
-        "group flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors",
-        active ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground",
-      )}
-    >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="flex-1 truncate">{label}</span>
-      <span className={cn("text-xs", active ? "text-primary-foreground/80" : "text-muted-foreground")}>{count}</span>
-      {actions}
-    </div>
-  );
-}
