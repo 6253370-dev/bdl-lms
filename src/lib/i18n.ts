@@ -255,6 +255,17 @@ export const t = {
   // Exam extras
   examExtras: {
     confirmDelete: "Bu imtahanı silmək istədiyinizə əminsiniz?",
+    search: "İmtahan axtar...",
+    cover: "Üz şəkli",
+  },
+
+  // Common extras
+  commonExtras: {
+    continue: "Davam et",
+    showAllCourses: "Bütün kursları göstər",
+    preview: "Önizləmə",
+    close: "Bağla",
+    folderAll: "Bütün qovluqlar",
   },
 
   // Course extras

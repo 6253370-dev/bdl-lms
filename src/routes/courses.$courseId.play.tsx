@@ -3,6 +3,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -101,8 +102,8 @@ function CoursePlayer() {
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-3.5rem)]">
       {/* Sidebar */}
-      <aside className="lg:w-80 lg:border-r bg-background/50">
-        <div className="p-5 border-b">
+      <aside className="lg:w-80 lg:border-r bg-background/50 lg:flex lg:flex-col lg:h-[calc(100vh-3.5rem)] lg:sticky lg:top-0">
+        <div className="p-5 border-b shrink-0">
           <button
             onClick={() => navigate({ to: "/courses" })}
             className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-3"
@@ -112,37 +113,39 @@ function CoursePlayer() {
           <h2 className="font-display font-bold text-lg leading-tight">{course.title}</h2>
           {course.description && <p className="text-xs text-muted-foreground mt-1">{course.description}</p>}
         </div>
-        <div className="p-3 space-y-1">
-          {blocks.length === 0 && (
-            <div className="text-sm text-muted-foreground p-4 text-center">{t.player.noContent}</div>
-          )}
-          {blocks.map((b, i) => {
-            const Icon = meta[b.block_type].icon;
-            const isActive = b.id === activeId;
-            return (
-              <button
-                key={b.id}
-                onClick={() => setActiveId(b.id)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors",
-                  isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted",
-                )}
-              >
-                <div className={cn("h-7 w-7 rounded-md flex items-center justify-center shrink-0",
-                  isActive ? "bg-primary-foreground/15" : meta[b.block_type].tone)}>
-                  <Icon className="h-3.5 w-3.5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className={cn("text-[10px] uppercase tracking-wider",
-                    isActive ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                    {String(i + 1).padStart(2, "0")} · {meta[b.block_type].label}
+        <ScrollArea className="flex-1">
+          <div className="p-3 space-y-1">
+            {blocks.length === 0 && (
+              <div className="text-sm text-muted-foreground p-4 text-center">{t.player.noContent}</div>
+            )}
+            {blocks.map((b, i) => {
+              const Icon = meta[b.block_type].icon;
+              const isActive = b.id === activeId;
+              return (
+                <button
+                  key={b.id}
+                  onClick={() => setActiveId(b.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors",
+                    isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                  )}
+                >
+                  <div className={cn("h-7 w-7 rounded-md flex items-center justify-center shrink-0",
+                    isActive ? "bg-primary-foreground/15" : meta[b.block_type].tone)}>
+                    <Icon className="h-3.5 w-3.5" />
                   </div>
-                  <div className="font-medium truncate">{b.title}</div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={cn("text-[10px] uppercase tracking-wider",
+                      isActive ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                      {String(i + 1).padStart(2, "0")} · {meta[b.block_type].label}
+                    </div>
+                    <div className="font-medium truncate">{b.title}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </ScrollArea>
       </aside>
 
       {/* Content */}
@@ -155,7 +158,16 @@ function CoursePlayer() {
         ) : active.block_type === "lesson" ? (
           <LessonView block={active} />
         ) : (
-          <AssessmentView key={active.id} block={active} course={course} />
+          <AssessmentView
+            key={active.id}
+            block={active}
+            course={course}
+            nextBlockId={(() => {
+              const i = blocks.findIndex((b) => b.id === active.id);
+              return i >= 0 && i < blocks.length - 1 ? blocks[i + 1].id : null;
+            })()}
+            onGoNext={(id) => setActiveId(id)}
+          />
         )}
       </section>
     </div>
@@ -216,14 +228,12 @@ function LessonContent({ block }: { block: Block }) {
       )}
 
       {block.docx_url && (
-        <Card className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <FileText className="h-5 w-5 text-muted-foreground" />
-            <span className="font-medium">{t.player.wordDoc}</span>
-          </div>
-          <Button asChild variant="outline" size="sm">
-            <a href={block.docx_url} target="_blank" rel="noopener noreferrer">{t.common.download}</a>
-          </Button>
+        <Card className="overflow-hidden h-[70vh]">
+          <iframe
+            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(block.docx_url)}`}
+            className="w-full h-full"
+            title={`${block.title} DOCX`}
+          />
         </Card>
       )}
 
@@ -269,7 +279,7 @@ interface ResultRow {
   timeSpent: number;
 }
 
-function AssessmentView({ block, course }: { block: Block; course: Course }) {
+function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block; course: Course; nextBlockId: string | null; onGoNext: (id: string) => void }) {
   const { user, profile } = useAuth();
   const courseId = course.id;
   const coursePassingScore = course.passing_score;
@@ -559,9 +569,19 @@ function AssessmentView({ block, course }: { block: Block; course: Course }) {
         <Button variant="outline" onClick={() => { setStage("intro"); setScore(null); }}>
           Yenidən cəhd et
         </Button>
-        <Button asChild>
-          <Link to="/dashboard">Ana səhifəyə qayıt</Link>
-        </Button>
+        {block.block_type === "final_exam" ? (
+          <Button asChild>
+            <Link to="/courses">{t.commonExtras.showAllCourses}</Link>
+          </Button>
+        ) : nextBlockId ? (
+          <Button onClick={() => onGoNext(nextBlockId)}>
+            {t.commonExtras.continue}
+          </Button>
+        ) : (
+          <Button asChild>
+            <Link to="/courses">{t.commonExtras.showAllCourses}</Link>
+          </Button>
+        )}
       </div>
     </div>
   );

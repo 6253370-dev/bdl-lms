@@ -13,6 +13,8 @@ import {
   Award,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -43,7 +45,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { profile, roles, isAdmin, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false); // mobile drawer
+  const [desktopHidden, setDesktopHidden] = useState(false); // desktop collapse
 
   const items = NAV.filter((i) => (i.adminOnly ? isAdmin : true));
 
@@ -64,18 +67,28 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col transition-transform lg:translate-x-0 lg:static",
+          "fixed inset-y-0 left-0 z-40 w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col transition-transform lg:static",
           open ? "translate-x-0" : "-translate-x-full",
+          desktopHidden ? "lg:hidden" : "lg:translate-x-0",
         )}
       >
         <div className="px-5 py-5 flex items-center gap-3 border-b border-sidebar-border">
           <div className="h-11 w-11 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-sm">
             <GraduationCap className="h-5 w-5" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="font-display font-bold text-base leading-tight">{t.brand}</div>
             <div className="text-xs text-muted-foreground">{t.brandTagline}</div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden lg:flex h-8 w-8"
+            onClick={() => setDesktopHidden(true)}
+            aria-label="Naviqasiyanı gizlət"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </Button>
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -132,6 +145,19 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
           onClick={() => setOpen(false)}
         />
+      )}
+
+      {/* Floating reopen button when sidebar is hidden on desktop */}
+      {desktopHidden && (
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={() => setDesktopHidden(false)}
+          className="hidden lg:flex fixed top-3 left-3 z-30 h-9 w-9 shadow-md"
+          aria-label="Naviqasiyanı göstər"
+        >
+          <PanelLeftOpen className="h-4 w-4" />
+        </Button>
       )}
 
       <div className="flex-1 flex flex-col min-w-0">

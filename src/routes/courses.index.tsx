@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Plus, Loader2, Folder, FolderOpen, Search, MoreVertical, Pencil, Trash2, FolderPlus, Move } from "lucide-react";
+import { BookOpen, Plus, Loader2, Folder, Search, MoreVertical, Pencil, Trash2, FolderPlus, Move } from "lucide-react";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,7 @@ interface CourseRow {
   is_published: boolean;
   passing_score: number;
   folder_id: string | null;
+  cover_image_url: string | null;
 }
 
 interface FolderRow {
@@ -75,7 +76,7 @@ function CoursesPage() {
   const load = async () => {
     setLoading(true);
     const [cRes, fRes] = await Promise.all([
-      supabase.from("courses").select("id,title,description,is_published,passing_score,folder_id").order("created_at", { ascending: false }),
+      supabase.from("courses").select("id,title,description,is_published,passing_score,folder_id,cover_image_url").order("created_at", { ascending: false }),
       supabase.from("folders").select("id,name,parent_id").order("name"),
     ]);
     let list = (cRes.data ?? []) as CourseRow[];
@@ -242,66 +243,58 @@ function CoursesPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="mb-6 relative max-w-md">
-        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t.folders.search}
-          className="pl-9"
-        />
+      {/* Search + folder dropdown */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t.folders.search}
+            className="pl-9"
+          />
+        </div>
+        <Select value={activeFolder} onValueChange={setActiveFolder}>
+          <SelectTrigger className="w-[240px]">
+            <Folder className="h-4 w-4 mr-2 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>{t.folders.all} ({counts.total})</SelectItem>
+            <SelectItem value={UNCAT}>{t.folders.uncategorized} ({counts.uncategorized})</SelectItem>
+            {folders.map((f) => (
+              <SelectItem key={f.id} value={f.id}>
+                {f.name} ({counts.byFolder.get(f.id) ?? 0})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {isAdmin && activeFolder !== ALL && activeFolder !== UNCAT && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => {
+                  const f = folders.find((x) => x.id === activeFolder);
+                  if (f) setFolderDialog({ mode: "rename", id: f.id, name: f.name });
+                }}
+              >
+                <Pencil className="h-4 w-4 mr-2" /> {t.folders.rename}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteFolder(activeFolder)}>
+                <Trash2 className="h-4 w-4 mr-2" /> {t.folders.delete}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
-      <div className="grid lg:grid-cols-[260px_1fr] gap-6">
-        {/* Folder sidebar */}
-        <aside className="space-y-1">
-          <FolderItem
-            label={t.folders.all}
-            count={counts.total}
-            active={activeFolder === ALL}
-            icon={BookOpen}
-            onClick={() => setActiveFolder(ALL)}
-          />
-          <FolderItem
-            label={t.folders.uncategorized}
-            count={counts.uncategorized}
-            active={activeFolder === UNCAT}
-            icon={Folder}
-            onClick={() => setActiveFolder(UNCAT)}
-          />
-          <div className="pt-2 mt-2 border-t border-border/60 space-y-1">
-            {folders.map((f) => (
-              <FolderItem
-                key={f.id}
-                label={f.name}
-                count={counts.byFolder.get(f.id) ?? 0}
-                active={activeFolder === f.id}
-                icon={activeFolder === f.id ? FolderOpen : Folder}
-                onClick={() => setActiveFolder(f.id)}
-                actions={isAdmin && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-7 w-7">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenuItem onClick={() => setFolderDialog({ mode: "rename", id: f.id, name: f.name })}>
-                        <Pencil className="h-4 w-4 mr-2" /> {t.folders.rename}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteFolder(f.id)}>
-                        <Trash2 className="h-4 w-4 mr-2" /> {t.folders.delete}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              />
-            ))}
-          </div>
-        </aside>
-
+      <div>
         {/* Courses grid */}
         <div>
           {loading ? (
@@ -319,10 +312,15 @@ function CoursesPage() {
               )}
             </Card>
           ) : (
-            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {visibleCourses.map((c) => (
                 <Card key={c.id} className="p-5 h-full hover:shadow-[var(--shadow-elegant)] transition-shadow border-border/60 flex flex-col relative">
-                  <div className="h-32 -mx-5 -mt-5 mb-4 rounded-t-xl" style={{ background: "var(--gradient-hero)" }} />
+                  <div
+                    className="h-32 -mx-5 -mt-5 mb-4 rounded-t-xl bg-cover bg-center"
+                    style={c.cover_image_url
+                      ? { backgroundImage: `url(${c.cover_image_url})` }
+                      : { background: "var(--gradient-hero)" }}
+                  />
                   {isAdmin && (
                     <div className="absolute top-3 right-3">
                       <DropdownMenu>
@@ -414,28 +412,3 @@ function CoursesPage() {
   );
 }
 
-function FolderItem({
-  label, count, active, icon: Icon, onClick, actions,
-}: {
-  label: string;
-  count: number;
-  active: boolean;
-  icon: typeof Folder;
-  onClick: () => void;
-  actions?: React.ReactNode;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      className={cn(
-        "group flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors",
-        active ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground",
-      )}
-    >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="flex-1 truncate">{label}</span>
-      <span className={cn("text-xs", active ? "text-primary-foreground/80" : "text-muted-foreground")}>{count}</span>
-      {actions}
-    </div>
-  );
-}

@@ -36,6 +36,7 @@ interface Course {
   passing_score: number;
   is_published: boolean;
   certificate_template_url: string | null;
+  cover_image_url: string | null;
 }
 
 type BlockType = "lesson" | "practice" | "quiz" | "final_exam";
@@ -100,6 +101,7 @@ function CourseBuilderPage() {
         description: course.description,
         passing_score: course.passing_score,
         is_published: course.is_published,
+        cover_image_url: course.cover_image_url,
       })
       .eq("id", course.id);
     setSavingDetails(false);
@@ -255,6 +257,15 @@ function CourseBuilderPage() {
                 <Label>{t.courses.publishedSwitch}</Label>
               </div>
             </div>
+            <FileUpload
+              label="Üz şəkli (kart şəkli)"
+              icon={FileText}
+              value={course.cover_image_url}
+              onChange={(v) => updateCourseField({ cover_image_url: v })}
+              accept="image/*"
+              folder="covers"
+              disabled={!isAdmin}
+            />
             {isAdmin && (
               <div className="flex justify-end pt-2">
                 <Button onClick={saveDetails} disabled={savingDetails}>

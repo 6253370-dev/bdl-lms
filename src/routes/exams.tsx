@@ -33,8 +33,11 @@ import {
   Download,
   Loader2,
   ListChecks,
+  Search,
+  Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { FileUpload } from "@/components/FileUpload";
 
 export const Route = createFileRoute("/exams")({
   component: () => (
@@ -52,6 +55,7 @@ type Exam = {
   passing_score: number;
   is_published: boolean;
   created_at: string;
+  cover_image_url: string | null;
 };
 
 type ExamQuestion = {
@@ -84,12 +88,13 @@ function ExamsPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [runnerExam, setRunnerExam] = useState<Exam | null>(null);
   const [resultsExam, setResultsExam] = useState<Exam | null>(null);
+  const [search, setSearch] = useState("");
 
   const load = async () => {
     setLoading(true);
     const { data } = await supabase
       .from("standalone_exams")
-      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at")
+      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at,cover_image_url")
       .order("created_at", { ascending: false });
     setExams((data ?? []) as Exam[]);
     setLoading(false);
@@ -98,6 +103,15 @@ function ExamsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const visibleExams = exams.filter((e) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      e.title.toLowerCase().includes(q) ||
+      (e.description ?? "").toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl mx-auto">
@@ -120,14 +134,24 @@ function ExamsPage() {
         )}
       </div>
 
+      <div className="mb-6 relative max-w-md">
+        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="İmtahan axtar..."
+          className="pl-9"
+        />
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : exams.length === 0 ? (
+      ) : visibleExams.length === 0 ? (
         <Card className="p-12 text-center border-dashed">
           <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <h3 className="font-display font-semibold">No exams yet</h3>
+          <h3 className="font-display font-semibold">{search ? "Nəticə tapılmadı" : "No exams yet"}</h3>
           <p className="text-sm text-muted-foreground mt-1">
             {isAdmin
               ? "Create your first password-protected exam."
@@ -136,8 +160,14 @@ function ExamsPage() {
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {exams.map((exam) => (
-            <Card key={exam.id} className="p-5 flex flex-col">
+          {visibleExams.map((exam) => (
+            <Card key={exam.id} className="p-5 flex flex-col overflow-hidden">
+              <div
+                className="h-28 -mx-5 -mt-5 mb-3 bg-cover bg-center"
+                style={exam.cover_image_url
+                  ? { backgroundImage: `url(${exam.cover_image_url})` }
+                  : { background: "var(--gradient-hero)" }}
+              />
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
                   <Lock className="h-4 w-4 text-amber-600" />
@@ -251,6 +281,7 @@ function ExamEditor({
   );
   const [passingScore, setPassingScore] = useState(String(exam?.passing_score ?? 60));
   const [isPublished, setIsPublished] = useState(exam?.is_published ?? false);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(exam?.cover_image_url ?? null);
   const [examId, setExamId] = useState<string | null>(exam?.id ?? null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [saving, setSaving] = useState(false);
@@ -290,6 +321,7 @@ function ExamEditor({
       time_limit_seconds: timeLimitMin ? Number(timeLimitMin) * 60 : null,
       passing_score: Number(passingScore) || 60,
       is_published: isPublished,
+      cover_image_url: coverImageUrl,
     };
     if (password.trim()) payload.password = password.trim();
 
@@ -445,6 +477,15 @@ function ExamEditor({
             <Switch checked={isPublished} onCheckedChange={setIsPublished} id="pub" />
             <Label htmlFor="pub">Published (visible to users)</Label>
           </div>
+
+          <FileUpload
+            label="Üz şəkli"
+            icon={ImageIcon}
+            value={coverImageUrl}
+            onChange={setCoverImageUrl}
+            accept="image/*"
+            folder="covers"
+          />
 
           <div className="flex justify-end">
             <Button onClick={saveExam} disabled={saving}>

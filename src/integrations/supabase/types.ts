@@ -844,6 +844,7 @@ export type Database = {
       }
       standalone_exams: {
         Row: {
+          cover_image_url: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -856,6 +857,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -868,6 +870,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
