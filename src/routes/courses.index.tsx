@@ -242,66 +242,58 @@ function CoursesPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="mb-6 relative max-w-md">
-        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t.folders.search}
-          className="pl-9"
-        />
+      {/* Search + folder dropdown */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t.folders.search}
+            className="pl-9"
+          />
+        </div>
+        <Select value={activeFolder} onValueChange={setActiveFolder}>
+          <SelectTrigger className="w-[240px]">
+            <Folder className="h-4 w-4 mr-2 text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>{t.folders.all} ({counts.total})</SelectItem>
+            <SelectItem value={UNCAT}>{t.folders.uncategorized} ({counts.uncategorized})</SelectItem>
+            {folders.map((f) => (
+              <SelectItem key={f.id} value={f.id}>
+                {f.name} ({counts.byFolder.get(f.id) ?? 0})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {isAdmin && activeFolder !== ALL && activeFolder !== UNCAT && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => {
+                  const f = folders.find((x) => x.id === activeFolder);
+                  if (f) setFolderDialog({ mode: "rename", id: f.id, name: f.name });
+                }}
+              >
+                <Pencil className="h-4 w-4 mr-2" /> {t.folders.rename}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteFolder(activeFolder)}>
+                <Trash2 className="h-4 w-4 mr-2" /> {t.folders.delete}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
-      <div className="grid lg:grid-cols-[260px_1fr] gap-6">
-        {/* Folder sidebar */}
-        <aside className="space-y-1">
-          <FolderItem
-            label={t.folders.all}
-            count={counts.total}
-            active={activeFolder === ALL}
-            icon={BookOpen}
-            onClick={() => setActiveFolder(ALL)}
-          />
-          <FolderItem
-            label={t.folders.uncategorized}
-            count={counts.uncategorized}
-            active={activeFolder === UNCAT}
-            icon={Folder}
-            onClick={() => setActiveFolder(UNCAT)}
-          />
-          <div className="pt-2 mt-2 border-t border-border/60 space-y-1">
-            {folders.map((f) => (
-              <FolderItem
-                key={f.id}
-                label={f.name}
-                count={counts.byFolder.get(f.id) ?? 0}
-                active={activeFolder === f.id}
-                icon={activeFolder === f.id ? FolderOpen : Folder}
-                onClick={() => setActiveFolder(f.id)}
-                actions={isAdmin && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-7 w-7">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenuItem onClick={() => setFolderDialog({ mode: "rename", id: f.id, name: f.name })}>
-                        <Pencil className="h-4 w-4 mr-2" /> {t.folders.rename}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteFolder(f.id)}>
-                        <Trash2 className="h-4 w-4 mr-2" /> {t.folders.delete}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              />
-            ))}
-          </div>
-        </aside>
-
+      <div>
         {/* Courses grid */}
         <div>
           {loading ? (
