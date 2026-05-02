@@ -131,14 +131,24 @@ function ExamsPage() {
         )}
       </div>
 
+      <div className="mb-6 relative max-w-md">
+        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="İmtahan axtar..."
+          className="pl-9"
+        />
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : exams.length === 0 ? (
+      ) : visibleExams.length === 0 ? (
         <Card className="p-12 text-center border-dashed">
           <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <h3 className="font-display font-semibold">No exams yet</h3>
+          <h3 className="font-display font-semibold">{search ? "Nəticə tapılmadı" : "No exams yet"}</h3>
           <p className="text-sm text-muted-foreground mt-1">
             {isAdmin
               ? "Create your first password-protected exam."
@@ -147,8 +157,14 @@ function ExamsPage() {
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {exams.map((exam) => (
-            <Card key={exam.id} className="p-5 flex flex-col">
+          {visibleExams.map((exam) => (
+            <Card key={exam.id} className="p-5 flex flex-col overflow-hidden">
+              <div
+                className="h-28 -mx-5 -mt-5 mb-3 bg-cover bg-center"
+                style={exam.cover_image_url
+                  ? { backgroundImage: `url(${exam.cover_image_url})` }
+                  : { background: "var(--gradient-hero)" }}
+              />
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
                   <Lock className="h-4 w-4 text-amber-600" />
