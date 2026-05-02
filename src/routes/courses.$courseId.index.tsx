@@ -255,6 +255,15 @@ function CourseBuilderPage() {
                 <Label>{t.courses.publishedSwitch}</Label>
               </div>
             </div>
+            <FileUpload
+              label="Üz şəkli (kart şəkli)"
+              icon={FileText}
+              value={course.cover_image_url}
+              onChange={(v) => updateCourseField({ cover_image_url: v })}
+              accept="image/*"
+              folder="covers"
+              disabled={!isAdmin}
+            />
             {isAdmin && (
               <div className="flex justify-end pt-2">
                 <Button onClick={saveDetails} disabled={savingDetails}>
