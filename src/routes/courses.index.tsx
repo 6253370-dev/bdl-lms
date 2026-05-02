@@ -312,10 +312,15 @@ function CoursesPage() {
               )}
             </Card>
           ) : (
-            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {visibleCourses.map((c) => (
                 <Card key={c.id} className="p-5 h-full hover:shadow-[var(--shadow-elegant)] transition-shadow border-border/60 flex flex-col relative">
-                  <div className="h-32 -mx-5 -mt-5 mb-4 rounded-t-xl" style={{ background: "var(--gradient-hero)" }} />
+                  <div
+                    className="h-32 -mx-5 -mt-5 mb-4 rounded-t-xl bg-cover bg-center"
+                    style={c.cover_image_url
+                      ? { backgroundImage: `url(${c.cover_image_url})` }
+                      : { background: "var(--gradient-hero)" }}
+                  />
                   {isAdmin && (
                     <div className="absolute top-3 right-3">
                       <DropdownMenu>
