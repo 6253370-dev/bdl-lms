@@ -36,6 +36,7 @@ interface Course {
   passing_score: number;
   is_published: boolean;
   certificate_template_url: string | null;
+  cover_image_url: string | null;
 }
 
 type BlockType = "lesson" | "practice" | "quiz" | "final_exam";
