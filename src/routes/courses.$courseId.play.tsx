@@ -569,9 +569,19 @@ function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block
         <Button variant="outline" onClick={() => { setStage("intro"); setScore(null); }}>
           Yenidən cəhd et
         </Button>
-        <Button asChild>
-          <Link to="/dashboard">Ana səhifəyə qayıt</Link>
-        </Button>
+        {block.block_type === "final_exam" ? (
+          <Button asChild>
+            <Link to="/courses">{t.commonExtras.showAllCourses}</Link>
+          </Button>
+        ) : nextBlockId ? (
+          <Button onClick={() => onGoNext(nextBlockId)}>
+            {t.commonExtras.continue}
+          </Button>
+        ) : (
+          <Button asChild>
+            <Link to="/courses">{t.commonExtras.showAllCourses}</Link>
+          </Button>
+        )}
       </div>
     </div>
   );
