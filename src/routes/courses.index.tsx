@@ -36,6 +36,7 @@ interface CourseRow {
   is_published: boolean;
   passing_score: number;
   folder_id: string | null;
+  cover_image_url: string | null;
 }
 
 interface FolderRow {
