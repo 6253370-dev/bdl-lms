@@ -477,6 +477,15 @@ function ExamEditor({
             <Label htmlFor="pub">Published (visible to users)</Label>
           </div>
 
+          <FileUpload
+            label="Üz şəkli"
+            icon={ImageIcon}
+            value={coverImageUrl}
+            onChange={setCoverImageUrl}
+            accept="image/*"
+            folder="covers"
+          />
+
           <div className="flex justify-end">
             <Button onClick={saveExam} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
