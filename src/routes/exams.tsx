@@ -33,6 +33,8 @@ import {
   Download,
   Loader2,
   ListChecks,
+  Search,
+  Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
