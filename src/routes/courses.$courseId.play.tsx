@@ -158,7 +158,16 @@ function CoursePlayer() {
         ) : active.block_type === "lesson" ? (
           <LessonView block={active} />
         ) : (
-          <AssessmentView key={active.id} block={active} course={course} />
+          <AssessmentView
+            key={active.id}
+            block={active}
+            course={course}
+            nextBlockId={(() => {
+              const i = blocks.findIndex((b) => b.id === active.id);
+              return i >= 0 && i < blocks.length - 1 ? blocks[i + 1].id : null;
+            })()}
+            onGoNext={(id) => setActiveId(id)}
+          />
         )}
       </section>
     </div>
