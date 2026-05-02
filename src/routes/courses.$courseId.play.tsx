@@ -279,7 +279,7 @@ interface ResultRow {
   timeSpent: number;
 }
 
-function AssessmentView({ block, course }: { block: Block; course: Course }) {
+function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block; course: Course; nextBlockId: string | null; onGoNext: (id: string) => void }) {
   const { user, profile } = useAuth();
   const courseId = course.id;
   const coursePassingScore = course.passing_score;
