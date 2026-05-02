@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Plus, Loader2, Folder, FolderOpen, Search, MoreVertical, Pencil, Trash2, FolderPlus, Move } from "lucide-react";
+import { BookOpen, Plus, Loader2, Folder, Search, MoreVertical, Pencil, Trash2, FolderPlus, Move } from "lucide-react";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
