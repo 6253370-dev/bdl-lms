@@ -318,12 +318,45 @@ function CourseBuilderPage() {
 
         {/* CERTIFICATE */}
         <TabsContent value="certificate">
-          <Card className="p-8 text-center border-dashed">
-            <GraduationCap className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <h3 className="font-display font-semibold mb-1">Certificate template</h3>
-            <p className="text-sm text-muted-foreground">
-              Upload a PDF or PPTX template. Auto-fill of name, course, and date will be wired in the next iteration.
-            </p>
+          <Card className="p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <GraduationCap className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-semibold">Sertifikat şablonu</h3>
+                <p className="text-sm text-muted-foreground">
+                  Bu kursa aid PDF və ya şəkil şablonunu yükləyin. Yer tutucular: <code>{"{{FULL_NAME}}"}</code>,{" "}
+                  <code>{"{{COURSE_TITLE}}"}</code>, <code>{"{{SCORE}}"}</code>, <code>{"{{ISSUE_DATE}}"}</code>,{" "}
+                  <code>{"{{SERIAL}}"}</code>.
+                </p>
+              </div>
+            </div>
+            <FileUpload
+              label="Sertifikat şablonu (PDF / şəkil)"
+              icon={FileText}
+              value={course.certificate_template_url}
+              onChange={(v) => updateCourseField({ certificate_template_url: v })}
+              accept=".pdf,application/pdf,image/*"
+              folder="certificate-templates"
+              disabled={!isAdmin}
+            />
+            {isAdmin && (
+              <div className="flex justify-end">
+                <Button
+                  onClick={async () => {
+                    const { error } = await supabase
+                      .from("courses")
+                      .update({ certificate_template_url: course.certificate_template_url })
+                      .eq("id", course.id);
+                    if (error) toast.error(error.message);
+                    else toast.success("Yadda saxlanıldı");
+                  }}
+                >
+                  <Save className="h-4 w-4 mr-2" /> Yadda saxla
+                </Button>
+              </div>
+            )}
           </Card>
         </TabsContent>
       </Tabs>
