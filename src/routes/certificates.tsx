@@ -143,23 +143,13 @@ function CertificatesPage() {
                 <span className="font-semibold text-primary">{Math.round(c.score_percent)}%</span>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => openPreview(c)}>
-                  <Eye className="h-4 w-4 mr-2" /> {t.commonExtras.preview}
+                <Button size="sm" variant="outline" className="flex-1" disabled={busy === c.id} onClick={() => openPreview(c)}>
+                  {busy === c.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Eye className="h-4 w-4 mr-2" />}
+                  {t.commonExtras.preview}
                 </Button>
-                <Button
-                  size="sm"
-                  className="flex-1"
-                  onClick={() =>
-                    downloadCertificate({
-                      fullName: c.full_name,
-                      courseTitle: c.course_title,
-                      scorePercent: Math.round(c.score_percent),
-                      serial: c.serial,
-                      issuedAt: c.issued_at,
-                    })
-                  }
-                >
-                  <Download className="h-4 w-4 mr-2" /> {t.cert.download}
+                <Button size="sm" className="flex-1" disabled={busy === c.id} onClick={() => handleDownload(c)}>
+                  {busy === c.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                  {t.cert.download}
                 </Button>
               </div>
             </Card>
