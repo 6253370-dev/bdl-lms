@@ -26,41 +26,73 @@ interface CertRow {
   course_title: string;
   score_percent: number;
   issued_at: string;
+  course_id: string;
 }
 
 function CertificatesPage() {
   const { user } = useAuth();
   const [certs, setCerts] = useState<CertRow[]>([]);
+  const [templates, setTemplates] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [previewData, setPreviewData] = useState<CertificateData | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       const { data } = await supabase
         .from("certificates")
-        .select("id, serial, full_name, course_title, score_percent, issued_at")
+        .select("id, serial, full_name, course_title, score_percent, issued_at, course_id")
         .eq("user_id", user.id)
         .order("issued_at", { ascending: false });
-      setCerts((data ?? []) as CertRow[]);
+      const rows = (data ?? []) as CertRow[];
+      setCerts(rows);
+      const ids = Array.from(new Set(rows.map((r) => r.course_id).filter(Boolean)));
+      if (ids.length) {
+        const { data: cs } = await supabase
+          .from("courses")
+          .select("id, certificate_template_url")
+          .in("id", ids);
+        const map: Record<string, string | null> = {};
+        (cs ?? []).forEach((c: any) => (map[c.id] = c.certificate_template_url));
+        setTemplates(map);
+      }
       setLoading(false);
     })();
   }, [user]);
 
-  const openPreview = (c: CertRow) => {
-    const data: CertificateData = {
-      fullName: c.full_name,
-      courseTitle: c.course_title,
-      scorePercent: Math.round(c.score_percent),
-      serial: c.serial,
-      issuedAt: c.issued_at,
-    };
-    const doc = buildCertificatePdf(data);
-    const blob = doc.output("blob");
-    const url = URL.createObjectURL(blob);
-    setPreviewData(data);
-    setPreviewUrl(url);
+  const toData = (c: CertRow): CertificateData => ({
+    fullName: c.full_name,
+    courseTitle: c.course_title,
+    scorePercent: Math.round(c.score_percent),
+    serial: c.serial,
+    issuedAt: c.issued_at,
+  });
+
+  const openPreview = async (c: CertRow) => {
+    setBusy(c.id);
+    try {
+      const data = toData(c);
+      const url = await previewCertificateSmart(data, templates[c.course_id]);
+      setPreviewData(data);
+      setPreviewUrl(url);
+    } catch (e: any) {
+      toast.error(e.message ?? "Önizləmə alınmadı");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleDownload = async (c: CertRow) => {
+    setBusy(c.id);
+    try {
+      await downloadCertificateSmart(toData(c), templates[c.course_id]);
+    } catch (e: any) {
+      toast.error(e.message ?? "Yükləmə alınmadı");
+    } finally {
+      setBusy(null);
+    }
   };
 
   const closePreview = () => {
