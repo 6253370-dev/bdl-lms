@@ -19,7 +19,6 @@ import { Route as CertificatesRouteImport } from './routes/certificates'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CoursesIndexRouteImport } from './routes/courses.index'
 import { Route as AdminCommentsRouteImport } from './routes/admin.comments'
-import { Route as AdminCertificateTemplatesRouteImport } from './routes/admin.certificate-templates'
 import { Route as CoursesCourseIdIndexRouteImport } from './routes/courses.$courseId.index'
 import { Route as CoursesCourseIdPlayRouteImport } from './routes/courses.$courseId.play'
 
@@ -73,12 +72,6 @@ const AdminCommentsRoute = AdminCommentsRouteImport.update({
   path: '/admin/comments',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminCertificateTemplatesRoute =
-  AdminCertificateTemplatesRouteImport.update({
-    id: '/admin/certificate-templates',
-    path: '/admin/certificate-templates',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const CoursesCourseIdIndexRoute = CoursesCourseIdIndexRouteImport.update({
   id: '/courses/$courseId/',
   path: '/courses/$courseId/',
@@ -99,7 +92,6 @@ export interface FileRoutesByFullPath {
   '/quiz': typeof QuizRoute
   '/reports': typeof ReportsRoute
   '/users': typeof UsersRoute
-  '/admin/certificate-templates': typeof AdminCertificateTemplatesRoute
   '/admin/comments': typeof AdminCommentsRoute
   '/courses/': typeof CoursesIndexRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
@@ -114,7 +106,6 @@ export interface FileRoutesByTo {
   '/quiz': typeof QuizRoute
   '/reports': typeof ReportsRoute
   '/users': typeof UsersRoute
-  '/admin/certificate-templates': typeof AdminCertificateTemplatesRoute
   '/admin/comments': typeof AdminCommentsRoute
   '/courses': typeof CoursesIndexRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
@@ -130,7 +121,6 @@ export interface FileRoutesById {
   '/quiz': typeof QuizRoute
   '/reports': typeof ReportsRoute
   '/users': typeof UsersRoute
-  '/admin/certificate-templates': typeof AdminCertificateTemplatesRoute
   '/admin/comments': typeof AdminCommentsRoute
   '/courses/': typeof CoursesIndexRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
@@ -147,7 +137,6 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/reports'
     | '/users'
-    | '/admin/certificate-templates'
     | '/admin/comments'
     | '/courses/'
     | '/courses/$courseId/play'
@@ -162,7 +151,6 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/reports'
     | '/users'
-    | '/admin/certificate-templates'
     | '/admin/comments'
     | '/courses'
     | '/courses/$courseId/play'
@@ -177,7 +165,6 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/reports'
     | '/users'
-    | '/admin/certificate-templates'
     | '/admin/comments'
     | '/courses/'
     | '/courses/$courseId/play'
@@ -193,7 +180,6 @@ export interface RootRouteChildren {
   QuizRoute: typeof QuizRoute
   ReportsRoute: typeof ReportsRoute
   UsersRoute: typeof UsersRoute
-  AdminCertificateTemplatesRoute: typeof AdminCertificateTemplatesRoute
   AdminCommentsRoute: typeof AdminCommentsRoute
   CoursesIndexRoute: typeof CoursesIndexRoute
   CoursesCourseIdPlayRoute: typeof CoursesCourseIdPlayRoute
@@ -272,13 +258,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCommentsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/certificate-templates': {
-      id: '/admin/certificate-templates'
-      path: '/admin/certificate-templates'
-      fullPath: '/admin/certificate-templates'
-      preLoaderRoute: typeof AdminCertificateTemplatesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/courses/$courseId/': {
       id: '/courses/$courseId/'
       path: '/courses/$courseId'
@@ -305,7 +284,6 @@ const rootRouteChildren: RootRouteChildren = {
   QuizRoute: QuizRoute,
   ReportsRoute: ReportsRoute,
   UsersRoute: UsersRoute,
-  AdminCertificateTemplatesRoute: AdminCertificateTemplatesRoute,
   AdminCommentsRoute: AdminCommentsRoute,
   CoursesIndexRoute: CoursesIndexRoute,
   CoursesCourseIdPlayRoute: CoursesCourseIdPlayRoute,
