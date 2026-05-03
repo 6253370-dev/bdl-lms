@@ -326,18 +326,23 @@ function CourseBuilderPage() {
               <div>
                 <h3 className="font-display font-semibold">Sertifikat şablonu</h3>
                 <p className="text-sm text-muted-foreground">
-                  Bu kursa aid PDF və ya şəkil şablonunu yükləyin. Yer tutucular: <code>{"{{FULL_NAME}}"}</code>,{" "}
-                  <code>{"{{COURSE_TITLE}}"}</code>, <code>{"{{SCORE}}"}</code>, <code>{"{{ISSUE_DATE}}"}</code>,{" "}
-                  <code>{"{{SERIAL}}"}</code>.
+                  PDF və ya PPTX şablon yükləyin. İstifadəçi sertifikatı{" "}
+                  <strong>PDF formatında</strong> alacaq və ad, kurs, nəticə, tarix, seriya
+                  avtomatik şablonun üzərinə yazılacaq.
+                  <br />
+                  <span className="text-xs">
+                    Qeyd: Avtomatik doldurma yalnız PDF şablonlarda işləyir. PPTX yüklənərsə,
+                    fallback dizayn istifadə olunacaq.
+                  </span>
                 </p>
               </div>
             </div>
             <FileUpload
-              label="Sertifikat şablonu (PDF / şəkil)"
+              label="Sertifikat şablonu (PDF tövsiyə olunur)"
               icon={FileText}
               value={course.certificate_template_url}
               onChange={(v) => updateCourseField({ certificate_template_url: v })}
-              accept=".pdf,application/pdf,image/*"
+              accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
               folder="certificate-templates"
               disabled={!isAdmin}
             />
