@@ -37,6 +37,7 @@ const NAV: NavItem[] = [
   { to: "/champions", label: t.nav.champions, icon: Trophy },
   { to: "/certificates", label: t.nav.certificates, icon: Award },
   { to: "/admin/comments", label: t.nav.adminComments, icon: MessageSquare, adminOnly: true },
+  { to: "/admin/certificate-templates", label: "Sertifikat şablonları", icon: Award, adminOnly: true },
   { to: "/reports", label: t.nav.reports, icon: BarChart3, adminOnly: true },
   { to: "/users", label: t.nav.users, icon: Users, adminOnly: true },
 ];
