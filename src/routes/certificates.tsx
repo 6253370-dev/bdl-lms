@@ -6,8 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Award, Download, Eye } from "lucide-react";
-import { buildCertificatePdf, downloadCertificate, type CertificateData } from "@/lib/certificate";
+import { Award, Download, Eye, Loader2 } from "lucide-react";
+import { downloadCertificateSmart, previewCertificateSmart, type CertificateData } from "@/lib/certificate";
+import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/certificates")({
