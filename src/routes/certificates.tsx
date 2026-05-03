@@ -172,7 +172,10 @@ function CertificatesPage() {
           <DialogFooter>
             <Button variant="outline" onClick={closePreview}>{t.commonExtras.close}</Button>
             {previewData && (
-              <Button onClick={() => downloadCertificate(previewData)}>
+              <Button onClick={() => {
+                const c = certs.find((x) => x.serial === previewData.serial);
+                if (c) handleDownload(c);
+              }}>
                 <Download className="h-4 w-4 mr-2" /> {t.cert.download}
               </Button>
             )}
