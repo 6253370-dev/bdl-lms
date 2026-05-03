@@ -152,6 +152,36 @@ export type Database = {
           },
         ]
       }
+      certificate_templates: {
+        Row: {
+          created_at: string
+          file_type: string
+          file_url: string
+          id: string
+          is_active: boolean
+          name: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_type: string
+          file_url: string
+          id?: string
+          is_active?: boolean
+          name: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_type?: string
+          file_url?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       certificates: {
         Row: {
           course_id: string
