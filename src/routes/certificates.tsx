@@ -6,8 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Award, Download, Eye } from "lucide-react";
-import { buildCertificatePdf, downloadCertificate, type CertificateData } from "@/lib/certificate";
+import { Award, Download, Eye, Loader2 } from "lucide-react";
+import { downloadCertificateSmart, previewCertificateSmart, type CertificateData } from "@/lib/certificate";
+import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/certificates")({
@@ -25,41 +26,73 @@ interface CertRow {
   course_title: string;
   score_percent: number;
   issued_at: string;
+  course_id: string;
 }
 
 function CertificatesPage() {
   const { user } = useAuth();
   const [certs, setCerts] = useState<CertRow[]>([]);
+  const [templates, setTemplates] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [previewData, setPreviewData] = useState<CertificateData | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       const { data } = await supabase
         .from("certificates")
-        .select("id, serial, full_name, course_title, score_percent, issued_at")
+        .select("id, serial, full_name, course_title, score_percent, issued_at, course_id")
         .eq("user_id", user.id)
         .order("issued_at", { ascending: false });
-      setCerts((data ?? []) as CertRow[]);
+      const rows = (data ?? []) as CertRow[];
+      setCerts(rows);
+      const ids = Array.from(new Set(rows.map((r) => r.course_id).filter(Boolean)));
+      if (ids.length) {
+        const { data: cs } = await supabase
+          .from("courses")
+          .select("id, certificate_template_url")
+          .in("id", ids);
+        const map: Record<string, string | null> = {};
+        (cs ?? []).forEach((c: any) => (map[c.id] = c.certificate_template_url));
+        setTemplates(map);
+      }
       setLoading(false);
     })();
   }, [user]);
 
-  const openPreview = (c: CertRow) => {
-    const data: CertificateData = {
-      fullName: c.full_name,
-      courseTitle: c.course_title,
-      scorePercent: Math.round(c.score_percent),
-      serial: c.serial,
-      issuedAt: c.issued_at,
-    };
-    const doc = buildCertificatePdf(data);
-    const blob = doc.output("blob");
-    const url = URL.createObjectURL(blob);
-    setPreviewData(data);
-    setPreviewUrl(url);
+  const toData = (c: CertRow): CertificateData => ({
+    fullName: c.full_name,
+    courseTitle: c.course_title,
+    scorePercent: Math.round(c.score_percent),
+    serial: c.serial,
+    issuedAt: c.issued_at,
+  });
+
+  const openPreview = async (c: CertRow) => {
+    setBusy(c.id);
+    try {
+      const data = toData(c);
+      const url = await previewCertificateSmart(data, templates[c.course_id]);
+      setPreviewData(data);
+      setPreviewUrl(url);
+    } catch (e: any) {
+      toast.error(e.message ?? "Önizləmə alınmadı");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleDownload = async (c: CertRow) => {
+    setBusy(c.id);
+    try {
+      await downloadCertificateSmart(toData(c), templates[c.course_id]);
+    } catch (e: any) {
+      toast.error(e.message ?? "Yükləmə alınmadı");
+    } finally {
+      setBusy(null);
+    }
   };
 
   const closePreview = () => {
@@ -110,23 +143,13 @@ function CertificatesPage() {
                 <span className="font-semibold text-primary">{Math.round(c.score_percent)}%</span>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => openPreview(c)}>
-                  <Eye className="h-4 w-4 mr-2" /> {t.commonExtras.preview}
+                <Button size="sm" variant="outline" className="flex-1" disabled={busy === c.id} onClick={() => openPreview(c)}>
+                  {busy === c.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Eye className="h-4 w-4 mr-2" />}
+                  {t.commonExtras.preview}
                 </Button>
-                <Button
-                  size="sm"
-                  className="flex-1"
-                  onClick={() =>
-                    downloadCertificate({
-                      fullName: c.full_name,
-                      courseTitle: c.course_title,
-                      scorePercent: Math.round(c.score_percent),
-                      serial: c.serial,
-                      issuedAt: c.issued_at,
-                    })
-                  }
-                >
-                  <Download className="h-4 w-4 mr-2" /> {t.cert.download}
+                <Button size="sm" className="flex-1" disabled={busy === c.id} onClick={() => handleDownload(c)}>
+                  {busy === c.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                  {t.cert.download}
                 </Button>
               </div>
             </Card>
@@ -149,7 +172,10 @@ function CertificatesPage() {
           <DialogFooter>
             <Button variant="outline" onClick={closePreview}>{t.commonExtras.close}</Button>
             {previewData && (
-              <Button onClick={() => downloadCertificate(previewData)}>
+              <Button onClick={() => {
+                const c = certs.find((x) => x.serial === previewData.serial);
+                if (c) handleDownload(c);
+              }}>
                 <Download className="h-4 w-4 mr-2" /> {t.cert.download}
               </Button>
             )}
