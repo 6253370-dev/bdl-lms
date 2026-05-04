@@ -128,6 +128,8 @@ interface Placeholder {
   fontSize: number;
 }
 
+const TOKEN_PATTERN = /\{\{\s*(FULL_NAME|COURSE_TITLE|SCORE|ISSUE_DATE|SERIAL)\s*\}\}/g;
+
 function configurePdfWorker(pdfjs: any) {
   if (pdfjs.GlobalWorkerOptions) {
     pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -157,7 +159,7 @@ async function findPlaceholders(pdfBytes: ArrayBuffer): Promise<{ placeholders: 
   });
 
   const placeholders: Placeholder[] = [];
-  const re = /\{\{\s*([A-Z_]+)\s*\}\}/g;
+  const re = new RegExp(TOKEN_PATTERN.source, "g");
   let m: RegExpExecArray | null;
   while ((m = re.exec(combined)) !== null) {
     const token = m[1];
