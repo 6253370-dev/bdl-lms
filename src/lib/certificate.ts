@@ -240,15 +240,15 @@ export async function buildCertificateFromTemplate(
   const { width: W, height: H } = page.getSize();
 
   if (placeholders.length > 0) {
-    // For each placeholder: cover with white rect, then draw replacement centered.
+    const grouped = new Map<string, Placeholder[]>();
+    placeholders.forEach((ph) => grouped.set(ph.token, [...(grouped.get(ph.token) ?? []), ph]));
+
+    // First cover every placeholder with a generous white rectangle so original template text disappears.
     for (const ph of placeholders) {
       const v = valueMap[ph.token];
       if (!v) continue;
-      // pdfjs y is from top in viewport coords; convert to pdf-lib (origin bottom-left).
-      // Actually item transform[5] from pdfjs is in PDF user-space (already bottom-up).
-      // But viewport.height is page height. We used transform directly, which IS bottom-up.
-      const padX = ph.fontSize * 0.4;
-      const padY = ph.fontSize * 0.25;
+      const padX = Math.max(ph.fontSize * 0.9, 14);
+      const padY = Math.max(ph.fontSize * 0.75, 10);
       const rectX = ph.x - padX;
       const rectY = ph.y - padY;
       const rectW = ph.width + padX * 2;
@@ -260,13 +260,27 @@ export async function buildCertificateFromTemplate(
         height: rectH,
         color: rgb(1, 1, 1),
       });
+    }
+
+    // Then draw one clean replacement per token, centered on the full placeholder area.
+    for (const [token, tokenPlaceholders] of grouped) {
+      const v = valueMap[token];
+      if (!v) continue;
+      const minX = Math.min(...tokenPlaceholders.map((ph) => ph.x - Math.max(ph.fontSize * 0.9, 14)));
+      const minY = Math.min(...tokenPlaceholders.map((ph) => ph.y - Math.max(ph.fontSize * 0.75, 10)));
+      const maxX = Math.max(...tokenPlaceholders.map((ph) => ph.x + ph.width + Math.max(ph.fontSize * 0.9, 14)));
+      const maxY = Math.max(...tokenPlaceholders.map((ph) => ph.y + ph.height + Math.max(ph.fontSize * 0.75, 10)));
+      const rectX = minX;
+      const rectY = minY;
+      const rectW = maxX - minX;
+      const rectH = maxY - minY;
+      const baseFontSize = tokenPlaceholders.reduce((sum, ph) => sum + ph.fontSize, 0) / tokenPlaceholders.length;
 
       const font = v.bold ? fontBold : fontReg;
-      // Fit text within rectW
-      let size = ph.fontSize;
+      let size = Math.max(baseFontSize, token === "FULL_NAME" ? 22 : 10);
       let textW = font.widthOfTextAtSize(v.value, size);
       if (textW > rectW) {
-        size = size * (rectW / textW);
+        size = Math.max(8, size * (rectW / textW));
         textW = font.widthOfTextAtSize(v.value, size);
       }
       const cx = rectX + rectW / 2 - textW / 2;
