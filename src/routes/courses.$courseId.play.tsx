@@ -69,7 +69,7 @@ function CoursePlayer() {
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: c }, { data: b }] = await Promise.all([
-      supabase.from("courses").select("id,title,description,passing_score").eq("id", courseId).single(),
+      supabase.from("courses").select("id,title,description,passing_score,certificate_template_url").eq("id", courseId).single(),
       supabase.from("course_blocks").select("*").eq("course_id", courseId).order("position"),
     ]);
     setCourse(c as Course);
