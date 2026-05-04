@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
+import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
 export interface CertificateData {
   fullName: string;
@@ -127,12 +128,17 @@ interface Placeholder {
   fontSize: number;
 }
 
+function configurePdfWorker(pdfjs: any) {
+  if (pdfjs.GlobalWorkerOptions) {
+    pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+  }
+}
+
 async function findPlaceholders(pdfBytes: ArrayBuffer): Promise<{ placeholders: Placeholder[]; pageHeight: number; pageWidth: number; }> {
   // Use pdfjs-dist legacy build for broad compatibility
   const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  // Disable worker (run on main thread) — avoids worker setup in bundler
-  if (pdfjs.GlobalWorkerOptions) pdfjs.GlobalWorkerOptions.workerSrc = "";
-  const loadingTask = pdfjs.getDocument({ data: pdfBytes.slice(0), useWorker: false, isEvalSupported: false });
+  configurePdfWorker(pdfjs);
+  const loadingTask = pdfjs.getDocument({ data: pdfBytes.slice(0), isEvalSupported: false });
   const doc = await loadingTask.promise;
   const page = await doc.getPage(1);
   const viewport = page.getViewport({ scale: 1 });
