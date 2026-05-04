@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 import { LessonComments } from "@/components/LessonComments";
-import { downloadCertificate } from "@/lib/certificate";
+import { downloadCertificateSmart } from "@/lib/certificate";
 
 export const Route = createFileRoute("/courses/$courseId/play")({
   component: () => (
@@ -47,6 +47,7 @@ interface Course {
   title: string;
   description: string | null;
   passing_score: number;
+  certificate_template_url: string | null;
 }
 
 const meta: Record<BlockType, { icon: typeof BookOpen; label: string; tone: string }> = {
@@ -68,7 +69,7 @@ function CoursePlayer() {
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: c }, { data: b }] = await Promise.all([
-      supabase.from("courses").select("id,title,description,passing_score").eq("id", courseId).single(),
+      supabase.from("courses").select("id,title,description,passing_score,certificate_template_url").eq("id", courseId).single(),
       supabase.from("course_blocks").select("*").eq("course_id", courseId).order("position"),
     ]);
     setCourse(c as Course);
@@ -552,13 +553,13 @@ function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block
           </div>
           <Button
             className="w-full"
-            onClick={() => downloadCertificate({
+            onClick={() => downloadCertificateSmart({
               fullName: profile.full_name,
               courseTitle: course.title,
               scorePercent: score.percent,
               serial: certificate.serial,
               issuedAt: certificate.issued_at,
-            })}
+            }, course.certificate_template_url)}
           >
             <Award className="h-4 w-4 mr-2" /> {t.cert.download}
           </Button>
