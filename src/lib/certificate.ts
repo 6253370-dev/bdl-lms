@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 
 export interface CertificateData {
@@ -120,6 +120,76 @@ async function loadFont(url: string): Promise<ArrayBuffer> {
   return await res.arrayBuffer();
 }
 
+interface Placeholder {
+  token: string;          // e.g. "FULL_NAME"
+  x: number; y: number;   // bottom-left in PDF coords
+  width: number; height: number;
+  fontSize: number;
+}
+
+async function findPlaceholders(pdfBytes: ArrayBuffer): Promise<{ placeholders: Placeholder[]; pageHeight: number; pageWidth: number; }> {
+  // Use pdfjs-dist legacy build for broad compatibility
+  const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  // Disable worker (run on main thread) — avoids worker setup in bundler
+  if (pdfjs.GlobalWorkerOptions) pdfjs.GlobalWorkerOptions.workerSrc = "";
+  const loadingTask = pdfjs.getDocument({ data: pdfBytes.slice(0), useWorker: false, isEvalSupported: false });
+  const doc = await loadingTask.promise;
+  const page = await doc.getPage(1);
+  const viewport = page.getViewport({ scale: 1 });
+  const content = await page.getTextContent();
+
+  // Build a flat string with item index map so we can locate {{TOKEN}} that may span items.
+  type Item = { str: string; transform: number[]; width: number; height: number };
+  const items: Item[] = content.items as any;
+
+  let combined = "";
+  const itemRanges: { start: number; end: number; idx: number }[] = [];
+  items.forEach((it, idx) => {
+    const start = combined.length;
+    combined += it.str;
+    itemRanges.push({ start, end: combined.length, idx });
+  });
+
+  const placeholders: Placeholder[] = [];
+  const re = /\{\{\s*([A-Z_]+)\s*\}\}/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(combined)) !== null) {
+    const token = m[1];
+    const matchStart = m.index;
+    const matchEnd = m.index + m[0].length;
+    // Find items overlapping the match
+    const overlapping = itemRanges.filter(r => r.start < matchEnd && r.end > matchStart);
+    if (overlapping.length === 0) continue;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let avgFont = 0; let count = 0;
+    for (const r of overlapping) {
+      const it = items[r.idx];
+      const tr = it.transform; // [a,b,c,d,e,f]; for typical: a=fontSize, e=x, f=y (baseline)
+      const x = tr[4];
+      const y = tr[5];
+      const fontSize = Math.hypot(tr[0], tr[1]);
+      const w = it.width;
+      const h = it.height || fontSize;
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x + w);
+      // baseline y; estimate top/bottom around it
+      minY = Math.min(minY, y - h * 0.25);
+      maxY = Math.max(maxY, y + h);
+      avgFont += fontSize;
+      count++;
+    }
+    placeholders.push({
+      token,
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+      fontSize: avgFont / Math.max(count, 1),
+    });
+  }
+  return { placeholders, pageHeight: viewport.height, pageWidth: viewport.width };
+}
+
 export async function buildCertificateFromTemplate(
   templateUrl: string,
   data: CertificateData,
@@ -133,60 +203,81 @@ export async function buildCertificateFromTemplate(
     _boldFont ?? loadFont("/fonts/NotoSans-Bold.ttf").then((b) => (_boldFont = b)),
   ]);
 
+  const dt = new Date(data.issuedAt);
+  const dateStr = dt.toLocaleDateString("az-AZ", { year: "numeric", month: "long", day: "numeric" });
+
+  const valueMap: Record<string, { value: string; bold?: boolean }> = {
+    FULL_NAME: { value: data.fullName, bold: true },
+    COURSE_TITLE: { value: data.courseTitle, bold: true },
+    SCORE: { value: String(Math.round(data.scorePercent)), bold: true },
+    ISSUE_DATE: { value: dateStr },
+    SERIAL: { value: data.serial },
+  };
+
   const pdf = await PDFDocument.load(tplBytes);
   pdf.registerFontkit(fontkit);
   const fontReg = await pdf.embedFont(regular, { subset: true });
   const fontBold = await pdf.embedFont(bold, { subset: true });
 
+  // Try to find {{TOKEN}} placeholders in template.
+  let placeholders: Placeholder[] = [];
+  try {
+    const found = await findPlaceholders(tplBytes);
+    placeholders = found.placeholders;
+  } catch (e) {
+    // pdfjs failed — fall back to legacy positional overlay
+  }
+
   const page = pdf.getPage(0);
   const { width: W, height: H } = page.getSize();
 
-  const dt = new Date(data.issuedAt);
-  const dateStr = dt.toLocaleDateString("az-AZ", { year: "numeric", month: "long", day: "numeric" });
+  if (placeholders.length > 0) {
+    // For each placeholder: cover with white rect, then draw replacement centered.
+    for (const ph of placeholders) {
+      const v = valueMap[ph.token];
+      if (!v) continue;
+      // pdfjs y is from top in viewport coords; convert to pdf-lib (origin bottom-left).
+      // Actually item transform[5] from pdfjs is in PDF user-space (already bottom-up).
+      // But viewport.height is page height. We used transform directly, which IS bottom-up.
+      const padX = ph.fontSize * 0.4;
+      const padY = ph.fontSize * 0.25;
+      const rectX = ph.x - padX;
+      const rectY = ph.y - padY;
+      const rectW = ph.width + padX * 2;
+      const rectH = ph.height + padY * 2;
+      page.drawRectangle({
+        x: rectX,
+        y: rectY,
+        width: rectW,
+        height: rectH,
+        color: rgb(1, 1, 1),
+      });
 
-  const drawCenter = (text: string, y: number, size: number, bold = false, color = rgb(0.08, 0.16, 0.26)) => {
-    const f = bold ? fontBold : fontReg;
-    const w = f.widthOfTextAtSize(text, size);
-    page.drawText(text, { x: (W - w) / 2, y, size, font: f, color });
-  };
-
-  // Positions calibrated for landscape A4 templates; scale by height for any size.
-  // y is measured from the bottom in pdf-lib.
-  const yName = H * 0.55;
-  const yCourse = H * 0.40;
-  const yScore = H * 0.30;
-  const yFooter = H * 0.12;
-
-  drawCenter(data.fullName, yName, Math.min(38, W * 0.05), true);
-
-  // Course title (wrap if long)
-  const courseSize = Math.min(22, W * 0.028);
-  const maxW = W * 0.75;
-  const words = data.courseTitle.split(/\s+/);
-  const lines: string[] = [];
-  let line = "";
-  for (const w of words) {
-    const test = line ? line + " " + w : w;
-    if (fontBold.widthOfTextAtSize(test, courseSize) > maxW && line) {
-      lines.push(line);
-      line = w;
-    } else line = test;
+      const font = v.bold ? fontBold : fontReg;
+      // Fit text within rectW
+      let size = ph.fontSize;
+      let textW = font.widthOfTextAtSize(v.value, size);
+      if (textW > rectW) {
+        size = size * (rectW / textW);
+        textW = font.widthOfTextAtSize(v.value, size);
+      }
+      const cx = rectX + rectW / 2 - textW / 2;
+      const cy = rectY + (rectH - size) / 2 + size * 0.18;
+      page.drawText(v.value, { x: cx, y: cy, size, font, color: rgb(0.08, 0.16, 0.26) });
+    }
+  } else {
+    // Legacy fallback (no placeholders detected)
+    const drawCenter = (text: string, y: number, size: number, b = false) => {
+      const f = b ? fontBold : fontReg;
+      const w = f.widthOfTextAtSize(text, size);
+      page.drawText(text, { x: (W - w) / 2, y, size, font: f, color: rgb(0.08, 0.16, 0.26) });
+    };
+    drawCenter(data.fullName, H * 0.55, Math.min(38, W * 0.05), true);
+    drawCenter(data.courseTitle, H * 0.40, Math.min(22, W * 0.028), true);
+    drawCenter(`Nəticə: ${Math.round(data.scorePercent)}%`, H * 0.30, 14, true);
+    drawCenter(dateStr, H * 0.12, 12);
+    drawCenter(`Seriya: ${data.serial}`, H * 0.06, 9);
   }
-  if (line) lines.push(line);
-  lines.forEach((ln, i) => {
-    const tw = fontBold.widthOfTextAtSize(ln, courseSize);
-    page.drawText(ln, {
-      x: (W - tw) / 2,
-      y: yCourse - i * (courseSize + 4),
-      size: courseSize,
-      font: fontBold,
-      color: rgb(0.16, 0.24, 0.36),
-    });
-  });
-
-  drawCenter(`Nəticə: ${data.scorePercent}%`, yScore, 14, true);
-  drawCenter(dateStr, yFooter, 12, false, rgb(0.2, 0.2, 0.2));
-  drawCenter(`Seriya: ${data.serial}`, H * 0.06, 9, false, rgb(0.4, 0.4, 0.4));
 
   return await pdf.save();
 }
@@ -205,11 +296,25 @@ export async function downloadCertificateSmart(data: CertificateData, templateUr
 export async function previewCertificateSmart(data: CertificateData, templateUrl?: string | null): Promise<string> {
   if (templateUrl && /\.pdf($|\?)/i.test(templateUrl)) {
     const bytes = await buildCertificateFromTemplate(templateUrl, data);
-    const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
-    return URL.createObjectURL(blob);
+    return await renderPdfToImageDataUrl(bytes);
   }
   const blob = buildCertificatePdf(data).output("blob");
-  return URL.createObjectURL(blob);
+  const ab = await blob.arrayBuffer();
+  return await renderPdfToImageDataUrl(new Uint8Array(ab));
+}
+
+async function renderPdfToImageDataUrl(bytes: Uint8Array): Promise<string> {
+  const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  if (pdfjs.GlobalWorkerOptions) pdfjs.GlobalWorkerOptions.workerSrc = "";
+  const doc = await pdfjs.getDocument({ data: bytes.slice(0) as any, useWorker: false, isEvalSupported: false }).promise;
+  const page = await doc.getPage(1);
+  const viewport = page.getViewport({ scale: 2 });
+  const canvas = document.createElement("canvas");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext("2d")!;
+  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+  return canvas.toDataURL("image/png");
 }
 
 function triggerDownload(bytes: Uint8Array, fileName: string) {
