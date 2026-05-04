@@ -327,8 +327,8 @@ export async function previewCertificateSmart(data: CertificateData, templateUrl
 
 async function renderPdfToImageDataUrl(bytes: Uint8Array): Promise<string> {
   const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  if (pdfjs.GlobalWorkerOptions) pdfjs.GlobalWorkerOptions.workerSrc = "";
-  const doc = await pdfjs.getDocument({ data: bytes.slice(0) as any, useWorker: false, isEvalSupported: false }).promise;
+  configurePdfWorker(pdfjs);
+  const doc = await pdfjs.getDocument({ data: bytes.slice(0) as any, isEvalSupported: false }).promise;
   const page = await doc.getPage(1);
   const viewport = page.getViewport({ scale: 2 });
   const canvas = document.createElement("canvas");
