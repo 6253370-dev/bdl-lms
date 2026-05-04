@@ -47,6 +47,7 @@ interface Course {
   title: string;
   description: string | null;
   passing_score: number;
+  certificate_template_url: string | null;
 }
 
 const meta: Record<BlockType, { icon: typeof BookOpen; label: string; tone: string }> = {
