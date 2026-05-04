@@ -129,6 +129,7 @@ interface Placeholder {
 }
 
 const TOKEN_PATTERN = /\{\{\s*(FULL_NAME|COURSE_TITLE|SCORE|ISSUE_DATE|SERIAL)\s*\}\}/g;
+const TEMPLATE_BACKGROUND = rgb(0.985, 0.98, 0.955);
 
 function configurePdfWorker(pdfjs: any) {
   if (pdfjs.GlobalWorkerOptions) {
@@ -255,8 +256,8 @@ export async function buildCertificateFromTemplate(
     for (const ph of placeholders) {
       const v = valueMap[ph.token];
       if (!v) continue;
-      const padX = Math.max(ph.fontSize * 0.9, 14);
-      const padY = Math.max(ph.fontSize * 0.75, 10);
+      const padX = Math.max(ph.fontSize * 0.35, 6);
+      const padY = Math.max(ph.fontSize * 0.22, 4);
       const rectX = ph.x - padX;
       const rectY = ph.y - padY;
       const rectW = ph.width + padX * 2;
@@ -266,7 +267,7 @@ export async function buildCertificateFromTemplate(
         y: rectY,
         width: rectW,
         height: rectH,
-        color: rgb(1, 1, 1),
+        color: TEMPLATE_BACKGROUND,
       });
     }
 
@@ -274,10 +275,10 @@ export async function buildCertificateFromTemplate(
     for (const [token, tokenPlaceholders] of grouped) {
       const v = valueMap[token];
       if (!v) continue;
-      const minX = Math.min(...tokenPlaceholders.map((ph) => ph.x - Math.max(ph.fontSize * 0.9, 14)));
-      const minY = Math.min(...tokenPlaceholders.map((ph) => ph.y - Math.max(ph.fontSize * 0.75, 10)));
-      const maxX = Math.max(...tokenPlaceholders.map((ph) => ph.x + ph.width + Math.max(ph.fontSize * 0.9, 14)));
-      const maxY = Math.max(...tokenPlaceholders.map((ph) => ph.y + ph.height + Math.max(ph.fontSize * 0.75, 10)));
+      const minX = Math.min(...tokenPlaceholders.map((ph) => ph.x - Math.max(ph.fontSize * 0.35, 6)));
+      const minY = Math.min(...tokenPlaceholders.map((ph) => ph.y - Math.max(ph.fontSize * 0.22, 4)));
+      const maxX = Math.max(...tokenPlaceholders.map((ph) => ph.x + ph.width + Math.max(ph.fontSize * 0.35, 6)));
+      const maxY = Math.max(...tokenPlaceholders.map((ph) => ph.y + ph.height + Math.max(ph.fontSize * 0.22, 4)));
       const rectX = minX;
       const rectY = minY;
       const rectW = maxX - minX;
