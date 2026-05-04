@@ -553,13 +553,13 @@ function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block
           </div>
           <Button
             className="w-full"
-            onClick={() => downloadCertificate({
+            onClick={() => downloadCertificateSmart({
               fullName: profile.full_name,
               courseTitle: course.title,
               scorePercent: score.percent,
               serial: certificate.serial,
               issuedAt: certificate.issued_at,
-            })}
+            }, course.certificate_template_url)}
           >
             <Award className="h-4 w-4 mr-2" /> {t.cert.download}
           </Button>
