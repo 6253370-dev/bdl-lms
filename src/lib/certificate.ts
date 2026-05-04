@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
+import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
 export interface CertificateData {
   fullName: string;
@@ -127,12 +128,20 @@ interface Placeholder {
   fontSize: number;
 }
 
+const TOKEN_PATTERN = /\{\{\s*(FULL_NAME|COURSE_TITLE|SCORE|ISSUE_DATE|SERIAL)\s*\}\}/g;
+const TEMPLATE_BACKGROUND = rgb(0.985, 0.98, 0.955);
+
+function configurePdfWorker(pdfjs: any) {
+  if (pdfjs.GlobalWorkerOptions) {
+    pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+  }
+}
+
 async function findPlaceholders(pdfBytes: ArrayBuffer): Promise<{ placeholders: Placeholder[]; pageHeight: number; pageWidth: number; }> {
   // Use pdfjs-dist legacy build for broad compatibility
   const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  // Disable worker (run on main thread) — avoids worker setup in bundler
-  if (pdfjs.GlobalWorkerOptions) pdfjs.GlobalWorkerOptions.workerSrc = "";
-  const loadingTask = pdfjs.getDocument({ data: pdfBytes.slice(0), useWorker: false, isEvalSupported: false });
+  configurePdfWorker(pdfjs);
+  const loadingTask = pdfjs.getDocument({ data: pdfBytes.slice(0), isEvalSupported: false });
   const doc = await loadingTask.promise;
   const page = await doc.getPage(1);
   const viewport = page.getViewport({ scale: 1 });
@@ -150,13 +159,21 @@ async function findPlaceholders(pdfBytes: ArrayBuffer): Promise<{ placeholders: 
     itemRanges.push({ start, end: combined.length, idx });
   });
 
+  let normalized = "";
+  const normalizedToOriginal: number[] = [];
+  Array.from(combined).forEach((ch, originalIndex) => {
+    if (/\s/.test(ch)) return;
+    normalized += ch;
+    normalizedToOriginal.push(originalIndex);
+  });
+
   const placeholders: Placeholder[] = [];
-  const re = /\{\{\s*([A-Z_]+)\s*\}\}/g;
+  const re = new RegExp(TOKEN_PATTERN.source, "g");
   let m: RegExpExecArray | null;
-  while ((m = re.exec(combined)) !== null) {
+  while ((m = re.exec(normalized)) !== null) {
     const token = m[1];
-    const matchStart = m.index;
-    const matchEnd = m.index + m[0].length;
+    const matchStart = normalizedToOriginal[m.index] ?? m.index;
+    const matchEnd = (normalizedToOriginal[m.index + m[0].length - 1] ?? (m.index + m[0].length - 1)) + 1;
     // Find items overlapping the match
     const overlapping = itemRanges.filter(r => r.start < matchEnd && r.end > matchStart);
     if (overlapping.length === 0) continue;
@@ -232,15 +249,15 @@ export async function buildCertificateFromTemplate(
   const { width: W, height: H } = page.getSize();
 
   if (placeholders.length > 0) {
-    // For each placeholder: cover with white rect, then draw replacement centered.
+    const grouped = new Map<string, Placeholder[]>();
+    placeholders.forEach((ph) => grouped.set(ph.token, [...(grouped.get(ph.token) ?? []), ph]));
+
+    // First cover every placeholder with a generous white rectangle so original template text disappears.
     for (const ph of placeholders) {
       const v = valueMap[ph.token];
       if (!v) continue;
-      // pdfjs y is from top in viewport coords; convert to pdf-lib (origin bottom-left).
-      // Actually item transform[5] from pdfjs is in PDF user-space (already bottom-up).
-      // But viewport.height is page height. We used transform directly, which IS bottom-up.
-      const padX = ph.fontSize * 0.4;
-      const padY = ph.fontSize * 0.25;
+      const padX = Math.max(ph.fontSize * 0.35, 6);
+      const padY = Math.max(ph.fontSize * 0.22, 4);
       const rectX = ph.x - padX;
       const rectY = ph.y - padY;
       const rectW = ph.width + padX * 2;
@@ -250,15 +267,29 @@ export async function buildCertificateFromTemplate(
         y: rectY,
         width: rectW,
         height: rectH,
-        color: rgb(1, 1, 1),
+        color: TEMPLATE_BACKGROUND,
       });
+    }
+
+    // Then draw one clean replacement per token, centered on the full placeholder area.
+    for (const [token, tokenPlaceholders] of grouped) {
+      const v = valueMap[token];
+      if (!v) continue;
+      const minX = Math.min(...tokenPlaceholders.map((ph) => ph.x - Math.max(ph.fontSize * 0.35, 6)));
+      const minY = Math.min(...tokenPlaceholders.map((ph) => ph.y - Math.max(ph.fontSize * 0.22, 4)));
+      const maxX = Math.max(...tokenPlaceholders.map((ph) => ph.x + ph.width + Math.max(ph.fontSize * 0.35, 6)));
+      const maxY = Math.max(...tokenPlaceholders.map((ph) => ph.y + ph.height + Math.max(ph.fontSize * 0.22, 4)));
+      const rectX = minX;
+      const rectY = minY;
+      const rectW = maxX - minX;
+      const rectH = maxY - minY;
+      const baseFontSize = tokenPlaceholders.reduce((sum, ph) => sum + ph.fontSize, 0) / tokenPlaceholders.length;
 
       const font = v.bold ? fontBold : fontReg;
-      // Fit text within rectW
-      let size = ph.fontSize;
+      let size = Math.max(baseFontSize, token === "FULL_NAME" ? 22 : 10);
       let textW = font.widthOfTextAtSize(v.value, size);
       if (textW > rectW) {
-        size = size * (rectW / textW);
+        size = Math.max(8, size * (rectW / textW));
         textW = font.widthOfTextAtSize(v.value, size);
       }
       const cx = rectX + rectW / 2 - textW / 2;
@@ -266,7 +297,17 @@ export async function buildCertificateFromTemplate(
       page.drawText(v.value, { x: cx, y: cy, size, font, color: rgb(0.08, 0.16, 0.26) });
     }
   } else {
-    // Legacy fallback (no placeholders detected)
+    // Fallback for PDFs whose placeholder text cannot be extracted by pdf.js:
+    // clear the expected dynamic bands first, then write clean values.
+    const clearBand = (centerY: number, height: number, marginX = W * 0.16) => {
+      page.drawRectangle({ x: marginX, y: centerY - height / 2, width: W - marginX * 2, height, color: TEMPLATE_BACKGROUND });
+    };
+    clearBand(H * 0.55, H * 0.07, W * 0.28);
+    clearBand(H * 0.40, H * 0.05, W * 0.25);
+    clearBand(H * 0.30, H * 0.035, W * 0.36);
+    clearBand(H * 0.12, H * 0.03, W * 0.16);
+    clearBand(H * 0.06, H * 0.025, W * 0.34);
+
     const drawCenter = (text: string, y: number, size: number, b = false) => {
       const f = b ? fontBold : fontReg;
       const w = f.widthOfTextAtSize(text, size);
@@ -305,8 +346,8 @@ export async function previewCertificateSmart(data: CertificateData, templateUrl
 
 async function renderPdfToImageDataUrl(bytes: Uint8Array): Promise<string> {
   const pdfjs: any = await import("pdfjs-dist/legacy/build/pdf.mjs");
-  if (pdfjs.GlobalWorkerOptions) pdfjs.GlobalWorkerOptions.workerSrc = "";
-  const doc = await pdfjs.getDocument({ data: bytes.slice(0) as any, useWorker: false, isEvalSupported: false }).promise;
+  configurePdfWorker(pdfjs);
+  const doc = await pdfjs.getDocument({ data: bytes.slice(0) as any, isEvalSupported: false }).promise;
   const page = await doc.getPage(1);
   const viewport = page.getViewport({ scale: 2 });
   const canvas = document.createElement("canvas");
