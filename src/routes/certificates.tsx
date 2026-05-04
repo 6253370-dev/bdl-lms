@@ -163,10 +163,10 @@ function CertificatesPage() {
             <DialogTitle>{t.commonExtras.preview} — {previewData?.courseTitle}</DialogTitle>
           </DialogHeader>
           {previewUrl && (
-            <iframe
+            <img
               src={previewUrl}
-              title="Sertifikat önizləməsi"
-              className="w-full h-[70vh] rounded-md border"
+              alt="Sertifikat önizləməsi"
+              className="w-full max-h-[70vh] object-contain rounded-md border bg-muted"
             />
           )}
           <DialogFooter>
