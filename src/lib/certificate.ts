@@ -300,13 +300,13 @@ export async function buildCertificateFromTemplate(
     // Fallback for PDFs whose placeholder text cannot be extracted by pdf.js:
     // clear the expected dynamic bands first, then write clean values.
     const clearBand = (centerY: number, height: number, marginX = W * 0.16) => {
-      page.drawRectangle({ x: marginX, y: centerY - height / 2, width: W - marginX * 2, height, color: rgb(1, 1, 1) });
+      page.drawRectangle({ x: marginX, y: centerY - height / 2, width: W - marginX * 2, height, color: TEMPLATE_BACKGROUND });
     };
-    clearBand(H * 0.55, H * 0.09, W * 0.22);
-    clearBand(H * 0.40, H * 0.08, W * 0.18);
-    clearBand(H * 0.30, H * 0.05, W * 0.30);
-    clearBand(H * 0.12, H * 0.04, W * 0.12);
-    clearBand(H * 0.06, H * 0.035, W * 0.30);
+    clearBand(H * 0.55, H * 0.07, W * 0.28);
+    clearBand(H * 0.40, H * 0.05, W * 0.25);
+    clearBand(H * 0.30, H * 0.035, W * 0.36);
+    clearBand(H * 0.12, H * 0.03, W * 0.16);
+    clearBand(H * 0.06, H * 0.025, W * 0.34);
 
     const drawCenter = (text: string, y: number, size: number, b = false) => {
       const f = b ? fontBold : fontReg;
