@@ -158,13 +158,21 @@ async function findPlaceholders(pdfBytes: ArrayBuffer): Promise<{ placeholders: 
     itemRanges.push({ start, end: combined.length, idx });
   });
 
+  let normalized = "";
+  const normalizedToOriginal: number[] = [];
+  Array.from(combined).forEach((ch, originalIndex) => {
+    if (/\s/.test(ch)) return;
+    normalized += ch;
+    normalizedToOriginal.push(originalIndex);
+  });
+
   const placeholders: Placeholder[] = [];
   const re = new RegExp(TOKEN_PATTERN.source, "g");
   let m: RegExpExecArray | null;
-  while ((m = re.exec(combined)) !== null) {
+  while ((m = re.exec(normalized)) !== null) {
     const token = m[1];
-    const matchStart = m.index;
-    const matchEnd = m.index + m[0].length;
+    const matchStart = normalizedToOriginal[m.index] ?? m.index;
+    const matchEnd = (normalizedToOriginal[m.index + m[0].length - 1] ?? (m.index + m[0].length - 1)) + 1;
     // Find items overlapping the match
     const overlapping = itemRanges.filter(r => r.start < matchEnd && r.end > matchStart);
     if (overlapping.length === 0) continue;
