@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 import { LessonComments } from "@/components/LessonComments";
-import { downloadCertificate } from "@/lib/certificate";
+import { downloadCertificateSmart } from "@/lib/certificate";
 
 export const Route = createFileRoute("/courses/$courseId/play")({
   component: () => (
