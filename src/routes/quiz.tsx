@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,41 +8,23 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
-  FileQuestion,
-  Plus,
-  Play,
-  Trash2,
-  Pencil,
-  Eye,
-  EyeOff,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Trophy,
-  ListChecks,
-  Loader2,
+  FileQuestion, Plus, Play, Trash2, Pencil, Loader2, Users, KeyRound,
+  CheckCircle2, XCircle, Radio,
 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/quiz")({
   component: () => (
     <ProtectedRoute>
-      <QuizPage />
+      <QuizHub />
     </ProtectedRoute>
   ),
 });
@@ -51,8 +33,6 @@ type Quiz = {
   id: string;
   title: string;
   description: string | null;
-  time_limit_seconds: number | null;
-  passing_score: number;
   is_published: boolean;
   created_at: string;
 };
@@ -66,403 +46,344 @@ type QuizQuestion = {
   answers: { id: string; text: string; position: number; is_correct: boolean }[];
 };
 
-type Attempt = {
+type Room = {
   id: string;
   quiz_id: string;
-  user_id: string;
-  score_percent: number;
-  correct_count: number;
-  total_questions: number;
-  duration_seconds: number;
-  passed: boolean;
+  host_id: string;
+  code: string;
+  status: "lobby" | "active" | "finished";
+  current_question_index: number;
+  current_question_started_at: string | null;
+  question_time_seconds: number;
   created_at: string;
-  profile?: { full_name: string; employee_id: string } | null;
+  finished_at: string | null;
 };
 
-function QuizPage() {
-  const { isAdmin, user } = useAuth();
+function genCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+/* =========================================================
+   Hub: parol qoşulması (user) + admin idarəsi
+========================================================= */
+function QuizHub() {
+  const { isAdmin } = useAuth();
+  const [code, setCode] = useState("");
+  const [joining, setJoining] = useState(false);
+  const [activeRoom, setActiveRoom] = useState<Room | null>(null);
+
+  const join = async () => {
+    if (!code.trim()) return;
+    setJoining(true);
+    const { data, error } = await supabase
+      .from("quiz_rooms")
+      .select("*")
+      .eq("code", code.trim())
+      .maybeSingle();
+    setJoining(false);
+    if (error || !data) {
+      toast.error("Otaq tapılmadı");
+      return;
+    }
+    if (data.status === "finished") {
+      toast.error("Bu otaq artıq bitib");
+      return;
+    }
+    setActiveRoom(data as Room);
+  };
+
+  if (activeRoom) {
+    return <LiveRoom roomId={activeRoom.id} onLeave={() => setActiveRoom(null)} />;
+  }
+
+  return (
+    <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8">
+      <div>
+        <h1 className="font-display text-3xl font-bold mb-2">Live Quiz</h1>
+        <p className="text-muted-foreground">
+          Real vaxtda çoxlu istifadəçi ilə yarış. Otaq parolu ilə qoşul.
+        </p>
+      </div>
+
+      <Card className="p-6 max-w-md">
+        <div className="flex items-center gap-2 mb-3">
+          <KeyRound className="h-5 w-5 text-primary" />
+          <div className="font-display font-semibold">Otağa qoşul</div>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="6 rəqəmli kod"
+            onKeyDown={(e) => e.key === "Enter" && join()}
+          />
+          <Button onClick={join} disabled={joining}>
+            {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : "Qoşul"}
+          </Button>
+        </div>
+      </Card>
+
+      {isAdmin && <AdminPanel onEnterRoom={(r) => setActiveRoom(r)} />}
+    </div>
+  );
+}
+
+/* =========================================================
+   Admin paneli: quiz CRUD + otaq yarat / izlə
+========================================================= */
+function AdminPanel({ onEnterRoom }: { onEnterRoom: (r: Room) => void }) {
+  const { user } = useAuth();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editing, setEditing] = useState<Quiz | null>(null);
-  const [playing, setPlaying] = useState<Quiz | null>(null);
-  const [viewingHistory, setViewingHistory] = useState<Quiz | null>(null);
-  const [viewingBoard, setViewingBoard] = useState<Quiz | null>(null);
-  const [search, setSearch] = useState("");
+  const [editing, setEditing] = useState<Quiz | "new" | null>(null);
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("quizzes")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setQuizzes((data ?? []) as Quiz[]);
+    const [{ data: q }, { data: r }] = await Promise.all([
+      supabase.from("quizzes").select("id,title,description,is_published,created_at").order("created_at", { ascending: false }),
+      supabase.from("quiz_rooms").select("*").neq("status", "finished").order("created_at", { ascending: false }),
+    ]);
+    setQuizzes((q ?? []) as Quiz[]);
+    setRooms((r ?? []) as Room[]);
     setLoading(false);
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
-  const visible = useMemo(() => {
-    let list = isAdmin ? quizzes : quizzes.filter((q) => q.is_published);
-    const q = search.trim().toLowerCase();
-    if (q) list = list.filter((x) => x.title.toLowerCase().includes(q) || (x.description ?? "").toLowerCase().includes(q));
-    return list;
-  }, [quizzes, isAdmin, search]);
+  const createRoom = async (quiz: Quiz, password: string, timeSec: number) => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("quiz_rooms")
+      .insert({
+        quiz_id: quiz.id,
+        host_id: user.id,
+        code: password,
+        question_time_seconds: timeSec,
+      })
+      .select()
+      .single();
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Otaq yaradıldı · Kod: ${data.code}`);
+    load();
+    onEnterRoom(data as Room);
+  };
 
   return (
-    <div className="p-6 lg:p-10 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold mb-2">Quizlər</h1>
-          <p className="text-muted-foreground">
-            Bilik yoxlaması üçün vaxtlı suallar.
-          </p>
-        </div>
-        {isAdmin && (
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" /> Yeni quiz
-          </Button>
-        )}
-      </div>
+    <div className="space-y-6">
+      <Tabs defaultValue="rooms">
+        <TabsList>
+          <TabsTrigger value="rooms">Aktiv otaqlar ({rooms.length})</TabsTrigger>
+          <TabsTrigger value="quizzes">Quizlər ({quizzes.length})</TabsTrigger>
+        </TabsList>
 
-      <div className="mb-6 relative max-w-md">
-        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Quiz axtar..."
-          className="pl-9"
-        />
-      </div>
+        <TabsContent value="rooms" className="pt-4">
+          {loading ? (
+            <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+          ) : rooms.length === 0 ? (
+            <Card className="p-8 text-center border-dashed text-muted-foreground text-sm">
+              Aktiv otaq yoxdur. Quizlər tabından yeni otaq yarat.
+            </Card>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {rooms.map((r) => {
+                const q = quizzes.find((x) => x.id === r.quiz_id);
+                return (
+                  <Card key={r.id} className="p-4 flex items-center justify-between">
+                    <div>
+                      <div className="font-display font-semibold">{q?.title ?? "Quiz"}</div>
+                      <div className="text-xs text-muted-foreground inline-flex items-center gap-2 mt-1">
+                        <KeyRound className="h-3 w-3" /> {r.code}
+                        <Badge variant={r.status === "lobby" ? "secondary" : "default"} className="ml-2">
+                          {r.status === "lobby" ? "Lobby" : "Aktiv"}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={() => onEnterRoom(r)}>
+                      <Radio className="h-3.5 w-3.5" /> İdarə et
+                    </Button>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
 
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      ) : visible.length === 0 ? (
-        <Card className="p-12 text-center border-dashed">
-          <FileQuestion className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <h3 className="font-display font-semibold">Hələ quiz yoxdur</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isAdmin ? "İlk quizi yaratmaq üçün düyməyə basın." : "Tezliklə əlavə olunacaq."}
-          </p>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {visible.map((q) => (
-            <QuizCard
-              key={q.id}
-              quiz={q}
-              isAdmin={isAdmin}
-              onPlay={() => setPlaying(q)}
-              onEdit={() => setEditing(q)}
-              onHistory={() => setViewingHistory(q)}
-              onBoard={() => setViewingBoard(q)}
-              onChanged={load}
-            />
-          ))}
-        </div>
-      )}
+        <TabsContent value="quizzes" className="pt-4 space-y-3">
+          <div className="flex justify-end">
+            <Button onClick={() => setEditing("new")}><Plus className="h-4 w-4" /> Yeni quiz</Button>
+          </div>
+          {quizzes.length === 0 ? (
+            <Card className="p-8 text-center border-dashed text-muted-foreground text-sm">
+              <FileQuestion className="h-8 w-8 mx-auto mb-2" /> Hələ quiz yoxdur
+            </Card>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {quizzes.map((q) => (
+                <QuizAdminCard
+                  key={q.id}
+                  quiz={q}
+                  onEdit={() => setEditing(q)}
+                  onCreateRoom={(pw, t) => createRoom(q, pw, t)}
+                  onChanged={load}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
-      {createOpen && (
-        <QuizFormDialog
-          open={createOpen}
-          onOpenChange={setCreateOpen}
-          onSaved={load}
-          userId={user?.id ?? null}
-        />
-      )}
       {editing && (
         <QuizFormDialog
-          open={!!editing}
-          onOpenChange={(o) => !o && setEditing(null)}
+          existing={editing === "new" ? undefined : editing}
+          userId={user?.id ?? null}
+          onClose={() => setEditing(null)}
           onSaved={load}
-          userId={user?.id ?? null}
-          existing={editing}
-        />
-      )}
-      {playing && (
-        <PlayerDialog
-          quiz={playing}
-          open={!!playing}
-          onClose={() => setPlaying(null)}
-        />
-      )}
-      {viewingHistory && (
-        <HistoryDialog
-          quiz={viewingHistory}
-          open={!!viewingHistory}
-          onClose={() => setViewingHistory(null)}
-          userId={user?.id ?? null}
-        />
-      )}
-      {viewingBoard && (
-        <LeaderboardDialog
-          quiz={viewingBoard}
-          open={!!viewingBoard}
-          onClose={() => setViewingBoard(null)}
         />
       )}
     </div>
   );
 }
 
-function QuizCard({
-  quiz,
-  isAdmin,
-  onPlay,
-  onEdit,
-  onHistory,
-  onBoard,
-  onChanged,
+function QuizAdminCard({
+  quiz, onEdit, onCreateRoom, onChanged,
 }: {
   quiz: Quiz;
-  isAdmin: boolean;
-  onPlay: () => void;
   onEdit: () => void;
-  onHistory: () => void;
-  onBoard: () => void;
+  onCreateRoom: (password: string, timeSec: number) => void;
   onChanged: () => void;
 }) {
-  const togglePublish = async () => {
-    const { error } = await supabase
-      .from("quizzes")
-      .update({ is_published: !quiz.is_published })
-      .eq("id", quiz.id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success(quiz.is_published ? "Layihə statusuna keçirildi" : "Dərc edildi");
-      onChanged();
-    }
-  };
+  const [open, setOpen] = useState(false);
+  const [pw, setPw] = useState(genCode());
+  const [t, setT] = useState(20);
 
   const remove = async () => {
     if (!confirm(`"${quiz.title}" silinsin?`)) return;
     const { error } = await supabase.from("quizzes").delete().eq("id", quiz.id);
     if (error) toast.error(error.message);
-    else {
-      toast.success("Silindi");
-      onChanged();
-    }
+    else { toast.success("Silindi"); onChanged(); }
   };
 
   return (
-    <Card className="p-5 flex flex-col gap-3">
+    <Card className="p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-display font-semibold leading-tight">{quiz.title}</h3>
+        <div>
+          <div className="font-display font-semibold">{quiz.title}</div>
+          {quiz.description && <p className="text-xs text-muted-foreground line-clamp-2">{quiz.description}</p>}
+        </div>
         <Badge variant={quiz.is_published ? "default" : "secondary"}>
           {quiz.is_published ? "Dərc" : "Layihə"}
         </Badge>
       </div>
-      {quiz.description && (
-        <p className="text-sm text-muted-foreground line-clamp-2">{quiz.description}</p>
-      )}
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-        {quiz.time_limit_seconds && (
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {Math.round(quiz.time_limit_seconds / 60)} dəq
-          </span>
-        )}
-        <span>Keçid: {quiz.passing_score}%</span>
+      <div className="flex gap-2 flex-wrap">
+        <Button size="sm" onClick={() => setOpen(true)}><Radio className="h-3.5 w-3.5" /> Otaq yarat</Button>
+        <Button size="sm" variant="outline" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /></Button>
+        <Button size="sm" variant="outline" onClick={remove}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
       </div>
-      <div className="flex flex-wrap gap-2 mt-auto pt-2">
-        <Button size="sm" onClick={onPlay} disabled={!quiz.is_published && !isAdmin}>
-          <Play className="h-3.5 w-3.5" /> Başla
-        </Button>
-        <Button size="sm" variant="outline" onClick={onHistory}>
-          <ListChecks className="h-3.5 w-3.5" /> Tarixçə
-        </Button>
-        <Button size="sm" variant="outline" onClick={onBoard}>
-          <Trophy className="h-3.5 w-3.5" /> Liderlər
-        </Button>
-        {isAdmin && (
-          <>
-            <Button size="sm" variant="outline" onClick={onEdit}>
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            <Button size="sm" variant="outline" onClick={togglePublish}>
-              {quiz.is_published ? (
-                <EyeOff className="h-3.5 w-3.5" />
-              ) : (
-                <Eye className="h-3.5 w-3.5" />
-              )}
-            </Button>
-            <Button size="sm" variant="outline" onClick={remove}>
-              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-            </Button>
-          </>
-        )}
-      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Yeni otaq · {quiz.title}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Otaq parolu / kodu</Label>
+              <div className="flex gap-2">
+                <Input value={pw} onChange={(e) => setPw(e.target.value)} />
+                <Button variant="outline" onClick={() => setPw(genCode())}>Yenilə</Button>
+              </div>
+            </div>
+            <div>
+              <Label>Hər sual üçün vaxt (saniyə)</Label>
+              <Input type="number" value={t} onChange={(e) => setT(Number(e.target.value))} min={5} max={120} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Ləğv</Button>
+            <Button onClick={() => { onCreateRoom(pw, t); setOpen(false); }}>Yarat</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
 
-/* ---------------- Form (create / edit + questions) ---------------- */
-
+/* =========================================================
+   Quiz form (info + suallar)
+========================================================= */
 function QuizFormDialog({
-  open,
-  onOpenChange,
-  onSaved,
-  userId,
-  existing,
+  existing, userId, onClose, onSaved,
 }: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  onSaved: () => void;
-  userId: string | null;
   existing?: Quiz;
+  userId: string | null;
+  onClose: () => void;
+  onSaved: () => void;
 }) {
   const [title, setTitle] = useState(existing?.title ?? "");
   const [description, setDescription] = useState(existing?.description ?? "");
-  const [timeMin, setTimeMin] = useState(
-    existing?.time_limit_seconds ? Math.round(existing.time_limit_seconds / 60) : 10,
-  );
-  const [pass, setPass] = useState(existing?.passing_score ?? 60);
-  const [published, setPublished] = useState(existing?.is_published ?? false);
+  const [published, setPublished] = useState(existing?.is_published ?? true);
   const [saving, setSaving] = useState(false);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [activeTab, setActiveTab] = useState("info");
+  const [tab, setTab] = useState("info");
+  const [savedId, setSavedId] = useState<string | null>(existing?.id ?? null);
 
   useEffect(() => {
-    if (existing) loadQuestions(existing.id);
-  }, [existing]);
+    if (savedId) loadQuestions(savedId);
+  }, [savedId]);
 
-  const loadQuestions = async (quizId: string) => {
-    const { data: qs } = await supabase
-      .from("quiz_questions")
-      .select("*")
-      .eq("quiz_id", quizId)
-      .order("position");
+  const loadQuestions = async (id: string) => {
+    const { data: qs } = await supabase.from("quiz_questions").select("*").eq("quiz_id", id).order("position");
     if (!qs) return;
     const ids = qs.map((q) => q.id);
     const { data: ans } = await supabase
-      .from("quiz_answers")
-      .select("*")
+      .from("quiz_answers").select("*")
       .in("question_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"])
       .order("position");
-    setQuestions(
-      qs.map((q) => ({
-        ...q,
-        answers: (ans ?? []).filter((a) => a.question_id === q.id),
-      })) as QuizQuestion[],
-    );
+    setQuestions(qs.map((q) => ({ ...q, answers: (ans ?? []).filter((a) => a.question_id === q.id) })) as QuizQuestion[]);
   };
 
   const save = async () => {
-    if (!title.trim()) {
-      toast.error("Başlıq tələb olunur");
-      return;
-    }
+    if (!title.trim()) return toast.error("Başlıq tələb olunur");
     setSaving(true);
     const payload = {
       title: title.trim(),
       description: description.trim() || null,
-      time_limit_seconds: timeMin > 0 ? timeMin * 60 : null,
-      passing_score: pass,
       is_published: published,
       created_by: userId,
     };
-    if (existing) {
-      const { error } = await supabase.from("quizzes").update(payload).eq("id", existing.id);
-      if (error) {
-        toast.error(error.message);
-        setSaving(false);
-        return;
-      }
-      toast.success("Yeniləndi");
+    if (savedId) {
+      const { error } = await supabase.from("quizzes").update(payload).eq("id", savedId);
+      if (error) { toast.error(error.message); setSaving(false); return; }
     } else {
-      const { data, error } = await supabase
-        .from("quizzes")
-        .insert(payload)
-        .select()
-        .single();
-      if (error) {
-        toast.error(error.message);
-        setSaving(false);
-        return;
-      }
-      toast.success("Yaradıldı");
-      // switch to questions tab on the newly created quiz
-      onSaved();
-      setSaving(false);
-      onOpenChange(false);
-      return;
+      const { data, error } = await supabase.from("quizzes").insert(payload).select().single();
+      if (error || !data) { toast.error(error?.message ?? "Xəta"); setSaving(false); return; }
+      setSavedId(data.id);
+      setTab("questions");
     }
     setSaving(false);
+    toast.success("Yadda saxlanıldı");
     onSaved();
-    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{existing ? "Quiz redaktəsi" : "Yeni quiz"}</DialogTitle>
-        </DialogHeader>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <DialogHeader><DialogTitle>{existing ? "Quiz redaktəsi" : "Yeni quiz"}</DialogTitle></DialogHeader>
+        <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="info">Məlumat</TabsTrigger>
-            <TabsTrigger value="questions" disabled={!existing}>
-              Suallar ({questions.length})
-            </TabsTrigger>
+            <TabsTrigger value="questions" disabled={!savedId}>Suallar ({questions.length})</TabsTrigger>
           </TabsList>
-
           <TabsContent value="info" className="space-y-4 pt-4">
-            <div>
-              <Label>Başlıq</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-            </div>
-            <div>
-              <Label>Təsvir</Label>
-              <Textarea
-                value={description ?? ""}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Vaxt limiti (dəqiqə, 0 = limitsiz)</Label>
-                <Input
-                  type="number"
-                  value={timeMin}
-                  onChange={(e) => setTimeMin(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <Label>Keçid balı (%)</Label>
-                <Input
-                  type="number"
-                  value={pass}
-                  onChange={(e) => setPass(Number(e.target.value))}
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch checked={published} onCheckedChange={setPublished} />
-              <Label>Dərc et</Label>
-            </div>
+            <div><Label>Başlıq</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+            <div><Label>Təsvir</Label><Textarea value={description ?? ""} onChange={(e) => setDescription(e.target.value)} /></div>
+            <div className="flex items-center gap-2"><Switch checked={published} onCheckedChange={setPublished} /><Label>Dərc et</Label></div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Ləğv et
-              </Button>
-              <Button onClick={save} disabled={saving}>
-                {saving ? "Yadda saxlanılır..." : "Yadda saxla"}
-              </Button>
+              <Button variant="outline" onClick={onClose}>Bağla</Button>
+              <Button onClick={save} disabled={saving}>{saving ? "..." : "Yadda saxla"}</Button>
             </DialogFooter>
           </TabsContent>
-
           <TabsContent value="questions" className="pt-4">
-            {existing && (
-              <QuestionsEditor
-                quizId={existing.id}
-                questions={questions}
-                reload={() => loadQuestions(existing.id)}
-              />
-            )}
+            {savedId && <QuestionsEditor quizId={savedId} questions={questions} reload={() => loadQuestions(savedId)} />}
           </TabsContent>
         </Tabs>
       </DialogContent>
@@ -470,63 +391,31 @@ function QuizFormDialog({
   );
 }
 
-function QuestionsEditor({
-  quizId,
-  questions,
-  reload,
-}: {
-  quizId: string;
-  questions: QuizQuestion[];
-  reload: () => void;
-}) {
+function QuestionsEditor({ quizId, questions, reload }: { quizId: string; questions: QuizQuestion[]; reload: () => void; }) {
   const [text, setText] = useState("");
-  const [isMulti, setIsMulti] = useState(false);
   const [answers, setAnswers] = useState<{ text: string; is_correct: boolean }[]>([
     { text: "", is_correct: false },
     { text: "", is_correct: false },
   ]);
   const [saving, setSaving] = useState(false);
 
-  const addAnswer = () =>
-    setAnswers((a) => [...a, { text: "", is_correct: false }]);
-
   const reset = () => {
     setText("");
-    setIsMulti(false);
-    setAnswers([
-      { text: "", is_correct: false },
-      { text: "", is_correct: false },
-    ]);
+    setAnswers([{ text: "", is_correct: false }, { text: "", is_correct: false }]);
   };
 
   const addQuestion = async () => {
     if (!text.trim()) return toast.error("Sual mətnini daxil edin");
     const valid = answers.filter((a) => a.text.trim());
-    if (valid.length < 2) return toast.error("Ən azı 2 cavab variantı lazımdır");
-    if (!valid.some((a) => a.is_correct)) return toast.error("Ən azı 1 doğru cavab seçin");
+    if (valid.length < 2) return toast.error("Ən azı 2 cavab variantı");
+    if (!valid.some((a) => a.is_correct)) return toast.error("Doğru cavab seçin");
     setSaving(true);
-    const { data: q, error } = await supabase
-      .from("quiz_questions")
-      .insert({
-        quiz_id: quizId,
-        text: text.trim(),
-        position: questions.length,
-        is_multiple: isMulti,
-      })
-      .select()
-      .single();
-    if (error || !q) {
-      toast.error(error?.message ?? "Xəta");
-      setSaving(false);
-      return;
-    }
+    const { data: q, error } = await supabase.from("quiz_questions").insert({
+      quiz_id: quizId, text: text.trim(), position: questions.length, is_multiple: false,
+    }).select().single();
+    if (error || !q) { toast.error(error?.message ?? "Xəta"); setSaving(false); return; }
     const { error: aErr } = await supabase.from("quiz_answers").insert(
-      valid.map((a, i) => ({
-        question_id: q.id,
-        text: a.text.trim(),
-        is_correct: a.is_correct,
-        position: i,
-      })),
+      valid.map((a, i) => ({ question_id: q.id, text: a.text.trim(), is_correct: a.is_correct, position: i }))
     );
     if (aErr) toast.error(aErr.message);
     else toast.success("Sual əlavə edildi");
@@ -544,94 +433,46 @@ function QuestionsEditor({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card className="p-4 space-y-3">
         <div className="font-display font-semibold">Yeni sual</div>
-        <Textarea
-          placeholder="Sual mətni"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <div className="flex items-center gap-2">
-          <Switch checked={isMulti} onCheckedChange={setIsMulti} />
-          <Label>Çoxsaylı doğru cavab</Label>
-        </div>
+        <Textarea placeholder="Sual mətni" value={text} onChange={(e) => setText(e.target.value)} />
         <div className="space-y-2">
           {answers.map((a, i) => (
             <div key={i} className="flex items-center gap-2">
               <Checkbox
                 checked={a.is_correct}
-                onCheckedChange={(c) =>
-                  setAnswers((arr) =>
-                    arr.map((x, idx) =>
-                      idx === i
-                        ? { ...x, is_correct: !!c }
-                        : isMulti
-                          ? x
-                          : { ...x, is_correct: false },
-                    ),
-                  )
-                }
+                onCheckedChange={(c) => setAnswers((arr) => arr.map((x, idx) => idx === i ? { ...x, is_correct: !!c } : { ...x, is_correct: false }))}
               />
-              <Input
-                value={a.text}
-                placeholder={`Cavab ${i + 1}`}
-                onChange={(e) =>
-                  setAnswers((arr) =>
-                    arr.map((x, idx) => (idx === i ? { ...x, text: e.target.value } : x)),
-                  )
-                }
-              />
+              <Input value={a.text} placeholder={`Cavab ${i + 1}`}
+                onChange={(e) => setAnswers((arr) => arr.map((x, idx) => idx === i ? { ...x, text: e.target.value } : x))} />
               {answers.length > 2 && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setAnswers((arr) => arr.filter((_, idx) => idx !== i))}
-                >
+                <Button size="icon" variant="ghost" onClick={() => setAnswers((arr) => arr.filter((_, idx) => idx !== i))}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               )}
             </div>
           ))}
-          <Button size="sm" variant="outline" onClick={addAnswer}>
+          <Button size="sm" variant="outline" onClick={() => setAnswers((a) => [...a, { text: "", is_correct: false }])}>
             <Plus className="h-3 w-3" /> Variant əlavə et
           </Button>
         </div>
-        <Button onClick={addQuestion} disabled={saving}>
-          {saving ? "..." : "Sualı əlavə et"}
-        </Button>
+        <Button onClick={addQuestion} disabled={saving}>{saving ? "..." : "Sualı əlavə et"}</Button>
       </Card>
 
       <div className="space-y-2">
-        <div className="font-display font-semibold">
-          Mövcud suallar ({questions.length})
-        </div>
+        <div className="font-display font-semibold">Mövcud suallar ({questions.length})</div>
         {questions.map((q, i) => (
           <Card key={q.id} className="p-4">
             <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="font-medium">
-                {i + 1}. {q.text}{" "}
-                {q.is_multiple && (
-                  <Badge variant="secondary" className="ml-1">
-                    çoxsaylı
-                  </Badge>
-                )}
-              </div>
-              <Button size="icon" variant="ghost" onClick={() => removeQuestion(q.id)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              <div className="font-medium">{i + 1}. {q.text}</div>
+              <Button size="icon" variant="ghost" onClick={() => removeQuestion(q.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </div>
             <ul className="text-sm space-y-1 ml-4">
               {q.answers.map((a) => (
                 <li key={a.id} className="flex items-center gap-2">
-                  {a.is_correct ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                  ) : (
-                    <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                  <span className={a.is_correct ? "" : "text-muted-foreground"}>
-                    {a.text}
-                  </span>
+                  {a.is_correct ? <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> : <XCircle className="h-3.5 w-3.5 text-muted-foreground" />}
+                  <span className={a.is_correct ? "" : "text-muted-foreground"}>{a.text}</span>
                 </li>
               ))}
             </ul>
@@ -642,414 +483,324 @@ function QuestionsEditor({
   );
 }
 
-/* ---------------- Player ---------------- */
+/* =========================================================
+   LiveRoom: lobby + game + results (admin & user)
+========================================================= */
+type Participant = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  score: number;
+  finished: boolean;
+};
 
-function PlayerDialog({
-  quiz,
-  open,
-  onClose,
-}: {
-  quiz: Quiz;
-  open: boolean;
-  onClose: () => void;
-}) {
+function LiveRoom({ roomId, onLeave }: { roomId: string; onLeave: () => void }) {
+  const { user, profile, isAdmin } = useAuth();
+  const [room, setRoom] = useState<Room | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [myParticipantId, setMyParticipantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [started, setStarted] = useState(false);
-  const [idx, setIdx] = useState(0);
-  const [responses, setResponses] = useState<Record<string, string[]>>({});
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const [startedAt, setStartedAt] = useState<number>(0);
-  const [result, setResult] = useState<{
-    correct: number;
-    total: number;
-    percent: number;
-    passed: boolean;
-  } | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
+  // join (auto for non-admin)
   useEffect(() => {
+    if (!user || !profile) return;
     (async () => {
-      setLoading(true);
-      const { data: qs } = await supabase
-        .from("quiz_questions")
-        .select("*")
-        .eq("quiz_id", quiz.id)
-        .order("position");
+      // fetch room
+      const { data: r } = await supabase.from("quiz_rooms").select("*").eq("id", roomId).maybeSingle();
+      if (!r) { toast.error("Otaq yoxdur"); onLeave(); return; }
+      setRoom(r as Room);
+
+      // fetch questions
+      const { data: qs } = await supabase.from("quiz_questions").select("*").eq("quiz_id", r.quiz_id).order("position");
       const ids = (qs ?? []).map((q) => q.id);
-      const { data: ans } = await supabase
-        .from("quiz_answers")
-        .select("*")
-        .in("question_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"])
-        .order("position");
-      setQuestions(
-        (qs ?? []).map((q) => ({
-          ...q,
-          answers: (ans ?? []).filter((a) => a.question_id === q.id),
-        })) as QuizQuestion[],
-      );
-      setLoading(false);
-    })();
-  }, [quiz.id]);
+      const { data: ans } = await supabase.from("quiz_answers").select("*")
+        .in("question_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]).order("position");
+      setQuestions((qs ?? []).map((q) => ({ ...q, answers: (ans ?? []).filter((a) => a.question_id === q.id) })) as QuizQuestion[]);
 
-  useEffect(() => {
-    if (!started || timeLeft === null) return;
-    if (timeLeft <= 0) {
-      submit();
-      return;
-    }
-    const t = setTimeout(() => setTimeLeft((v) => (v ?? 0) - 1), 1000);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, started]);
-
-  const begin = () => {
-    setStarted(true);
-    setStartedAt(Date.now());
-    if (quiz.time_limit_seconds) setTimeLeft(quiz.time_limit_seconds);
-  };
-
-  const toggle = (qid: string, aid: string, multi: boolean) => {
-    setResponses((r) => {
-      const cur = r[qid] ?? [];
-      if (multi) {
-        return {
-          ...r,
-          [qid]: cur.includes(aid) ? cur.filter((x) => x !== aid) : [...cur, aid],
-        };
-      }
-      return { ...r, [qid]: [aid] };
-    });
-  };
-
-  const submit = async () => {
-    if (submitting) return;
-    setSubmitting(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
-    if (!uid) {
-      toast.error("Daxil olun");
-      setSubmitting(false);
-      return;
-    }
-    let correct = 0;
-    const responseRows: {
-      question_id: string;
-      answer_id: string | null;
-      is_correct: boolean;
-    }[] = [];
-    for (const q of questions) {
-      const correctIds = q.answers.filter((a) => a.is_correct).map((a) => a.id).sort();
-      const picked = (responses[q.id] ?? []).slice().sort();
-      const isCorrect =
-        correctIds.length === picked.length &&
-        correctIds.every((id, i) => id === picked[i]);
-      if (isCorrect) correct++;
-      if (picked.length === 0) {
-        responseRows.push({ question_id: q.id, answer_id: null, is_correct: false });
-      } else {
-        for (const aid of picked) {
-          responseRows.push({
-            question_id: q.id,
-            answer_id: aid,
-            is_correct: isCorrect,
-          });
+      // join as participant (admin too can spectate without joining)
+      if (!isAdmin) {
+        const { data: existing } = await supabase
+          .from("room_participants").select("id").eq("room_id", roomId).eq("user_id", user.id).maybeSingle();
+        if (existing) {
+          setMyParticipantId(existing.id);
+        } else {
+          const { data: p, error } = await supabase.from("room_participants").insert({
+            room_id: roomId, user_id: user.id, full_name: profile.full_name,
+          }).select("id").single();
+          if (error) toast.error(error.message);
+          else if (p) setMyParticipantId(p.id);
         }
       }
-    }
-    const total = questions.length;
-    const percent = total ? Math.round((correct / total) * 100) : 0;
-    const passed = percent >= quiz.passing_score;
-    const duration = Math.round((Date.now() - startedAt) / 1000);
 
-    const { data: attempt, error } = await supabase
-      .from("quiz_attempts")
-      .insert({
-        quiz_id: quiz.id,
-        user_id: uid,
-        score_percent: percent,
-        correct_count: correct,
-        total_questions: total,
-        duration_seconds: duration,
-        passed,
-      })
-      .select()
-      .single();
-    if (error || !attempt) {
-      toast.error(error?.message ?? "Xəta");
-      setSubmitting(false);
-      return;
-    }
-    if (responseRows.length) {
-      await supabase
-        .from("quiz_responses")
-        .insert(responseRows.map((r) => ({ ...r, attempt_id: attempt.id })));
-    }
-    setResult({ correct, total, percent, passed });
-    setSubmitting(false);
+      setLoading(false);
+    })();
+  }, [roomId, user?.id, profile?.id, isAdmin, onLeave, user, profile]);
+
+  // realtime: room + participants
+  useEffect(() => {
+    const ch = supabase.channel(`room:${roomId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "quiz_rooms", filter: `id=eq.${roomId}` },
+        (payload) => { if (payload.new) setRoom(payload.new as Room); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "room_participants", filter: `room_id=eq.${roomId}` },
+        async () => {
+          const { data } = await supabase.from("room_participants").select("id,user_id,full_name,score,finished")
+            .eq("room_id", roomId).order("score", { ascending: false });
+          setParticipants((data ?? []) as Participant[]);
+        })
+      .subscribe();
+
+    // initial participants load
+    supabase.from("room_participants").select("id,user_id,full_name,score,finished")
+      .eq("room_id", roomId).order("score", { ascending: false })
+      .then(({ data }) => setParticipants((data ?? []) as Participant[]));
+
+    return () => { supabase.removeChannel(ch); };
+  }, [roomId]);
+
+  if (loading || !room) {
+    return <div className="p-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  const currentQ = room.current_question_index >= 0 ? questions[room.current_question_index] : null;
+
+  return (
+    <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-6">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground inline-flex items-center gap-2">
+            <KeyRound className="h-3 w-3" /> {room.code}
+            <Badge variant={room.status === "lobby" ? "secondary" : room.status === "active" ? "default" : "outline"}>
+              {room.status === "lobby" ? "Lobby" : room.status === "active" ? "Aktiv" : "Bitdi"}
+            </Badge>
+          </div>
+          <h1 className="font-display text-2xl font-bold mt-1">Live Quiz Otağı</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-sm"><Users className="h-3.5 w-3.5 mr-1" /> {participants.length}</Badge>
+          <Button variant="outline" size="sm" onClick={onLeave}>Çıx</Button>
+        </div>
+      </div>
+
+      {room.status === "lobby" && (
+        <LobbyView room={room} participants={participants} questions={questions} isAdmin={isAdmin} />
+      )}
+
+      {room.status === "active" && currentQ && (
+        <ActiveView
+          room={room}
+          question={currentQ}
+          totalQuestions={questions.length}
+          participants={participants}
+          myParticipantId={myParticipantId}
+          isAdmin={isAdmin}
+          questions={questions}
+        />
+      )}
+
+      {room.status === "finished" && (
+        <FinishedView participants={participants} />
+      )}
+    </div>
+  );
+}
+
+function LobbyView({ room, participants, questions, isAdmin }: { room: Room; participants: Participant[]; questions: QuizQuestion[]; isAdmin: boolean }) {
+  const start = async () => {
+    if (questions.length === 0) { toast.error("Quizdə sual yoxdur"); return; }
+    const { error } = await supabase.from("quiz_rooms").update({
+      status: "active",
+      current_question_index: 0,
+      current_question_started_at: new Date().toISOString(),
+    }).eq("id", room.id);
+    if (error) toast.error(error.message);
   };
 
-  const cur = questions[idx];
-  const progress = questions.length ? ((idx + 1) / questions.length) * 100 : 0;
+  return (
+    <Card className="p-6 space-y-4">
+      <div>
+        <div className="font-display text-xl font-semibold mb-1">Lobby</div>
+        <p className="text-sm text-muted-foreground">
+          {isAdmin ? "İştirakçılar qoşulduqca burada görünəcək. Hazır olanda Başlat düyməsinə basın." : "Admin yarışı başladanda quiz avtomatik açılacaq."}
+        </p>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+        {participants.map((p) => (
+          <div key={p.id} className="px-3 py-2 rounded-md bg-muted text-sm truncate">{p.full_name}</div>
+        ))}
+        {participants.length === 0 && (
+          <div className="col-span-full text-sm text-muted-foreground text-center py-6">Hələ heç kim qoşulmayıb</div>
+        )}
+      </div>
+      {isAdmin && (
+        <Button size="lg" className="w-full" onClick={start} disabled={participants.length === 0}>
+          <Play className="h-4 w-4 mr-1" /> Quizi başlat
+        </Button>
+      )}
+    </Card>
+  );
+}
+
+function ActiveView({
+  room, question, totalQuestions, participants, myParticipantId, isAdmin, questions,
+}: {
+  room: Room; question: QuizQuestion; totalQuestions: number;
+  participants: Participant[]; myParticipantId: string | null; isAdmin: boolean; questions: QuizQuestion[];
+}) {
+  const { user } = useAuth();
+  const [selected, setSelected] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState<{ correct: boolean; score: number } | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  // reset on question change
+  useEffect(() => {
+    setSelected(null);
+    setSubmitted(null);
+  }, [question.id]);
+
+  // ticker
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, []);
+
+  const startedAt = room.current_question_started_at ? new Date(room.current_question_started_at).getTime() : now;
+  const elapsed = Math.max(0, now - startedAt);
+  const limitMs = room.question_time_seconds * 1000;
+  const remaining = Math.max(0, limitMs - elapsed);
+  const progress = Math.min(100, (elapsed / limitMs) * 100);
+
+  const submit = async (answerId: string) => {
+    if (!user || !myParticipantId || submitted) return;
+    const correctAnswer = question.answers.find((a) => a.is_correct);
+    const isCorrect = answerId === correctAnswer?.id;
+    const responseMs = elapsed;
+    // speed-based: faster correct = more
+    const ratio = Math.max(0, 1 - responseMs / limitMs);
+    const award = isCorrect ? Math.round(500 + 500 * ratio) : 0;
+
+    setSubmitted({ correct: isCorrect, score: award });
+
+    const { error } = await supabase.from("room_answers").insert({
+      room_id: room.id, participant_id: myParticipantId, user_id: user.id,
+      question_id: question.id, answer_id: answerId,
+      is_correct: isCorrect, response_ms: responseMs, score_awarded: award,
+    });
+    if (error) { toast.error(error.message); return; }
+    if (award > 0) {
+      // increment score on participant row
+      const me = participants.find((p) => p.id === myParticipantId);
+      const newScore = (me?.score ?? 0) + award;
+      await supabase.from("room_participants").update({ score: newScore }).eq("id", myParticipantId);
+    }
+  };
+
+  const next = async () => {
+    const nextIdx = room.current_question_index + 1;
+    if (nextIdx >= totalQuestions) {
+      await supabase.from("quiz_rooms").update({ status: "finished", finished_at: new Date().toISOString() }).eq("id", room.id);
+    } else {
+      await supabase.from("quiz_rooms").update({
+        current_question_index: nextIdx,
+        current_question_started_at: new Date().toISOString(),
+      }).eq("id", room.id);
+    }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{quiz.title}</DialogTitle>
-        </DialogHeader>
+    <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+      <Card className="p-6 space-y-5">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Sual {room.current_question_index + 1} / {totalQuestions}</span>
+          <span className="font-mono">{Math.ceil(remaining / 1000)}s</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+        </div>
 
-        {loading ? (
-          <div className="py-12 text-center">
-            <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-          </div>
-        ) : questions.length === 0 ? (
-          <div className="py-12 text-center text-muted-foreground">Sual yoxdur</div>
-        ) : result ? (
-          <div className="py-6 text-center space-y-3">
-            <div className="text-5xl font-bold font-display">{result.percent}%</div>
-            <Badge variant={result.passed ? "default" : "destructive"} className="text-base">
-              {result.passed ? "Keçdiniz 🎉" : "Keçmədiniz"}
-            </Badge>
-            <p className="text-sm text-muted-foreground">
-              {result.correct} / {result.total} doğru cavab
-            </p>
-            <Button onClick={onClose}>Bağla</Button>
-          </div>
-        ) : !started ? (
-          <div className="py-6 space-y-3">
-            <p className="text-muted-foreground">{quiz.description}</p>
-            <div className="flex gap-3 text-sm">
-              <Badge variant="secondary">{questions.length} sual</Badge>
-              {quiz.time_limit_seconds && (
-                <Badge variant="secondary">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {Math.round(quiz.time_limit_seconds / 60)} dəq
-                </Badge>
-              )}
-              <Badge variant="secondary">Keçid: {quiz.passing_score}%</Badge>
-            </div>
-            <Button onClick={begin}>
-              <Play className="h-4 w-4" /> Başla
-            </Button>
-          </div>
-        ) : cur ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-sm">
-              <span>
-                Sual {idx + 1} / {questions.length}
-              </span>
-              {timeLeft !== null && (
-                <span className="flex items-center gap-1 font-mono">
-                  <Clock className="h-3.5 w-3.5" />
-                  {Math.floor(timeLeft / 60)}:
-                  {String(timeLeft % 60).padStart(2, "0")}
-                </span>
-              )}
-            </div>
-            <Progress value={progress} />
-            <Card className="p-4">
-              <p className="font-medium mb-3">{cur.text}</p>
-              <div className="space-y-2">
-                {cur.answers.map((a) => {
-                  const picked = (responses[cur.id] ?? []).includes(a.id);
-                  return (
-                    <button
-                      key={a.id}
-                      onClick={() => toggle(cur.id, a.id, cur.is_multiple)}
-                      className={`w-full text-left p-3 rounded-md border transition-colors ${
-                        picked
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:bg-muted"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`h-4 w-4 rounded${
-                            cur.is_multiple ? "-sm" : "-full"
-                          } border ${picked ? "bg-primary border-primary" : "border-border"}`}
-                        />
-                        <span className="text-sm">{a.text}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </Card>
-            <div className="flex justify-between">
-              <Button
-                variant="outline"
-                onClick={() => setIdx((i) => Math.max(0, i - 1))}
-                disabled={idx === 0}
+        <h2 className="font-display text-xl font-semibold leading-snug">{question.text}</h2>
+
+        <div className="space-y-2">
+          {question.answers.map((a) => {
+            const isSel = selected === a.id;
+            const reveal = !!submitted;
+            const isCorrect = a.is_correct;
+            return (
+              <button
+                key={a.id}
+                disabled={!!submitted || isAdmin || remaining <= 0}
+                onClick={() => { setSelected(a.id); submit(a.id); }}
+                className={[
+                  "w-full text-left px-4 py-3 rounded-lg border-2 transition-all",
+                  reveal && isCorrect ? "border-success bg-success/10" :
+                  reveal && isSel && !isCorrect ? "border-destructive bg-destructive/10" :
+                  isSel ? "border-primary bg-primary/5" :
+                  "border-border hover:border-primary/40",
+                  isAdmin ? "cursor-default opacity-90" : "",
+                ].join(" ")}
               >
-                Geri
-              </Button>
-              {idx < questions.length - 1 ? (
-                <Button onClick={() => setIdx((i) => i + 1)}>Növbəti</Button>
-              ) : (
-                <Button onClick={submit} disabled={submitting}>
-                  {submitting ? "Göndərilir..." : "Bitir"}
-                </Button>
-              )}
+                {a.text}
+              </button>
+            );
+          })}
+        </div>
+
+        {submitted && (
+          <div className={["text-sm font-medium", submitted.correct ? "text-success" : "text-destructive"].join(" ")}>
+            {submitted.correct ? `Doğrudur! +${submitted.score} bal` : "Səhv cavab"}
+          </div>
+        )}
+        {!submitted && !isAdmin && remaining <= 0 && (
+          <div className="text-sm text-muted-foreground">Vaxt bitdi.</div>
+        )}
+
+        {isAdmin && (
+          <Button onClick={next} className="w-full">
+            {room.current_question_index + 1 >= totalQuestions ? "Yarışı bitir" : "Növbəti sual"}
+          </Button>
+        )}
+      </Card>
+
+      <Card className="p-4 h-fit lg:sticky lg:top-20">
+        <div className="font-display font-semibold mb-3 inline-flex items-center gap-2">
+          <Users className="h-4 w-4" /> Liderlər
+        </div>
+        <ol className="space-y-1 text-sm">
+          {participants.map((p, i) => (
+            <li key={p.id} className="flex items-center justify-between px-2 py-1.5 rounded bg-muted/40">
+              <span className="truncate"><span className="text-muted-foreground mr-2">{i + 1}.</span>{p.full_name}</span>
+              <span className="font-mono font-semibold">{p.score}</span>
+            </li>
+          ))}
+        </ol>
+      </Card>
+    </div>
+  );
+}
+
+function FinishedView({ participants }: { participants: Participant[] }) {
+  const sorted = [...participants].sort((a, b) => b.score - a.score);
+  return (
+    <Card className="p-6">
+      <div className="font-display text-xl font-semibold mb-4">Final nəticələri</div>
+      <ol className="space-y-2">
+        {sorted.map((p, i) => (
+          <li key={p.id} className={[
+            "flex items-center justify-between px-4 py-3 rounded-lg",
+            i === 0 ? "bg-warning/15" : i === 1 ? "bg-muted" : i === 2 ? "bg-accent" : "bg-muted/30",
+          ].join(" ")}>
+            <div className="flex items-center gap-3">
+              <div className="font-display text-lg font-bold w-6 text-center">{i + 1}</div>
+              <div className="font-medium">{p.full_name}</div>
             </div>
-          </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/* ---------------- History ---------------- */
-
-function HistoryDialog({
-  quiz,
-  open,
-  onClose,
-  userId,
-}: {
-  quiz: Quiz;
-  open: boolean;
-  onClose: () => void;
-  userId: string | null;
-}) {
-  const [items, setItems] = useState<Attempt[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      if (!userId) return;
-      setLoading(true);
-      const { data } = await supabase
-        .from("quiz_attempts")
-        .select("*")
-        .eq("quiz_id", quiz.id)
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-      setItems((data ?? []) as Attempt[]);
-      setLoading(false);
-    })();
-  }, [quiz.id, userId]);
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Mənim cəhdlərim — {quiz.title}</DialogTitle>
-        </DialogHeader>
-        {loading ? (
-          <div className="py-8 text-center">
-            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
-          </div>
-        ) : items.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">Cəhd yoxdur</div>
-        ) : (
-          <div className="space-y-2">
-            {items.map((a) => (
-              <Card key={a.id} className="p-3 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{a.score_percent}%</div>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(a.created_at).toLocaleString("az-AZ")} ·{" "}
-                    {a.correct_count}/{a.total_questions} doğru ·{" "}
-                    {Math.floor(a.duration_seconds / 60)}:
-                    {String(a.duration_seconds % 60).padStart(2, "0")}
-                  </div>
-                </div>
-                <Badge variant={a.passed ? "default" : "destructive"}>
-                  {a.passed ? "Keçdi" : "Keçmədi"}
-                </Badge>
-              </Card>
-            ))}
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/* ---------------- Leaderboard ---------------- */
-
-function LeaderboardDialog({
-  quiz,
-  open,
-  onClose,
-}: {
-  quiz: Quiz;
-  open: boolean;
-  onClose: () => void;
-}) {
-  const [items, setItems] = useState<Attempt[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      // Best attempt per user — we fetch all then dedupe client-side, top 10
-      const { data: attempts } = await supabase
-        .from("quiz_attempts")
-        .select("*")
-        .eq("quiz_id", quiz.id)
-        .order("score_percent", { ascending: false })
-        .order("duration_seconds", { ascending: true })
-        .limit(200);
-      const byUser = new Map<string, Attempt>();
-      for (const a of (attempts ?? []) as Attempt[]) {
-        if (!byUser.has(a.user_id)) byUser.set(a.user_id, a);
-      }
-      const top = Array.from(byUser.values()).slice(0, 10);
-      // fetch profiles
-      const uids = top.map((t) => t.user_id);
-      if (uids.length) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("id, full_name, employee_id")
-          .in("id", uids);
-        const map = new Map((profs ?? []).map((p) => [p.id, p]));
-        for (const t of top)
-          t.profile = (map.get(t.user_id) as Attempt["profile"]) ?? null;
-      }
-      setItems(top);
-      setLoading(false);
-    })();
-  }, [quiz.id]);
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Liderlər lövhəsi — {quiz.title}</DialogTitle>
-        </DialogHeader>
-        {loading ? (
-          <div className="py-8 text-center">
-            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
-          </div>
-        ) : items.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">Hələ cəhd yoxdur</div>
-        ) : (
-          <div className="space-y-2">
-            {items.map((a, i) => (
-              <Card key={a.id} className="p-3 flex items-center gap-3">
-                <div className="font-display font-bold text-lg w-8 text-center">
-                  {i + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">
-                    {a.profile?.full_name ?? "—"}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    ID {a.profile?.employee_id} ·{" "}
-                    {Math.floor(a.duration_seconds / 60)}:
-                    {String(a.duration_seconds % 60).padStart(2, "0")}
-                  </div>
-                </div>
-                <Badge variant={a.passed ? "default" : "secondary"}>
-                  {a.score_percent}%
-                </Badge>
-              </Card>
-            ))}
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+            <div className="font-mono text-lg font-semibold">{p.score}</div>
+          </li>
+        ))}
+        {sorted.length === 0 && <div className="text-sm text-muted-foreground text-center py-6">İştirakçı yoxdur</div>}
+      </ol>
+      <div className="mt-4">
+        <Button asChild variant="outline" className="w-full"><Link to="/quiz">Quiz bölməsinə qayıt</Link></Button>
+      </div>
+    </Card>
   );
 }
