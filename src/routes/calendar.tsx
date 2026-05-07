@@ -527,7 +527,7 @@ function TimeView({
       <div className="overflow-y-auto max-h-[70vh]">
         <div className="grid" style={{ gridTemplateColumns: `64px repeat(${days.length}, 1fr)` }}>
           {HOURS.map((h) => (
-            <FragmentRow key={`row-${h}`}>
+            <Fragment key={`row-${h}`}>
               <div className="text-xs text-muted-foreground px-2 py-1 border-b text-right -mt-2">
                 {String(h).padStart(2, "0")}:00
               </div>
@@ -572,7 +572,7 @@ function TimeView({
                   </div>
                 );
               })}
-            </FragmentRow>
+            </Fragment>
           ))}
         </div>
       </div>
