@@ -11,6 +11,7 @@ import {
   BarChart3,
   MessageSquare,
   Award,
+  CalendarDays,
   LogOut,
   Menu,
   PanelLeftClose,
