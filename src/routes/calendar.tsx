@@ -636,7 +636,7 @@ function EditorDialog({
 
     setSaving(true);
     try {
-      let eventId = event?.id;
+      let eventId: string = event?.id ?? "";
       const payload = {
         title: title.trim(),
         exam_id: examId,
