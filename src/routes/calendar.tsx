@@ -527,8 +527,8 @@ function TimeView({
       <div className="overflow-y-auto max-h-[70vh]">
         <div className="grid" style={{ gridTemplateColumns: `64px repeat(${days.length}, 1fr)` }}>
           {HOURS.map((h) => (
-            <>
-              <div key={`h-${h}`} className="text-xs text-muted-foreground px-2 py-1 border-b text-right -mt-2">
+            <FragmentRow key={`row-${h}`}>
+              <div className="text-xs text-muted-foreground px-2 py-1 border-b text-right -mt-2">
                 {String(h).padStart(2, "0")}:00
               </div>
               {days.map((d) => {
@@ -552,7 +552,7 @@ function TimeView({
                       const s = new Date(ev.starts_at);
                       const e2 = new Date(ev.ends_at);
                       const minutes = Math.max(30, (e2.getTime() - s.getTime()) / 60000);
-                      const height = (minutes / 60) * 56; // 56px per hour
+                      const height = (minutes / 60) * 56;
                       return (
                         <div
                           key={ev.id}
@@ -572,7 +572,7 @@ function TimeView({
                   </div>
                 );
               })}
-            </>
+            </FragmentRow>
           ))}
         </div>
       </div>
