@@ -35,6 +35,7 @@ const NAV: NavItem[] = [
   { to: "/courses", label: t.nav.courses, icon: BookOpen },
   { to: "/exams", label: t.nav.exams, icon: ClipboardList },
   { to: "/quiz", label: t.nav.quiz, icon: FileQuestion },
+  { to: "/calendar", label: "Təqvim", icon: CalendarDays },
   { to: "/champions", label: t.nav.champions, icon: Trophy },
   { to: "/certificates", label: t.nav.certificates, icon: Award },
   { to: "/admin/comments", label: t.nav.adminComments, icon: MessageSquare, adminOnly: true },
