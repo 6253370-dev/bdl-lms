@@ -425,7 +425,15 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "exam_events_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "standalone_exams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       folders: {
         Row: {
