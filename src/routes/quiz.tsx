@@ -778,7 +778,7 @@ function ActiveView({
   );
 }
 
-function FinishedView({ participants }: { participants: Participant[] }) {
+function FinishedView({ participants, onLeave }: { participants: Participant[]; onLeave: () => void }) {
   const sorted = [...participants].sort((a, b) => b.score - a.score);
   return (
     <Card className="p-6">
@@ -799,7 +799,7 @@ function FinishedView({ participants }: { participants: Participant[] }) {
         {sorted.length === 0 && <div className="text-sm text-muted-foreground text-center py-6">İştirakçı yoxdur</div>}
       </ol>
       <div className="mt-4">
-        <Button asChild variant="outline" className="w-full"><Link to="/quiz">Quiz bölməsinə qayıt</Link></Button>
+        <Button variant="outline" className="w-full" onClick={onLeave}>Quiz bölməsinə qayıt</Button>
       </div>
     </Card>
   );
