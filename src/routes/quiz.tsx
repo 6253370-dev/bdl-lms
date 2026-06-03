@@ -178,6 +178,7 @@ function AdminPanel({ onEnterRoom }: { onEnterRoom: (r: Room) => void }) {
         <TabsList>
           <TabsTrigger value="rooms">Aktiv otaqlar ({rooms.length})</TabsTrigger>
           <TabsTrigger value="quizzes">Quizlər ({quizzes.length})</TabsTrigger>
+          <TabsTrigger value="history">Tarixçə ({history.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="rooms" className="pt-4">
