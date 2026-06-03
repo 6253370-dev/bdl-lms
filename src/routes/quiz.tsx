@@ -253,6 +253,105 @@ function AdminPanel({ onEnterRoom }: { onEnterRoom: (r: Room) => void }) {
   );
 }
 
+/* =========================================================
+   Tarixçə: bitmiş otaqlar + iştirakçı nəticələri
+========================================================= */
+function HistoryTab({
+  rooms, quizzes, loading, onChanged,
+}: {
+  rooms: Room[]; quizzes: Quiz[]; loading: boolean; onChanged: () => void;
+}) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [parts, setParts] = useState<Record<string, { id: string; full_name: string; score: number }[]>>({});
+  const [loadingParts, setLoadingParts] = useState<string | null>(null);
+
+  const toggle = async (roomId: string) => {
+    if (expanded === roomId) { setExpanded(null); return; }
+    setExpanded(roomId);
+    if (!parts[roomId]) {
+      setLoadingParts(roomId);
+      const { data } = await supabase
+        .from("room_participants")
+        .select("id, full_name, score")
+        .eq("room_id", roomId)
+        .order("score", { ascending: false });
+      setParts((p) => ({ ...p, [roomId]: (data ?? []) as any }));
+      setLoadingParts(null);
+    }
+  };
+
+  const remove = async (roomId: string) => {
+    if (!confirm("Bu otaq tarixçədən silinsin?")) return;
+    const { error } = await supabase.from("quiz_rooms").delete().eq("id", roomId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Silindi");
+    onChanged();
+  };
+
+  if (loading) {
+    return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  }
+  if (rooms.length === 0) {
+    return (
+      <Card className="p-8 text-center border-dashed text-muted-foreground text-sm">
+        <History className="h-8 w-8 mx-auto mb-2" /> Bitmiş otaq tarixçəsi yoxdur
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {rooms.map((r) => {
+        const q = quizzes.find((x) => x.id === r.quiz_id);
+        const isOpen = expanded === r.id;
+        const list = parts[r.id] ?? [];
+        return (
+          <Card key={r.id} className="p-4">
+            <div className="flex items-center justify-between gap-3">
+              <button onClick={() => toggle(r.id)} className="flex-1 text-left">
+                <div className="font-display font-semibold">{q?.title ?? "Quiz"}</div>
+                <div className="text-xs text-muted-foreground inline-flex items-center gap-2 mt-1 flex-wrap">
+                  <KeyRound className="h-3 w-3" /> {r.code}
+                  <Badge variant="outline">Bitdi</Badge>
+                  {r.finished_at && (
+                    <span>{new Date(r.finished_at).toLocaleString("az-AZ")}</span>
+                  )}
+                </div>
+              </button>
+              <Button size="sm" variant="ghost" onClick={() => remove(r.id)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            {isOpen && (
+              <div className="mt-4 border-t pt-3">
+                {loadingParts === r.id ? (
+                  <div className="flex justify-center py-3"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+                ) : list.length === 0 ? (
+                  <div className="text-sm text-muted-foreground py-2">İştirakçı yoxdur</div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {list.map((p, i) => (
+                      <div key={p.id} className="flex items-center justify-between text-sm py-1.5 px-2 rounded hover:bg-muted/50">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-5">{i + 1}.</span>
+                          {i === 0 && <Trophy className="h-3.5 w-3.5 text-yellow-500" />}
+                          <span>{p.full_name}</span>
+                        </div>
+                        <Badge variant="secondary">{p.score} xal</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+
 function QuizAdminCard({
   quiz, onEdit, onCreateRoom, onChanged,
 }: {
