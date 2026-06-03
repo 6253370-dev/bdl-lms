@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
   FileQuestion, Plus, Play, Trash2, Pencil, Loader2, Users, KeyRound,
-  CheckCircle2, XCircle, Radio,
+  CheckCircle2, XCircle, Radio, History, Trophy,
 } from "lucide-react";
 import { toast } from "sonner";
 
