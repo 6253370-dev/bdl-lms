@@ -707,6 +707,15 @@ function ActiveView({
     }
   };
 
+  // auto-advance when timer hits 0 (admin drives the transition)
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (remaining > 0) return;
+    const t = setTimeout(() => { next(); }, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, remaining <= 0, question.id]);
+
   return (
     <div className="grid lg:grid-cols-[1fr_320px] gap-6">
       <Card className="p-6 space-y-5">
