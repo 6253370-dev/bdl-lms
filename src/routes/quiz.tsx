@@ -235,6 +235,10 @@ function AdminPanel({ onEnterRoom }: { onEnterRoom: (r: Room) => void }) {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="history" className="pt-4">
+          <HistoryTab rooms={history} quizzes={quizzes} loading={loading} onChanged={load} />
+        </TabsContent>
       </Tabs>
 
       {editing && (
