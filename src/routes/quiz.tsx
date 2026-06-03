@@ -135,17 +135,20 @@ function AdminPanel({ onEnterRoom }: { onEnterRoom: (r: Room) => void }) {
   const { user } = useAuth();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [history, setHistory] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Quiz | "new" | null>(null);
 
   const load = async () => {
     setLoading(true);
-    const [{ data: q }, { data: r }] = await Promise.all([
+    const [{ data: q }, { data: r }, { data: h }] = await Promise.all([
       supabase.from("quizzes").select("id,title,description,is_published,created_at").order("created_at", { ascending: false }),
       supabase.from("quiz_rooms").select("*").neq("status", "finished").order("created_at", { ascending: false }),
+      supabase.from("quiz_rooms").select("*").eq("status", "finished").order("finished_at", { ascending: false }).limit(100),
     ]);
     setQuizzes((q ?? []) as Quiz[]);
     setRooms((r ?? []) as Room[]);
+    setHistory((h ?? []) as Room[]);
     setLoading(false);
   };
 
