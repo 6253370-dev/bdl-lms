@@ -599,7 +599,7 @@ function LiveRoom({ roomId, onLeave }: { roomId: string; onLeave: () => void }) 
       )}
 
       {room.status === "finished" && (
-        <FinishedView participants={participants} />
+        <FinishedView participants={participants} onLeave={onLeave} />
       )}
     </div>
   );
