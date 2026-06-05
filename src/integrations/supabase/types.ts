@@ -98,6 +98,82 @@ export type Database = {
           },
         ]
       }
+      bank_answers: {
+        Row: {
+          id: string
+          is_correct: boolean
+          position: number
+          question_id: string
+          text: string
+        }
+        Insert: {
+          id?: string
+          is_correct?: boolean
+          position?: number
+          question_id: string
+          text: string
+        }
+        Update: {
+          id?: string
+          is_correct?: boolean
+          position?: number
+          question_id?: string
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "bank_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_questions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          difficulty: Database["public"]["Enums"]["bank_difficulty"]
+          folder_id: string
+          id: string
+          question_type: Database["public"]["Enums"]["bank_question_type"]
+          text: string
+          time_limit_seconds: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          difficulty?: Database["public"]["Enums"]["bank_difficulty"]
+          folder_id: string
+          id?: string
+          question_type?: Database["public"]["Enums"]["bank_question_type"]
+          text: string
+          time_limit_seconds?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          difficulty?: Database["public"]["Enums"]["bank_difficulty"]
+          folder_id?: string
+          id?: string
+          question_type?: Database["public"]["Enums"]["bank_question_type"]
+          text?: string
+          time_limit_seconds?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_questions_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       block_attempts: {
         Row: {
           block_id: string
@@ -584,6 +660,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      question_bank_folders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_bank_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       questions: {
         Row: {
@@ -1239,6 +1353,8 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "admin" | "user"
+      bank_difficulty: "easy" | "medium" | "hard"
+      bank_question_type: "multiple_choice" | "open_ended" | "practice"
       block_type: "lesson" | "practice" | "quiz" | "final_exam"
       quiz_room_status: "lobby" | "active" | "finished"
     }
@@ -1369,6 +1485,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "admin", "user"],
+      bank_difficulty: ["easy", "medium", "hard"],
+      bank_question_type: ["multiple_choice", "open_ended", "practice"],
       block_type: ["lesson", "practice", "quiz", "final_exam"],
       quiz_room_status: ["lobby", "active", "finished"],
     },
