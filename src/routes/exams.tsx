@@ -364,6 +364,47 @@ function ExamEditor({
     setQuestions((q) => [...q, { ...data!, answers: [] } as ExamQuestion]);
   };
 
+  const importFromBank = async (items: ImportedQuestion[]) => {
+    if (!examId) return toast.error("Əvvəlcə imtahanı yadda saxla");
+    let pos = questions.length;
+    for (const item of items) {
+      const { data: q, error } = await supabase
+        .from("standalone_exam_questions")
+        .insert({
+          exam_id: examId,
+          text: item.text,
+          position: pos++,
+          time_limit_seconds: item.time_limit_seconds,
+        })
+        .select()
+        .single();
+      if (error || !q) {
+        toast.error(error?.message ?? "Xəta");
+        continue;
+      }
+      if (item.answers.length) {
+        await supabase.from("standalone_exam_answers").insert(
+          item.answers.map((a) => ({
+            question_id: q.id,
+            text: a.text,
+            is_correct: a.is_correct,
+            position: a.position,
+          })),
+        );
+      }
+      const { data: aData } = await supabase
+        .from("standalone_exam_answers")
+        .select("id,question_id,text,position,is_correct")
+        .eq("question_id", q.id)
+        .order("position");
+      setQuestions((qs) => [
+        ...qs,
+        { ...(q as any), answers: aData ?? [] } as ExamQuestion,
+      ]);
+    }
+    toast.success(`${items.length} sual əlavə edildi`);
+  };
+
   const updateQuestion = async (id: string, patch: Partial<ExamQuestion>) => {
     setQuestions((qs) => qs.map((q) => (q.id === id ? { ...q, ...patch } : q)));
     await supabase.from("standalone_exam_questions").update(patch as any).eq("id", id);
