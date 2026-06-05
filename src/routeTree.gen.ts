@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuizRouteImport } from './routes/quiz'
+import { Route as QuestionBankRouteImport } from './routes/question-bank'
 import { Route as ExamsRouteImport } from './routes/exams'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ChampionsRouteImport } from './routes/champions'
@@ -36,6 +37,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const QuizRoute = QuizRouteImport.update({
   id: '/quiz',
   path: '/quiz',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuestionBankRoute = QuestionBankRouteImport.update({
+  id: '/question-bank',
+  path: '/question-bank',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExamsRoute = ExamsRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/champions': typeof ChampionsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
+  '/question-bank': typeof QuestionBankRoute
   '/quiz': typeof QuizRoute
   '/reports': typeof ReportsRoute
   '/users': typeof UsersRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/champions': typeof ChampionsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
+  '/question-bank': typeof QuestionBankRoute
   '/quiz': typeof QuizRoute
   '/reports': typeof ReportsRoute
   '/users': typeof UsersRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/champions': typeof ChampionsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
+  '/question-bank': typeof QuestionBankRoute
   '/quiz': typeof QuizRoute
   '/reports': typeof ReportsRoute
   '/users': typeof UsersRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/champions'
     | '/dashboard'
     | '/exams'
+    | '/question-bank'
     | '/quiz'
     | '/reports'
     | '/users'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/champions'
     | '/dashboard'
     | '/exams'
+    | '/question-bank'
     | '/quiz'
     | '/reports'
     | '/users'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/champions'
     | '/dashboard'
     | '/exams'
+    | '/question-bank'
     | '/quiz'
     | '/reports'
     | '/users'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   ChampionsRoute: typeof ChampionsRoute
   DashboardRoute: typeof DashboardRoute
   ExamsRoute: typeof ExamsRoute
+  QuestionBankRoute: typeof QuestionBankRoute
   QuizRoute: typeof QuizRoute
   ReportsRoute: typeof ReportsRoute
   UsersRoute: typeof UsersRoute
@@ -220,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: '/quiz'
       fullPath: '/quiz'
       preLoaderRoute: typeof QuizRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/question-bank': {
+      id: '/question-bank'
+      path: '/question-bank'
+      fullPath: '/question-bank'
+      preLoaderRoute: typeof QuestionBankRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/exams': {
@@ -302,6 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChampionsRoute: ChampionsRoute,
   DashboardRoute: DashboardRoute,
   ExamsRoute: ExamsRoute,
+  QuestionBankRoute: QuestionBankRoute,
   QuizRoute: QuizRoute,
   ReportsRoute: ReportsRoute,
   UsersRoute: UsersRoute,
