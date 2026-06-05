@@ -35,9 +35,11 @@ import {
   ListChecks,
   Search,
   Image as ImageIcon,
+  Library,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
+import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
 export const Route = createFileRoute("/exams")({
   component: () => (
