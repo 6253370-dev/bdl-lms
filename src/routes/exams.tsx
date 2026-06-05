@@ -403,6 +403,7 @@ function ExamEditor({
       ]);
     }
     toast.success(`${items.length} sual əlavə edildi`);
+    return;
   };
 
   const updateQuestion = async (id: string, patch: Partial<ExamQuestion>) => {
