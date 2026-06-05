@@ -35,6 +35,7 @@ const NAV: NavItem[] = [
   { to: "/dashboard", label: t.nav.dashboard, icon: LayoutDashboard },
   { to: "/courses", label: t.nav.courses, icon: BookOpen },
   { to: "/exams", label: t.nav.exams, icon: ClipboardList },
+  { to: "/question-bank", label: "Sual Bankı", icon: Library, adminOnly: true },
   { to: "/quiz", label: t.nav.quiz, icon: FileQuestion },
   { to: "/calendar", label: "Təqvim", icon: CalendarDays },
   { to: "/champions", label: t.nav.champions, icon: Trophy },
