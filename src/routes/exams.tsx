@@ -35,9 +35,11 @@ import {
   ListChecks,
   Search,
   Image as ImageIcon,
+  Library,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
+import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
 export const Route = createFileRoute("/exams")({
   component: () => (
@@ -285,6 +287,7 @@ function ExamEditor({
   const [examId, setExamId] = useState<string | null>(exam?.id ?? null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [saving, setSaving] = useState(false);
+  const [bankOpen, setBankOpen] = useState(false);
 
   useEffect(() => {
     if (!examId) return;
@@ -359,6 +362,51 @@ function ExamEditor({
       .single();
     if (error) return toast.error(error.message);
     setQuestions((q) => [...q, { ...data!, answers: [] } as ExamQuestion]);
+  };
+
+  const importFromBank = async (items: ImportedQuestion[]): Promise<void> => {
+    if (!examId) {
+      toast.error("Əvvəlcə imtahanı yadda saxla");
+      return;
+    }
+    let pos = questions.length;
+    for (const item of items) {
+      const { data: q, error } = await supabase
+        .from("standalone_exam_questions")
+        .insert({
+          exam_id: examId,
+          text: item.text,
+          position: pos++,
+          time_limit_seconds: item.time_limit_seconds,
+        })
+        .select()
+        .single();
+      if (error || !q) {
+        toast.error(error?.message ?? "Xəta");
+        continue;
+      }
+      if (item.answers.length) {
+        await supabase.from("standalone_exam_answers").insert(
+          item.answers.map((a) => ({
+            question_id: q.id,
+            text: a.text,
+            is_correct: a.is_correct,
+            position: a.position,
+          })),
+        );
+      }
+      const { data: aData } = await supabase
+        .from("standalone_exam_answers")
+        .select("id,question_id,text,position,is_correct")
+        .eq("question_id", q.id)
+        .order("position");
+      setQuestions((qs) => [
+        ...qs,
+        { ...(q as any), answers: aData ?? [] } as ExamQuestion,
+      ]);
+    }
+    toast.success(`${items.length} sual əlavə edildi`);
+    return;
   };
 
   const updateQuestion = async (id: string, patch: Partial<ExamQuestion>) => {
@@ -496,11 +544,16 @@ function ExamEditor({
 
           {examId && (
             <div className="border-t pt-4 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="font-display font-semibold">Questions</h3>
-                <Button size="sm" variant="outline" onClick={addQuestion}>
-                  <Plus className="h-4 w-4" /> Add question
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setBankOpen(true)}>
+                    <Library className="h-4 w-4" /> Sual Bankından
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={addQuestion}>
+                    <Plus className="h-4 w-4" /> Yeni sual
+                  </Button>
+                </div>
               </div>
               {questions.length === 0 && (
                 <p className="text-sm text-muted-foreground">No questions yet.</p>
@@ -562,6 +615,13 @@ function ExamEditor({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {bankOpen && (
+        <BankPicker
+          open={bankOpen}
+          onClose={() => setBankOpen(false)}
+          onImport={importFromBank}
+        />
+      )}
     </Dialog>
   );
 }

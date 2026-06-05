@@ -1,0 +1,391 @@
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Folder as FolderIcon, Loader2, Sparkles, Search } from "lucide-react";
+import { toast } from "sonner";
+
+type Folder = { id: string; name: string };
+type BankQ = {
+  id: string;
+  folder_id: string;
+  text: string;
+  question_type: "multiple_choice" | "open_ended" | "practice";
+  difficulty: "easy" | "medium" | "hard";
+  time_limit_seconds: number | null;
+  answers: { id: string; text: string; is_correct: boolean; position: number }[];
+};
+
+export type ImportedQuestion = {
+  text: string;
+  time_limit_seconds: number | null;
+  answers: { text: string; is_correct: boolean; position: number }[];
+};
+
+/**
+ * Reusable picker dialog. Returns selected questions as plain snapshots
+ * (caller persists them into its own exam tables).
+ */
+export function BankPicker({
+  open,
+  onClose,
+  onImport,
+  multiple = true,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onImport: (questions: ImportedQuestion[]) => Promise<void> | void;
+  multiple?: boolean;
+}) {
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [activeFolder, setActiveFolder] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<BankQ[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<"manual" | "auto">("manual");
+
+  // Auto-generate state
+  const [autoCount, setAutoCount] = useState("10");
+  const [autoEasy, setAutoEasy] = useState("");
+  const [autoMedium, setAutoMedium] = useState("");
+  const [autoHard, setAutoHard] = useState("");
+  const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data } = await supabase
+        .from("question_bank_folders")
+        .select("id,name")
+        .order("name");
+      setFolders((data ?? []) as Folder[]);
+    })();
+  }, [open]);
+
+  useEffect(() => {
+    if (!activeFolder) {
+      setQuestions([]);
+      return;
+    }
+    (async () => {
+      setLoading(true);
+      const { data: qs } = await supabase
+        .from("bank_questions")
+        .select("id,folder_id,text,question_type,difficulty,time_limit_seconds")
+        .eq("folder_id", activeFolder);
+      const ids = (qs ?? []).map((q) => q.id);
+      const { data: ans } = ids.length
+        ? await supabase
+            .from("bank_answers")
+            .select("id,question_id,text,is_correct,position")
+            .in("question_id", ids)
+            .order("position")
+        : { data: [] as any[] };
+      setQuestions(
+        (qs ?? []).map((q: any) => ({
+          ...q,
+          answers: (ans ?? []).filter((a: any) => a.question_id === q.id),
+        })),
+      );
+      setLoading(false);
+    })();
+  }, [activeFolder]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return questions.filter((x) => !q || x.text.toLowerCase().includes(q));
+  }, [questions, search]);
+
+  const toggle = (id: string) => {
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else {
+        if (!multiple) n.clear();
+        n.add(id);
+      }
+      return n;
+    });
+  };
+
+  const toSnapshot = (q: BankQ): ImportedQuestion => ({
+    text: q.text,
+    time_limit_seconds: q.time_limit_seconds,
+    answers: q.answers.map((a, i) => ({
+      text: a.text,
+      is_correct: a.is_correct,
+      position: i,
+    })),
+  });
+
+  const importSelected = async () => {
+    const picks = questions.filter((q) => selected.has(q.id));
+    if (picks.length === 0) return toast.error("Heç bir sual seçilməyib");
+    await onImport(picks.map(toSnapshot));
+    setSelected(new Set());
+    onClose();
+  };
+
+  const generateAuto = async () => {
+    if (!activeFolder) return toast.error("Qovluq seçin");
+    const total = Number(autoCount);
+    const e = Number(autoEasy) || 0;
+    const m = Number(autoMedium) || 0;
+    const h = Number(autoHard) || 0;
+    const useDiff = e + m + h > 0;
+    if (!useDiff && (!total || total < 1)) return toast.error("Sual sayını daxil edin");
+
+    setGenerating(true);
+    // load full pool from this folder
+    const { data: qs } = await supabase
+      .from("bank_questions")
+      .select("id,folder_id,text,question_type,difficulty,time_limit_seconds")
+      .eq("folder_id", activeFolder);
+    const pool = (qs ?? []) as BankQ[];
+
+    const pickN = (arr: BankQ[], n: number) => {
+      const shuffled = [...arr].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, n);
+    };
+
+    let picked: BankQ[] = [];
+    if (useDiff) {
+      const byD = {
+        easy: pool.filter((q) => q.difficulty === "easy"),
+        medium: pool.filter((q) => q.difficulty === "medium"),
+        hard: pool.filter((q) => q.difficulty === "hard"),
+      };
+      if (byD.easy.length < e || byD.medium.length < m || byD.hard.length < h) {
+        toast.warning(
+          `Qovluqda kifayət qədər sual yoxdur (Asan: ${byD.easy.length}, Orta: ${byD.medium.length}, Çətin: ${byD.hard.length}). Mövcud olanlar əlavə ediləcək.`,
+        );
+      }
+      picked = [
+        ...pickN(byD.easy, e),
+        ...pickN(byD.medium, m),
+        ...pickN(byD.hard, h),
+      ];
+    } else {
+      if (pool.length < total) {
+        toast.warning(
+          `Qovluqda yalnız ${pool.length} sual var. Hamısı əlavə ediləcək.`,
+        );
+      }
+      picked = pickN(pool, total);
+    }
+
+    if (picked.length === 0) {
+      setGenerating(false);
+      return toast.error("Heç bir sual tapılmadı");
+    }
+
+    // Load answers for picked
+    const ids = picked.map((q) => q.id);
+    const { data: ans } = await supabase
+      .from("bank_answers")
+      .select("id,question_id,text,is_correct,position")
+      .in("question_id", ids)
+      .order("position");
+    const full = picked.map((q) => ({
+      ...q,
+      answers: (ans ?? []).filter((a: any) => a.question_id === q.id),
+    })) as BankQ[];
+
+    await onImport(full.map(toSnapshot));
+    setGenerating(false);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Sual Bankından əlavə et</DialogTitle>
+        </DialogHeader>
+
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+          <TabsList>
+            <TabsTrigger value="manual">Suallar seç</TabsTrigger>
+            <TabsTrigger value="auto">
+              <Sparkles className="h-4 w-4" /> Avtomatik yarat
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="manual">
+            <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+              <div className="space-y-1 max-h-[50vh] overflow-y-auto border rounded-md p-2">
+                {folders.length === 0 && (
+                  <p className="text-xs text-muted-foreground p-2">
+                    Sual bankında qovluq yoxdur.
+                  </p>
+                )}
+                {folders.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setActiveFolder(f.id)}
+                    className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md text-left ${
+                      activeFolder === f.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                    }`}
+                  >
+                    <FolderIcon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{f.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Axtar..."
+                    className="pl-9"
+                  />
+                </div>
+                <div className="max-h-[45vh] overflow-y-auto space-y-2 pr-1">
+                  {loading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : filtered.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-6 text-center">
+                      {activeFolder ? "Sual yoxdur" : "Qovluq seçin"}
+                    </p>
+                  ) : (
+                    filtered.map((q) => (
+                      <label
+                        key={q.id}
+                        className={`flex items-start gap-3 p-3 border rounded-md cursor-pointer ${
+                          selected.has(q.id) ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected.has(q.id)}
+                          onChange={() => toggle(q.id)}
+                          className="h-4 w-4 mt-1"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex gap-2 mb-1">
+                            <Badge variant="outline" className="text-xs">
+                              {q.difficulty === "easy"
+                                ? "Asan"
+                                : q.difficulty === "hard"
+                                ? "Çətin"
+                                : "Orta"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm">{q.text}</p>
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={onClose}>
+                Ləğv et
+              </Button>
+              <Button onClick={importSelected} disabled={selected.size === 0}>
+                {selected.size} sual əlavə et
+              </Button>
+            </DialogFooter>
+          </TabsContent>
+
+          <TabsContent value="auto">
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label>Qovluq</Label>
+                <Select value={activeFolder ?? ""} onValueChange={setActiveFolder}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Qovluq seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {folders.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Sual sayı (çətinlik göstərilməsə)</Label>
+                <Input
+                  type="number"
+                  value={autoCount}
+                  onChange={(e) => setAutoCount(e.target.value)}
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium mb-2">
+                  Çətinlik bölgüsü <span className="text-muted-foreground text-xs">(opsional)</span>
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Asan</Label>
+                    <Input
+                      type="number"
+                      value={autoEasy}
+                      onChange={(e) => setAutoEasy(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Orta</Label>
+                    <Input
+                      type="number"
+                      value={autoMedium}
+                      onChange={(e) => setAutoMedium(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">Çətin</Label>
+                    <Input
+                      type="number"
+                      value={autoHard}
+                      onChange={(e) => setAutoHard(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={onClose}>
+                Ləğv et
+              </Button>
+              <Button onClick={generateAuto} disabled={generating || !activeFolder}>
+                {generating && <Loader2 className="h-4 w-4 animate-spin" />}
+                <Sparkles className="h-4 w-4" /> Avtomatik yarat
+              </Button>
+            </DialogFooter>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
