@@ -364,8 +364,11 @@ function ExamEditor({
     setQuestions((q) => [...q, { ...data!, answers: [] } as ExamQuestion]);
   };
 
-  const importFromBank = async (items: ImportedQuestion[]) => {
-    if (!examId) return toast.error("Əvvəlcə imtahanı yadda saxla");
+  const importFromBank = async (items: ImportedQuestion[]): Promise<void> => {
+    if (!examId) {
+      toast.error("Əvvəlcə imtahanı yadda saxla");
+      return;
+    }
     let pos = questions.length;
     for (const item of items) {
       const { data: q, error } = await supabase
