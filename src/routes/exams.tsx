@@ -611,6 +611,13 @@ function ExamEditor({
           </Button>
         </DialogFooter>
       </DialogContent>
+      {bankOpen && (
+        <BankPicker
+          open={bankOpen}
+          onClose={() => setBankOpen(false)}
+          onImport={importFromBank}
+        />
+      )}
     </Dialog>
   );
 }
