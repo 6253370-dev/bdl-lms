@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Award,
   CalendarDays,
+  Library,
   LogOut,
   Menu,
   PanelLeftClose,
