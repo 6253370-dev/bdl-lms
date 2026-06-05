@@ -287,6 +287,7 @@ function ExamEditor({
   const [examId, setExamId] = useState<string | null>(exam?.id ?? null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [saving, setSaving] = useState(false);
+  const [bankOpen, setBankOpen] = useState(false);
 
   useEffect(() => {
     if (!examId) return;
