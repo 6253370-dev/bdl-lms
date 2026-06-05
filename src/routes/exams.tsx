@@ -540,11 +540,16 @@ function ExamEditor({
 
           {examId && (
             <div className="border-t pt-4 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="font-display font-semibold">Questions</h3>
-                <Button size="sm" variant="outline" onClick={addQuestion}>
-                  <Plus className="h-4 w-4" /> Add question
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setBankOpen(true)}>
+                    <Library className="h-4 w-4" /> Sual Bankından
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={addQuestion}>
+                    <Plus className="h-4 w-4" /> Yeni sual
+                  </Button>
+                </div>
               </div>
               {questions.length === 0 && (
                 <p className="text-sm text-muted-foreground">No questions yet.</p>
