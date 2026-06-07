@@ -62,11 +62,11 @@ function UsersPage() {
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (id: string) => {
-    if (id === currentUser?.id) { toast.error("Cannot delete yourself"); return; }
-    if (!confirm("Delete this user permanently?")) return;
+    if (id === currentUser?.id) { toast.error("Özünüzü silə bilməzsiniz"); return; }
+    if (!confirm("Bu istifadəçini həmişəlik silmək istəyirsiniz?")) return;
     const { error } = await supabase.functions.invoke("admin-delete-user", { body: { user_id: id } });
     if (error) { toast.error(error.message); return; }
-    toast.success("User deleted");
+    toast.success("İstifadəçi silindi");
     load();
   };
 
@@ -88,7 +88,7 @@ function UsersPage() {
         <div>
           <h1 className="font-display text-3xl font-bold">{t.users.title}</h1>
           <p className="text-muted-foreground mt-1">
-            {isSuperAdmin ? "Create and manage all users." : "View and edit user details."}
+            {isSuperAdmin ? "Bütün istifadəçiləri yarat və idarə et." : "İstifadəçi məlumatlarına bax və redaktə et."}
           </p>
         </div>
         {isSuperAdmin && (
@@ -113,12 +113,12 @@ function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Employee ID</TableHead>
-                <TableHead>Full Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Roles</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Əməkdaş ID</TableHead>
+                <TableHead>Ad Soyad</TableHead>
+                <TableHead>E-mail</TableHead>
+                <TableHead>Telefon</TableHead>
+                <TableHead>Rollar</TableHead>
+                <TableHead className="text-right">Əməliyyatlar</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -182,7 +182,7 @@ function CreateUserDialog({ open, onOpenChange, onCreated }: { open: boolean; on
 
   const submit = async () => {
     if (!form.employee_id || !form.full_name || !form.email || !form.password) {
-      toast.error("Fill required fields"); return;
+      toast.error("Vacib sahələri doldurun"); return;
     }
     if (form.password !== form.password2) {
       toast.error(t.users.passwordMismatch); return;
@@ -195,7 +195,7 @@ function CreateUserDialog({ open, onOpenChange, onCreated }: { open: boolean; on
     });
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("User created");
+    toast.success("İstifadəçi yaradıldı");
     setForm({ employee_id: "", full_name: "", email: "", phone: "", password: "", password2: "", role: "user" });
     onOpenChange(false);
     onCreated();
@@ -207,34 +207,34 @@ function CreateUserDialog({ open, onOpenChange, onCreated }: { open: boolean; on
         <Button size="lg"><Plus className="h-4 w-4 mr-2" /> {t.users.new}</Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Create new user</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Yeni istifadəçi yarat</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Employee ID *" value={form.employee_id} onChange={(v) => setForm({ ...form, employee_id: v })} />
-            <Field label="Phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
+            <Field label="Əməkdaş ID *" value={form.employee_id} onChange={(v) => setForm({ ...form, employee_id: v })} />
+            <Field label="Telefon" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
           </div>
-          <Field label="Full Name *" value={form.full_name} onChange={(v) => setForm({ ...form, full_name: v })} />
-          <Field label="Email *" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
-          <Field label="Password *" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} />
+          <Field label="Ad Soyad *" value={form.full_name} onChange={(v) => setForm({ ...form, full_name: v })} />
+          <Field label="E-mail *" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
+          <Field label="Şifrə *" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} />
           <Field label={`${t.users.confirmPassword} *`} type="password" value={form.password2} onChange={(v) => setForm({ ...form, password2: v })} />
           <div className="space-y-2">
-            <Label>Role</Label>
+            <Label>Rol</Label>
             <select
               className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
             >
-              <option value="user">User</option>
+              <option value="user">İstifadəçi</option>
               <option value="admin">Admin</option>
               <option value="super_admin">Super Admin</option>
             </select>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Ləğv et</Button>
           <Button onClick={submit} disabled={submitting}>
             {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Create
+            Yarat
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -294,7 +294,7 @@ function EditUserDialog({ user, isSuperAdmin, onClose, onSaved }: { user: UserRo
     if (error) { setSaving(false); toast.error(error.message); return; }
     await saveCourseAccess(user.id, Array.from(folderIds), Array.from(courseIds));
     setSaving(false);
-    toast.success("User updated");
+    toast.success("İstifadəçi yeniləndi");
     onSaved();
   };
 
@@ -303,29 +303,29 @@ function EditUserDialog({ user, isSuperAdmin, onClose, onSaved }: { user: UserRo
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Edit user · ID {user.employee_id}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>İstifadəçini redaktə et · ID {user.employee_id}</DialogTitle></DialogHeader>
         <Tabs defaultValue="info">
           <TabsList>
-            <TabsTrigger value="info">Info</TabsTrigger>
+            <TabsTrigger value="info">Məlumat</TabsTrigger>
             <TabsTrigger value="access">{t.users.accessTitle}</TabsTrigger>
           </TabsList>
           <TabsContent value="info" className="space-y-3 pt-3">
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Employee ID" value={employeeId} onChange={setEmployeeId} disabled={!isSuperAdmin} />
-              <Field label="Phone" value={phone} onChange={setPhone} />
+              <Field label="Əməkdaş ID" value={employeeId} onChange={setEmployeeId} disabled={!isSuperAdmin} />
+              <Field label="Telefon" value={phone} onChange={setPhone} />
             </div>
-            <Field label="Full Name" value={fullName} onChange={setFullName} />
-            <Field label="Email" type="email" value={email} onChange={setEmail} disabled={!isSuperAdmin} />
-            <Field label="New password (leave blank to keep)" type="password" value={password} onChange={setPassword} />
+            <Field label="Ad Soyad" value={fullName} onChange={setFullName} />
+            <Field label="E-mail" type="email" value={email} onChange={setEmail} disabled={!isSuperAdmin} />
+            <Field label="Yeni şifrə (dəyişməyəcəksinizsə boş buraxın)" type="password" value={password} onChange={setPassword} />
             {password && (
               <Field label={t.users.confirmPassword} type="password" value={password2} onChange={setPassword2} />
             )}
             <div className="space-y-2">
-              <Label>Roles</Label>
+              <Label>Rollar</Label>
               {(["super_admin", "admin", "user"] as const).map((r) => (
                 <label key={r} className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={roles.includes(r)} onChange={() => toggleRole(r)} className="h-4 w-4" />
-                  {r.replace("_", " ")}
+                  {r === "super_admin" ? "Super admin" : r === "admin" ? "Admin" : "İstifadəçi"}
                 </label>
               ))}
             </div>
@@ -387,10 +387,10 @@ function EditUserDialog({ user, isSuperAdmin, onClose, onSaved }: { user: UserRo
           </TabsContent>
         </Tabs>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>Ləğv et</Button>
           <Button onClick={save} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Save
+            Yadda saxla
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -421,17 +421,17 @@ function ViewUserDialog({ user, onClose }: { user: UserRow; onClose: () => void 
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>{t.users.details}</DialogTitle></DialogHeader>
         <div className="space-y-3 text-sm">
-          <Row label="Employee ID" value={user.employee_id} mono />
-          <Row label="Full Name" value={user.full_name} />
-          <Row label="Email" value={user.email} />
-          <Row label="Phone" value={user.phone ?? "—"} />
-          <Row label="Roles" value={user.roles.map((r) => r.replace("_", " ")).join(", ") || "—"} />
+          <Row label="Əməkdaş ID" value={user.employee_id} mono />
+          <Row label="Ad Soyad" value={user.full_name} />
+          <Row label="E-mail" value={user.email} />
+          <Row label="Telefon" value={user.phone ?? "—"} />
+          <Row label="Rollar" value={user.roles.map((r) => r === "super_admin" ? "Super admin" : r === "admin" ? "Admin" : "İstifadəçi").join(", ") || "—"} />
           <div className="border-t pt-3 mt-3">
             {stats ? (
               <div className="grid grid-cols-3 gap-2 text-center">
-                <Stat label="Attempts" value={stats.attempts} />
-                <Stat label="Passed" value={stats.passed} />
-                <Stat label="Certs" value={stats.certs} />
+                <Stat label="Cəhdlər" value={stats.attempts} />
+                <Stat label="Keçib" value={stats.passed} />
+                <Stat label="Sertifikat" value={stats.certs} />
               </div>
             ) : (
               <div className="flex justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
@@ -439,7 +439,7 @@ function ViewUserDialog({ user, onClose }: { user: UserRow; onClose: () => void 
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose}>Bağla</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -522,21 +522,21 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
 
   const addQuestion = async () => {
     if (!text.trim() || answers.filter((a) => a.text.trim()).length < 2) {
-      toast.error("Need question text and at least 2 answers"); return;
+      toast.error("Sual mətni və ən az 2 cavab tələb olunur"); return;
     }
     if (!answers.some((a) => a.is_correct)) {
-      toast.error("Mark at least one correct answer"); return;
+      toast.error("Ən az bir doğru cavab seçin"); return;
     }
     const { data: q, error } = await supabase
       .from("questions").insert({ block_id: blockId, text: text.trim(), position: questions.length })
       .select().single();
-    if (error || !q) { toast.error(error?.message ?? "Failed"); return; }
+    if (error || !q) { toast.error(error?.message ?? "Xəta"); return; }
     const valid = answers.filter((a) => a.text.trim());
     const { error: aErr } = await supabase.from("answers").insert(
       valid.map((a, i) => ({ question_id: q.id, text: a.text.trim(), is_correct: a.is_correct, position: i })),
     );
     if (aErr) { toast.error(aErr.message); return; }
-    toast.success("Question added");
+    toast.success("Sual əlavə olundu");
     setText(""); setAnswers([
       { text: "", is_correct: true }, { text: "", is_correct: false }, { text: "", is_correct: false },
     ]);

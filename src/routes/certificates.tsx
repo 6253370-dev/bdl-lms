@@ -134,11 +134,10 @@ function CertificatesPage() {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">
-                  {new Date(c.issued_at).toLocaleDateString("az-AZ", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
+                  {(() => {
+                    const d = new Date(c.issued_at);
+                    return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+                  })()}
                 </span>
                 <span className="font-semibold text-primary">{Math.round(c.score_percent)}%</span>
               </div>

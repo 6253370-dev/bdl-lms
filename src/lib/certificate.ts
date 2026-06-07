@@ -73,7 +73,7 @@ export function buildCertificatePdf(data: CertificateData): jsPDF {
   doc.text(`Nəticə: ${data.scorePercent}%`, W / 2, 384, { align: "center" });
 
   const dt = new Date(data.issuedAt);
-  const dateStr = dt.toLocaleDateString("az-AZ", { year: "numeric", month: "long", day: "numeric" });
+  const dateStr = formatDateDDMMYYYY(dt);
   const footerY = H - 90;
   doc.setDrawColor(120, 120, 120);
   doc.setLineWidth(0.5);
@@ -109,6 +109,13 @@ export function downloadCertificate(data: CertificateData) {
 
 function sanitize(s: string) {
   return s.replace(/[^\p{L}\p{N}\- ]/gu, "").trim().replace(/\s+/g, "_");
+}
+
+export function formatDateDDMMYYYY(d: Date): string {
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
 }
 
 // ---------- Template overlay ----------
@@ -221,7 +228,7 @@ export async function buildCertificateFromTemplate(
   ]);
 
   const dt = new Date(data.issuedAt);
-  const dateStr = dt.toLocaleDateString("az-AZ", { year: "numeric", month: "long", day: "numeric" });
+  const dateStr = formatDateDDMMYYYY(dt);
 
   const valueMap: Record<string, { value: string; bold?: boolean }> = {
     FULL_NAME: { value: data.fullName, bold: true },

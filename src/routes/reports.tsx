@@ -18,11 +18,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   BarChart3,
   Download,
+  Eye,
+  FileText,
   Loader2,
   TrendingUp,
   Users as UsersIcon,
@@ -32,6 +41,8 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { t } from "@/lib/i18n";
+import { jsPDF } from "jspdf";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/reports")({
   component: () => (
@@ -66,6 +77,28 @@ type ExamAttempt = {
   created_at: string;
 };
 
+type AttemptKind = "course" | "exam";
+
+interface AttemptDetailRef {
+  kind: AttemptKind;
+  attemptId: string;
+  title: string;
+  user?: Profile;
+  score: number;
+  passed: boolean;
+  duration: number;
+  date: string;
+  // For course: block_id; for exam: exam_id
+  parentId: string;
+}
+
+function formatDate(d: Date) {
+  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+}
+function formatDateTime(d: Date) {
+  return `${formatDate(d)} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -73,8 +106,8 @@ function ReportsPage() {
   const [exams, setExams] = useState<StandaloneExam[]>([]);
   const [courseAttempts, setCourseAttempts] = useState<CourseAttempt[]>([]);
   const [examAttempts, setExamAttempts] = useState<ExamAttempt[]>([]);
+  const [detail, setDetail] = useState<AttemptDetailRef | null>(null);
 
-  // Filters
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [userFilter, setUserFilter] = useState<string>("all");
@@ -152,7 +185,7 @@ function ReportsPage() {
         Number(a.score_percent),
         a.passed ? "Keçib" : "Keçməyib",
         a.duration_seconds,
-        new Date(a.created_at).toLocaleString(),
+        formatDateTime(new Date(a.created_at)),
       ]);
     });
     filteredExamAttempts.forEach((a) => {
@@ -166,7 +199,7 @@ function ReportsPage() {
         Number(a.score_percent),
         a.passed ? "Keçib" : "Keçməyib",
         a.duration_seconds,
-        new Date(a.created_at).toLocaleString(),
+        formatDateTime(new Date(a.created_at)),
       ]);
     });
     const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -191,16 +224,13 @@ function ReportsPage() {
           <h1 className="font-display text-3xl font-bold mb-1 flex items-center gap-2">
             <BarChart3 className="h-7 w-7 text-primary" /> {t.reports.title}
           </h1>
-          <p className="text-muted-foreground">
-            {t.reports.subtitle}
-          </p>
+          <p className="text-muted-foreground">{t.reports.subtitle}</p>
         </div>
         <Button onClick={exportExcel}>
           <Download className="h-4 w-4" /> {t.reports.exportCsv}
         </Button>
       </div>
 
-      {/* Filters */}
       <Card className="p-4">
         <div className="grid gap-3 md:grid-cols-4">
           <div className="grid gap-1.5">
@@ -239,7 +269,6 @@ function ReportsPage() {
         </div>
       </Card>
 
-      {/* KPIs */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi icon={TrendingUp} label={t.reports.attempts} value={totals.total} tone="primary" />
         <Kpi icon={CheckCircle2} label={t.reports.passed} value={totals.passed} tone="success" />
@@ -247,7 +276,6 @@ function ReportsPage() {
         <Kpi icon={BarChart3} label={t.reports.avgScore} value={`${totals.avg}%`} tone="accent" />
       </div>
 
-      {/* Per-course accordion */}
       <Card className="p-4">
         <h2 className="font-display font-semibold flex items-center gap-2 mb-3">
           <BookOpen className="h-4 w-4 text-primary" /> {t.reports.courses}
@@ -264,6 +292,7 @@ function ReportsPage() {
                   course={c}
                   attempts={ats}
                   profileMap={profileMap}
+                  onOpenDetail={setDetail}
                 />
               );
             })}
@@ -271,7 +300,6 @@ function ReportsPage() {
         )}
       </Card>
 
-      {/* Per-exam accordion */}
       <Card className="p-4">
         <h2 className="font-display font-semibold flex items-center gap-2 mb-3">
           <ClipboardList className="h-4 w-4 text-primary" /> {t.reports.standaloneExams}
@@ -283,12 +311,22 @@ function ReportsPage() {
             {exams.map((e) => {
               const ats = filteredExamAttempts.filter((a) => a.exam_id === e.id);
               return (
-                <ExamRow key={e.id} exam={e} attempts={ats} profileMap={profileMap} />
+                <ExamRow
+                  key={e.id}
+                  exam={e}
+                  attempts={ats}
+                  profileMap={profileMap}
+                  onOpenDetail={setDetail}
+                />
               );
             })}
           </Accordion>
         )}
       </Card>
+
+      {detail && (
+        <AttemptDetailDialog detailRef={detail} onClose={() => setDetail(null)} />
+      )}
     </div>
   );
 }
@@ -334,10 +372,12 @@ function CourseRow({
   course,
   attempts,
   profileMap,
+  onOpenDetail,
 }: {
   course: Course;
   attempts: CourseAttempt[];
   profileMap: Map<string, Profile>;
+  onOpenDetail: (d: AttemptDetailRef) => void;
 }) {
   const passed = attempts.filter((a) => a.passed).length;
   const stats = summarize(attempts.map((a) => Number(a.score_percent)));
@@ -363,12 +403,17 @@ function CourseRow({
         ) : (
           <AttemptsTable
             rows={attempts.map((a) => ({
+              kind: "course" as const,
+              attemptId: a.id,
+              title: course.title,
               user: profileMap.get(a.user_id),
               score: Number(a.score_percent),
               passed: a.passed,
               duration: a.duration_seconds,
               date: a.created_at,
+              parentId: a.block_id,
             }))}
+            onOpenDetail={onOpenDetail}
           />
         )}
       </AccordionContent>
@@ -380,10 +425,12 @@ function ExamRow({
   exam,
   attempts,
   profileMap,
+  onOpenDetail,
 }: {
   exam: StandaloneExam;
   attempts: ExamAttempt[];
   profileMap: Map<string, Profile>;
+  onOpenDetail: (d: AttemptDetailRef) => void;
 }) {
   const passed = attempts.filter((a) => a.passed).length;
   const stats = summarize(attempts.map((a) => Number(a.score_percent)));
@@ -409,12 +456,17 @@ function ExamRow({
         ) : (
           <AttemptsTable
             rows={attempts.map((a) => ({
+              kind: "exam" as const,
+              attemptId: a.id,
+              title: exam.title,
               user: profileMap.get(a.user_id),
               score: Number(a.score_percent),
               passed: a.passed,
               duration: a.duration_seconds,
               date: a.created_at,
+              parentId: a.exam_id,
             }))}
+            onOpenDetail={onOpenDetail}
           />
         )}
       </AccordionContent>
@@ -424,9 +476,27 @@ function ExamRow({
 
 function AttemptsTable({
   rows,
+  onOpenDetail,
 }: {
-  rows: { user?: Profile; score: number; passed: boolean; duration: number; date: string }[];
+  rows: AttemptDetailRef[];
+  onOpenDetail: (d: AttemptDetailRef) => void;
 }) {
+  const [pdfBusy, setPdfBusy] = useState<string | null>(null);
+
+  const downloadPdf = async (row: AttemptDetailRef) => {
+    setPdfBusy(row.attemptId);
+    try {
+      const detail = await fetchAttemptDetail(row);
+      buildAttemptPdf(row, detail).save(
+        `Hesabat_${(row.user?.full_name ?? "istifadeci").replace(/\s+/g, "_")}_${row.attemptId.slice(0, 8)}.pdf`,
+      );
+    } catch (e: any) {
+      toast.error(e.message ?? "PDF yaradıla bilmədi");
+    } finally {
+      setPdfBusy(null);
+    }
+  };
+
   return (
     <div className="border rounded-md overflow-hidden">
       <table className="w-full text-sm">
@@ -438,11 +508,12 @@ function AttemptsTable({
             <th className="p-2">{t.reports.status}</th>
             <th className="p-2 text-right">{t.reports.time}</th>
             <th className="p-2">{t.reports.date}</th>
+            <th className="p-2 text-right">Əməliyyat</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} className="border-t">
+          {rows.map((r) => (
+            <tr key={r.attemptId} className="border-t">
               <td className="p-2 font-mono text-xs">{r.user?.employee_id ?? "—"}</td>
               <td className="p-2">{r.user?.full_name ?? "—"}</td>
               <td className="p-2 text-right font-medium">{r.score}%</td>
@@ -452,10 +523,33 @@ function AttemptsTable({
                 </Badge>
               </td>
               <td className="p-2 text-right text-xs text-muted-foreground">
-                {Math.round(r.duration / 60)}m
+                {Math.round(r.duration / 60)}d
               </td>
-              <td className="p-2 text-xs text-muted-foreground">
-                {new Date(r.date).toLocaleString()}
+              <td className="p-2 text-xs text-muted-foreground whitespace-nowrap">
+                {formatDateTime(new Date(r.date))}
+              </td>
+              <td className="p-2 text-right whitespace-nowrap">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Bax"
+                  onClick={() => onOpenDetail(r)}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="PDF yüklə"
+                  disabled={pdfBusy === r.attemptId}
+                  onClick={() => downloadPdf(r)}
+                >
+                  {pdfBusy === r.attemptId ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="h-4 w-4" />
+                  )}
+                </Button>
               </td>
             </tr>
           ))}
@@ -463,4 +557,295 @@ function AttemptsTable({
       </table>
     </div>
   );
+}
+
+// ---------- Detail fetching ----------
+
+interface AnswerRow {
+  id: string;
+  text: string;
+  is_correct: boolean;
+}
+interface QuestionDetail {
+  id: string;
+  text: string;
+  answers: AnswerRow[];
+  selectedAnswerId: string | null;
+  isCorrect: boolean;
+}
+
+async function fetchAttemptDetail(ref: AttemptDetailRef): Promise<QuestionDetail[]> {
+  if (ref.kind === "course") {
+    const [qRes, rRes] = await Promise.all([
+      supabase
+        .from("questions")
+        .select("id,text,position")
+        .eq("block_id", ref.parentId)
+        .order("position"),
+      supabase
+        .from("attempt_responses")
+        .select("question_id,answer_id,is_correct")
+        .eq("attempt_id", ref.attemptId),
+    ]);
+    const qs = (qRes.data ?? []) as { id: string; text: string }[];
+    const ids = qs.map((q) => q.id);
+    const aRes = ids.length
+      ? await supabase
+          .from("answers")
+          .select("id,question_id,text,is_correct,position")
+          .in("question_id", ids)
+          .order("position")
+      : { data: [] as any[] };
+    const responses = (rRes.data ?? []) as { question_id: string; answer_id: string | null; is_correct: boolean }[];
+    return qs.map((q) => {
+      const r = responses.find((x) => x.question_id === q.id);
+      return {
+        id: q.id,
+        text: q.text,
+        answers: ((aRes.data ?? []) as any[])
+          .filter((a) => a.question_id === q.id)
+          .map((a) => ({ id: a.id, text: a.text, is_correct: a.is_correct })),
+        selectedAnswerId: r?.answer_id ?? null,
+        isCorrect: r?.is_correct ?? false,
+      };
+    });
+  } else {
+    const [qRes, rRes] = await Promise.all([
+      supabase
+        .from("standalone_exam_questions")
+        .select("id,text,position")
+        .eq("exam_id", ref.parentId)
+        .order("position"),
+      supabase
+        .from("standalone_exam_responses")
+        .select("question_id,answer_id,is_correct")
+        .eq("attempt_id", ref.attemptId),
+    ]);
+    const qs = (qRes.data ?? []) as { id: string; text: string }[];
+    const ids = qs.map((q) => q.id);
+    const aRes = ids.length
+      ? await supabase
+          .from("standalone_exam_answers")
+          .select("id,question_id,text,is_correct,position")
+          .in("question_id", ids)
+          .order("position")
+      : { data: [] as any[] };
+    const responses = (rRes.data ?? []) as { question_id: string; answer_id: string | null; is_correct: boolean }[];
+    return qs.map((q) => {
+      const r = responses.find((x) => x.question_id === q.id);
+      return {
+        id: q.id,
+        text: q.text,
+        answers: ((aRes.data ?? []) as any[])
+          .filter((a) => a.question_id === q.id)
+          .map((a) => ({ id: a.id, text: a.text, is_correct: a.is_correct })),
+        selectedAnswerId: r?.answer_id ?? null,
+        isCorrect: r?.is_correct ?? false,
+      };
+    });
+  }
+}
+
+function AttemptDetailDialog({
+  detailRef: ref,
+  onClose,
+}: {
+  detailRef: AttemptDetailRef;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [questions, setQuestions] = useState<QuestionDetail[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const qs = await fetchAttemptDetail(ref);
+        setQuestions(qs);
+      } catch {
+        setQuestions([]);
+      }
+      setLoading(false);
+    })();
+  }, [ref]);
+
+  const downloadPdf = () => {
+    buildAttemptPdf(ref, questions).save(
+      `Hesabat_${(ref.user?.full_name ?? "istifadeci").replace(/\s+/g, "_")}_${ref.attemptId.slice(0, 8)}.pdf`,
+    );
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between gap-2 pr-6">
+            <span>{ref.title}</span>
+            <Badge variant={ref.passed ? "default" : "destructive"}>
+              {ref.passed ? t.reports.passed : t.reports.failed} · {ref.score}%
+            </Badge>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="text-sm text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+          <span><strong>{ref.user?.full_name ?? "—"}</strong> ({ref.user?.employee_id ?? "—"})</span>
+          <span>{formatDateTime(new Date(ref.date))}</span>
+          <span>{Math.round(ref.duration / 60)} dəq</span>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : questions.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">
+            Bu cəhd üçün sual təfərrüatı yoxdur.
+          </p>
+        ) : (
+          <div className="space-y-3 mt-3">
+            {questions.map((q, idx) => (
+              <Card key={q.id} className="p-4">
+                <div className="flex items-start gap-2 mb-3">
+                  <span className="text-xs font-mono text-muted-foreground mt-1">
+                    {idx + 1}.
+                  </span>
+                  <div className="flex-1 font-medium">{q.text}</div>
+                  {q.isCorrect ? (
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-destructive shrink-0" />
+                  )}
+                </div>
+                <div className="space-y-1.5 pl-6">
+                  {q.answers.map((a) => {
+                    const selected = a.id === q.selectedAnswerId;
+                    const correct = a.is_correct;
+                    const cls = correct
+                      ? "border-emerald-500/60 bg-emerald-500/5"
+                      : selected
+                      ? "border-destructive/60 bg-destructive/5"
+                      : "border-input";
+                    return (
+                      <div
+                        key={a.id}
+                        className={`text-sm rounded-md border px-3 py-2 flex items-center justify-between gap-2 ${cls}`}
+                      >
+                        <span>{a.text}</span>
+                        <span className="text-xs text-muted-foreground flex gap-2">
+                          {selected && <span className="font-medium">Seçilib</span>}
+                          {correct && <span className="font-medium text-emerald-600">Doğru</span>}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {q.answers.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic">Cavab variantı yoxdur.</p>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Bağla</Button>
+          <Button onClick={downloadPdf} disabled={loading || questions.length === 0}>
+            <Download className="h-4 w-4 mr-2" /> PDF yüklə
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------- PDF ----------
+
+function buildAttemptPdf(ref: AttemptDetailRef, questions: QuestionDetail[]): jsPDF {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const margin = 40;
+  let y = margin;
+
+  const ensureSpace = (need: number) => {
+    if (y + need > H - margin) {
+      doc.addPage();
+      y = margin;
+    }
+  };
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(20, 40, 65);
+  doc.text("BE Academy — Cəhd hesabatı", margin, y);
+  y += 22;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(0, 0, 0);
+  const titleLines = doc.splitTextToSize(ref.title, W - margin * 2);
+  doc.text(titleLines, margin, y);
+  y += titleLines.length * 16 + 4;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(80, 80, 80);
+  const meta = [
+    `İstifadəçi: ${ref.user?.full_name ?? "—"} (${ref.user?.employee_id ?? "—"})`,
+    `Tarix: ${formatDateTime(new Date(ref.date))}`,
+    `Bal: ${ref.score}%   Status: ${ref.passed ? "Keçib" : "Keçməyib"}   Müddət: ${Math.round(ref.duration / 60)} dəq`,
+  ];
+  meta.forEach((line) => {
+    doc.text(line, margin, y);
+    y += 14;
+  });
+  y += 6;
+  doc.setDrawColor(200);
+  doc.line(margin, y, W - margin, y);
+  y += 14;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(20, 40, 65);
+  doc.text("Suallar və cavablar", margin, y);
+  y += 18;
+
+  questions.forEach((q, idx) => {
+    ensureSpace(60);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    const qLines = doc.splitTextToSize(`${idx + 1}. ${q.text}`, W - margin * 2);
+    qLines.forEach((line: string) => {
+      ensureSpace(16);
+      doc.text(line, margin, y);
+      y += 14;
+    });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+
+    q.answers.forEach((a) => {
+      const selected = a.id === q.selectedAnswerId;
+      const correct = a.is_correct;
+      let prefix = "•";
+      if (correct && selected) prefix = "✓✓";
+      else if (correct) prefix = "✓";
+      else if (selected) prefix = "✗";
+
+      if (correct) doc.setTextColor(20, 120, 60);
+      else if (selected) doc.setTextColor(180, 35, 35);
+      else doc.setTextColor(60, 60, 60);
+
+      const aLines = doc.splitTextToSize(`   ${prefix}  ${a.text}`, W - margin * 2 - 12);
+      aLines.forEach((line: string) => {
+        ensureSpace(14);
+        doc.text(line, margin + 12, y);
+        y += 13;
+      });
+    });
+    y += 6;
+  });
+
+  return doc;
 }

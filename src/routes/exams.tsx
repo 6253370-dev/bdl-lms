@@ -315,8 +315,8 @@ function ExamEditor({
   }, [examId]);
 
   const saveExam = async () => {
-    if (!title.trim()) return toast.error("Title required");
-    if (!examId && !password.trim()) return toast.error("Password required");
+    if (!title.trim()) return toast.error("Başlıq tələb olunur");
+    if (!examId && !password.trim()) return toast.error("Şifrə tələb olunur");
     setSaving(true);
     const payload: any = {
       title: title.trim(),
@@ -335,7 +335,7 @@ function ExamEditor({
         .eq("id", examId);
       setSaving(false);
       if (error) return toast.error(error.message);
-      toast.success("Exam updated");
+      toast.success("İmtahan yeniləndi");
     } else {
       const { data, error } = await supabase
         .from("standalone_exams")
@@ -345,12 +345,12 @@ function ExamEditor({
       setSaving(false);
       if (error) return toast.error(error.message);
       setExamId(data!.id);
-      toast.success("Exam created — now add questions");
+      toast.success("İmtahan yaradıldı — indi suallar əlavə edin");
     }
   };
 
   const addQuestion = async () => {
-    if (!examId) return toast.error("Save the exam first");
+    if (!examId) return toast.error("Əvvəlcə imtahanı yadda saxla");
     const { data, error } = await supabase
       .from("standalone_exam_questions")
       .insert({
@@ -538,14 +538,14 @@ function ExamEditor({
           <div className="flex justify-end">
             <Button onClick={saveExam} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {examId ? "Save details" : "Create exam"}
+              {examId ? "Detalları yadda saxla" : "İmtahan yarat"}
             </Button>
           </div>
 
           {examId && (
             <div className="border-t pt-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <h3 className="font-display font-semibold">Questions</h3>
+                <h3 className="font-display font-semibold">Suallar</h3>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => setBankOpen(true)}>
                     <Library className="h-4 w-4" /> Sual Bankından
@@ -556,7 +556,7 @@ function ExamEditor({
                 </div>
               </div>
               {questions.length === 0 && (
-                <p className="text-sm text-muted-foreground">No questions yet.</p>
+                <p className="text-sm text-muted-foreground">Hələ sual yoxdur.</p>
               )}
               {questions.map((q, idx) => (
                 <Card key={q.id} className="p-4 space-y-3">
@@ -600,7 +600,7 @@ function ExamEditor({
                       </div>
                     ))}
                     <Button size="sm" variant="ghost" onClick={() => addAnswer(q.id)}>
-                      <Plus className="h-4 w-4" /> Add option
+                      <Plus className="h-4 w-4" /> Variant əlavə et
                     </Button>
                   </div>
                 </Card>
@@ -611,7 +611,7 @@ function ExamEditor({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Close
+            Bağla
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -666,7 +666,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     });
     if (error || !ok) {
       setVerifying(false);
-      toast.error("Incorrect password");
+      toast.error("Şifrə yanlışdır");
       return;
     }
     const { data: qs } = await supabase
@@ -688,7 +688,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     })) as ExamQuestion[];
     if (full.length === 0) {
       setVerifying(false);
-      toast.error("This exam has no questions");
+      toast.error("Bu imtahanda sual yoxdur");
       return;
     }
     setQuestions(full);
@@ -781,11 +781,11 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={onClose}>
-                  Cancel
+                  Ləğv et
                 </Button>
                 <Button onClick={verifyAndStart} disabled={verifying || !password}>
                   {verifying && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Start exam
+                  İmtahana başla
                 </Button>
               </DialogFooter>
             </div>
@@ -797,7 +797,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between">
                 <span>
-                  Question {current + 1} / {questions.length}
+                  Sual {current + 1} / {questions.length}
                 </span>
                 {remaining !== null && (
                   <span className="text-sm font-mono text-amber-600 flex items-center gap-1">
@@ -832,12 +832,12 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                 disabled={current === 0}
                 onClick={() => setCurrent((c) => c - 1)}
               >
-                Previous
+                Əvvəlki
               </Button>
               {current < questions.length - 1 ? (
-                <Button onClick={() => setCurrent((c) => c + 1)}>Next</Button>
+                <Button onClick={() => setCurrent((c) => c + 1)}>Növbəti</Button>
               ) : (
-                <Button onClick={submit}>Submit exam</Button>
+                <Button onClick={submit}>İmtahanı bitir</Button>
               )}
             </DialogFooter>
           </>
@@ -846,7 +846,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
         {stage === "result" && result && (
           <>
             <DialogHeader>
-              <DialogTitle>Result</DialogTitle>
+              <DialogTitle>Nəticə</DialogTitle>
             </DialogHeader>
             <div className="text-center py-6 space-y-3">
               {result.passed ? (
@@ -856,12 +856,12 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
               )}
               <div className="font-display text-4xl font-bold">{result.percent}%</div>
               <p className="text-muted-foreground">
-                {result.correct} / {result.total} correct ·{" "}
-                {result.passed ? "Passed" : "Failed"}
+                {result.correct} / {result.total} doğru ·{" "}
+                {result.passed ? "Keçib" : "Keçməyib"}
               </p>
             </div>
             <DialogFooter>
-              <Button onClick={onClose}>Close</Button>
+              <Button onClick={onClose}>Bağla</Button>
             </DialogFooter>
           </>
         )}
@@ -930,9 +930,9 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2">
-            <span>Results — {exam.title}</span>
+            <span>Nəticələr — {exam.title}</span>
             <Button size="sm" variant="outline" onClick={exportCSV} disabled={!attempts.length}>
-              <Download className="h-4 w-4" /> Export CSV
+              <Download className="h-4 w-4" /> CSV ixrac et
             </Button>
           </DialogTitle>
         </DialogHeader>
@@ -941,18 +941,18 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : attempts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">No attempts yet.</p>
+          <p className="text-sm text-muted-foreground py-8 text-center">Hələ cəhd yoxdur.</p>
         ) : (
           <div className="border rounded-md overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr className="text-left">
-                  <th className="p-2">Employee</th>
-                  <th className="p-2">Name</th>
-                  <th className="p-2 text-right">Score</th>
-                  <th className="p-2 text-right">Correct</th>
+                  <th className="p-2">Əməkdaş</th>
+                  <th className="p-2">Ad</th>
+                  <th className="p-2 text-right">Bal</th>
+                  <th className="p-2 text-right">Doğru</th>
                   <th className="p-2">Status</th>
-                  <th className="p-2">Date</th>
+                  <th className="p-2">Tarix</th>
                 </tr>
               </thead>
               <tbody>
@@ -966,11 +966,11 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                     </td>
                     <td className="p-2">
                       <Badge variant={a.passed ? "default" : "destructive"}>
-                        {a.passed ? "Passed" : "Failed"}
+                        {a.passed ? "Keçib" : "Keçməyib"}
                       </Badge>
                     </td>
                     <td className="p-2 text-xs text-muted-foreground">
-                      {new Date(a.created_at).toLocaleString()}
+                      {(() => { const d = new Date(a.created_at); return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; })()}
                     </td>
                   </tr>
                 ))}
