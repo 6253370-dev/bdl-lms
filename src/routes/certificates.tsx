@@ -74,7 +74,8 @@ function CertificatesPage() {
     setBusy(c.id);
     try {
       const data = toData(c);
-      const url = await previewCertificateSmart(data, templates[c.course_id]);
+      const tpl = await getSignedTemplateUrl(templates[c.course_id]);
+      const url = await previewCertificateSmart(data, tpl);
       setPreviewData(data);
       setPreviewUrl(url);
     } catch (e: any) {
@@ -87,7 +88,8 @@ function CertificatesPage() {
   const handleDownload = async (c: CertRow) => {
     setBusy(c.id);
     try {
-      await downloadCertificateSmart(toData(c), templates[c.course_id]);
+      const tpl = await getSignedTemplateUrl(templates[c.course_id]);
+      await downloadCertificateSmart(toData(c), tpl);
     } catch (e: any) {
       toast.error(e.message ?? "Yükləmə alınmadı");
     } finally {
