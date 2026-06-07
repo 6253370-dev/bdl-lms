@@ -24,7 +24,7 @@ export function FileUpload({ label, icon: Icon, value, onChange, accept, folder,
 
   const handleFile = async (file: File) => {
     if (file.size > 200 * 1024 * 1024) {
-      toast.error("File must be under 200MB");
+      toast.error("Fayl 200MB-dan kiçik olmalıdır");
       return;
     }
     setUploading(true);
@@ -38,7 +38,7 @@ export function FileUpload({ label, icon: Icon, value, onChange, accept, folder,
     if (error) { toast.error(error.message); return; }
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
     onChange(data.publicUrl);
-    toast.success(`${label} uploaded`);
+    toast.success(`${label} yükləndi`);
   };
 
   return (
