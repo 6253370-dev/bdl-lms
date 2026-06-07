@@ -781,11 +781,11 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={onClose}>
-                  Cancel
+                  Ləğv et
                 </Button>
                 <Button onClick={verifyAndStart} disabled={verifying || !password}>
                   {verifying && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Start exam
+                  İmtahana başla
                 </Button>
               </DialogFooter>
             </div>
