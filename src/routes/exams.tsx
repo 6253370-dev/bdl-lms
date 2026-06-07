@@ -600,7 +600,7 @@ function ExamEditor({
                       </div>
                     ))}
                     <Button size="sm" variant="ghost" onClick={() => addAnswer(q.id)}>
-                      <Plus className="h-4 w-4" /> Add option
+                      <Plus className="h-4 w-4" /> Variant əlavə et
                     </Button>
                   </div>
                 </Card>
