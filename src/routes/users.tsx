@@ -294,7 +294,7 @@ function EditUserDialog({ user, isSuperAdmin, onClose, onSaved }: { user: UserRo
     if (error) { setSaving(false); toast.error(error.message); return; }
     await saveCourseAccess(user.id, Array.from(folderIds), Array.from(courseIds));
     setSaving(false);
-    toast.success("User updated");
+    toast.success("İstifadəçi yeniləndi");
     onSaved();
   };
 
