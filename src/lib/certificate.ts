@@ -73,7 +73,7 @@ export function buildCertificatePdf(data: CertificateData): jsPDF {
   doc.text(`Nəticə: ${data.scorePercent}%`, W / 2, 384, { align: "center" });
 
   const dt = new Date(data.issuedAt);
-  const dateStr = dt.toLocaleDateString("az-AZ", { year: "numeric", month: "long", day: "numeric" });
+  const dateStr = formatDateDDMMYYYY(dt);
   const footerY = H - 90;
   doc.setDrawColor(120, 120, 120);
   doc.setLineWidth(0.5);
