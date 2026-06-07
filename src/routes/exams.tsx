@@ -930,9 +930,9 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2">
-            <span>Results — {exam.title}</span>
+            <span>Nəticələr — {exam.title}</span>
             <Button size="sm" variant="outline" onClick={exportCSV} disabled={!attempts.length}>
-              <Download className="h-4 w-4" /> Export CSV
+              <Download className="h-4 w-4" /> CSV ixrac et
             </Button>
           </DialogTitle>
         </DialogHeader>
@@ -941,18 +941,18 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : attempts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">No attempts yet.</p>
+          <p className="text-sm text-muted-foreground py-8 text-center">Hələ cəhd yoxdur.</p>
         ) : (
           <div className="border rounded-md overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr className="text-left">
-                  <th className="p-2">Employee</th>
-                  <th className="p-2">Name</th>
-                  <th className="p-2 text-right">Score</th>
-                  <th className="p-2 text-right">Correct</th>
+                  <th className="p-2">Əməkdaş</th>
+                  <th className="p-2">Ad</th>
+                  <th className="p-2 text-right">Bal</th>
+                  <th className="p-2 text-right">Doğru</th>
                   <th className="p-2">Status</th>
-                  <th className="p-2">Date</th>
+                  <th className="p-2">Tarix</th>
                 </tr>
               </thead>
               <tbody>
@@ -966,11 +966,11 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                     </td>
                     <td className="p-2">
                       <Badge variant={a.passed ? "default" : "destructive"}>
-                        {a.passed ? "Passed" : "Failed"}
+                        {a.passed ? "Keçib" : "Keçməyib"}
                       </Badge>
                     </td>
                     <td className="p-2 text-xs text-muted-foreground">
-                      {new Date(a.created_at).toLocaleString()}
+                      {(() => { const d = new Date(a.created_at); return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; })()}
                     </td>
                   </tr>
                 ))}
