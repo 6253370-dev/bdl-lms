@@ -846,7 +846,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
         {stage === "result" && result && (
           <>
             <DialogHeader>
-              <DialogTitle>Result</DialogTitle>
+              <DialogTitle>Nəticə</DialogTitle>
             </DialogHeader>
             <div className="text-center py-6 space-y-3">
               {result.passed ? (
@@ -856,12 +856,12 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
               )}
               <div className="font-display text-4xl font-bold">{result.percent}%</div>
               <p className="text-muted-foreground">
-                {result.correct} / {result.total} correct ·{" "}
-                {result.passed ? "Passed" : "Failed"}
+                {result.correct} / {result.total} doğru ·{" "}
+                {result.passed ? "Keçib" : "Keçməyib"}
               </p>
             </div>
             <DialogFooter>
-              <Button onClick={onClose}>Close</Button>
+              <Button onClick={onClose}>Bağla</Button>
             </DialogFooter>
           </>
         )}
