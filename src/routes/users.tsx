@@ -207,34 +207,34 @@ function CreateUserDialog({ open, onOpenChange, onCreated }: { open: boolean; on
         <Button size="lg"><Plus className="h-4 w-4 mr-2" /> {t.users.new}</Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Create new user</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Yeni istifadəçi yarat</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Employee ID *" value={form.employee_id} onChange={(v) => setForm({ ...form, employee_id: v })} />
-            <Field label="Phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
+            <Field label="Əməkdaş ID *" value={form.employee_id} onChange={(v) => setForm({ ...form, employee_id: v })} />
+            <Field label="Telefon" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
           </div>
-          <Field label="Full Name *" value={form.full_name} onChange={(v) => setForm({ ...form, full_name: v })} />
-          <Field label="Email *" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
-          <Field label="Password *" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} />
+          <Field label="Ad Soyad *" value={form.full_name} onChange={(v) => setForm({ ...form, full_name: v })} />
+          <Field label="E-mail *" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
+          <Field label="Şifrə *" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} />
           <Field label={`${t.users.confirmPassword} *`} type="password" value={form.password2} onChange={(v) => setForm({ ...form, password2: v })} />
           <div className="space-y-2">
-            <Label>Role</Label>
+            <Label>Rol</Label>
             <select
               className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
             >
-              <option value="user">User</option>
+              <option value="user">İstifadəçi</option>
               <option value="admin">Admin</option>
               <option value="super_admin">Super Admin</option>
             </select>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Ləğv et</Button>
           <Button onClick={submit} disabled={submitting}>
             {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Create
+            Yarat
           </Button>
         </DialogFooter>
       </DialogContent>
