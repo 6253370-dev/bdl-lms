@@ -62,11 +62,11 @@ function UsersPage() {
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (id: string) => {
-    if (id === currentUser?.id) { toast.error("Cannot delete yourself"); return; }
-    if (!confirm("Delete this user permanently?")) return;
+    if (id === currentUser?.id) { toast.error("Özünüzü silə bilməzsiniz"); return; }
+    if (!confirm("Bu istifadəçini həmişəlik silmək istəyirsiniz?")) return;
     const { error } = await supabase.functions.invoke("admin-delete-user", { body: { user_id: id } });
     if (error) { toast.error(error.message); return; }
-    toast.success("User deleted");
+    toast.success("İstifadəçi silindi");
     load();
   };
 
