@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 import { LessonComments } from "@/components/LessonComments";
 import { downloadCertificateSmart } from "@/lib/certificate";
-import { getSignedTemplateUrl } from "@/lib/signedTemplateUrl";
 
 export const Route = createFileRoute("/courses/$courseId/play")({
   component: () => (
@@ -554,13 +553,13 @@ function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block
           </div>
           <Button
             className="w-full"
-            onClick={async () => downloadCertificateSmart({
+            onClick={() => downloadCertificateSmart({
               fullName: profile.full_name,
               courseTitle: course.title,
               scorePercent: score.percent,
               serial: certificate.serial,
               issuedAt: certificate.issued_at,
-            }, await getSignedTemplateUrl(course.certificate_template_url))}
+            }, course.certificate_template_url)}
           >
             <Award className="h-4 w-4 mr-2" /> {t.cert.download}
           </Button>
