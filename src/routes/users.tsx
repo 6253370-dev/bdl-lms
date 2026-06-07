@@ -182,7 +182,7 @@ function CreateUserDialog({ open, onOpenChange, onCreated }: { open: boolean; on
 
   const submit = async () => {
     if (!form.employee_id || !form.full_name || !form.email || !form.password) {
-      toast.error("Fill required fields"); return;
+      toast.error("Vacib sahələri doldurun"); return;
     }
     if (form.password !== form.password2) {
       toast.error(t.users.passwordMismatch); return;
@@ -195,7 +195,7 @@ function CreateUserDialog({ open, onOpenChange, onCreated }: { open: boolean; on
     });
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("User created");
+    toast.success("İstifadəçi yaradıldı");
     setForm({ employee_id: "", full_name: "", email: "", phone: "", password: "", password2: "", role: "user" });
     onOpenChange(false);
     onCreated();
