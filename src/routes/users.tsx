@@ -88,7 +88,7 @@ function UsersPage() {
         <div>
           <h1 className="font-display text-3xl font-bold">{t.users.title}</h1>
           <p className="text-muted-foreground mt-1">
-            {isSuperAdmin ? "Create and manage all users." : "View and edit user details."}
+            {isSuperAdmin ? "Bütün istifadəçiləri yarat və idarə et." : "İstifadəçi məlumatlarına bax və redaktə et."}
           </p>
         </div>
         {isSuperAdmin && (
