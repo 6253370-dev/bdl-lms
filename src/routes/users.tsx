@@ -113,12 +113,12 @@ function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Employee ID</TableHead>
-                <TableHead>Full Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Roles</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Əməkdaş ID</TableHead>
+                <TableHead>Ad Soyad</TableHead>
+                <TableHead>E-mail</TableHead>
+                <TableHead>Telefon</TableHead>
+                <TableHead>Rollar</TableHead>
+                <TableHead className="text-right">Əməliyyatlar</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
