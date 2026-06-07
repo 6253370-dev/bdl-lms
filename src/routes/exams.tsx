@@ -315,8 +315,8 @@ function ExamEditor({
   }, [examId]);
 
   const saveExam = async () => {
-    if (!title.trim()) return toast.error("Title required");
-    if (!examId && !password.trim()) return toast.error("Password required");
+    if (!title.trim()) return toast.error("Başlıq tələb olunur");
+    if (!examId && !password.trim()) return toast.error("Şifrə tələb olunur");
     setSaving(true);
     const payload: any = {
       title: title.trim(),
@@ -335,7 +335,7 @@ function ExamEditor({
         .eq("id", examId);
       setSaving(false);
       if (error) return toast.error(error.message);
-      toast.success("Exam updated");
+      toast.success("İmtahan yeniləndi");
     } else {
       const { data, error } = await supabase
         .from("standalone_exams")
@@ -345,12 +345,12 @@ function ExamEditor({
       setSaving(false);
       if (error) return toast.error(error.message);
       setExamId(data!.id);
-      toast.success("Exam created — now add questions");
+      toast.success("İmtahan yaradıldı — indi suallar əlavə edin");
     }
   };
 
   const addQuestion = async () => {
-    if (!examId) return toast.error("Save the exam first");
+    if (!examId) return toast.error("Əvvəlcə imtahanı yadda saxla");
     const { data, error } = await supabase
       .from("standalone_exam_questions")
       .insert({
