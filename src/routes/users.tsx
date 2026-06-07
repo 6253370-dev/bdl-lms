@@ -421,17 +421,17 @@ function ViewUserDialog({ user, onClose }: { user: UserRow; onClose: () => void 
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>{t.users.details}</DialogTitle></DialogHeader>
         <div className="space-y-3 text-sm">
-          <Row label="Employee ID" value={user.employee_id} mono />
-          <Row label="Full Name" value={user.full_name} />
-          <Row label="Email" value={user.email} />
-          <Row label="Phone" value={user.phone ?? "—"} />
-          <Row label="Roles" value={user.roles.map((r) => r.replace("_", " ")).join(", ") || "—"} />
+          <Row label="Əməkdaş ID" value={user.employee_id} mono />
+          <Row label="Ad Soyad" value={user.full_name} />
+          <Row label="E-mail" value={user.email} />
+          <Row label="Telefon" value={user.phone ?? "—"} />
+          <Row label="Rollar" value={user.roles.map((r) => r === "super_admin" ? "Super admin" : r === "admin" ? "Admin" : "İstifadəçi").join(", ") || "—"} />
           <div className="border-t pt-3 mt-3">
             {stats ? (
               <div className="grid grid-cols-3 gap-2 text-center">
-                <Stat label="Attempts" value={stats.attempts} />
-                <Stat label="Passed" value={stats.passed} />
-                <Stat label="Certs" value={stats.certs} />
+                <Stat label="Cəhdlər" value={stats.attempts} />
+                <Stat label="Keçib" value={stats.passed} />
+                <Stat label="Sertifikat" value={stats.certs} />
               </div>
             ) : (
               <div className="flex justify-center"><Loader2 className="h-4 w-4 animate-spin" /></div>
@@ -439,7 +439,7 @@ function ViewUserDialog({ user, onClose }: { user: UserRow; onClose: () => void 
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose}>Bağla</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
