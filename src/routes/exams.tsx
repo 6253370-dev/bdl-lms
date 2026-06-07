@@ -545,7 +545,7 @@ function ExamEditor({
           {examId && (
             <div className="border-t pt-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <h3 className="font-display font-semibold">Questions</h3>
+                <h3 className="font-display font-semibold">Suallar</h3>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => setBankOpen(true)}>
                     <Library className="h-4 w-4" /> Sual Bankından
