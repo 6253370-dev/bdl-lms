@@ -387,10 +387,10 @@ function EditUserDialog({ user, isSuperAdmin, onClose, onSaved }: { user: UserRo
           </TabsContent>
         </Tabs>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>Ləğv et</Button>
           <Button onClick={save} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Save
+            Yadda saxla
           </Button>
         </DialogFooter>
       </DialogContent>
