@@ -832,12 +832,12 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                 disabled={current === 0}
                 onClick={() => setCurrent((c) => c - 1)}
               >
-                Previous
+                Əvvəlki
               </Button>
               {current < questions.length - 1 ? (
-                <Button onClick={() => setCurrent((c) => c + 1)}>Next</Button>
+                <Button onClick={() => setCurrent((c) => c + 1)}>Növbəti</Button>
               ) : (
-                <Button onClick={submit}>Submit exam</Button>
+                <Button onClick={submit}>İmtahanı bitir</Button>
               )}
             </DialogFooter>
           </>
