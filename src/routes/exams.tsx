@@ -556,7 +556,7 @@ function ExamEditor({
                 </div>
               </div>
               {questions.length === 0 && (
-                <p className="text-sm text-muted-foreground">No questions yet.</p>
+                <p className="text-sm text-muted-foreground">Hələ sual yoxdur.</p>
               )}
               {questions.map((q, idx) => (
                 <Card key={q.id} className="p-4 space-y-3">
