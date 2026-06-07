@@ -688,7 +688,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     })) as ExamQuestion[];
     if (full.length === 0) {
       setVerifying(false);
-      toast.error("This exam has no questions");
+      toast.error("Bu imtahanda sual yoxdur");
       return;
     }
     setQuestions(full);
