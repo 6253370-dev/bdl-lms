@@ -538,7 +538,7 @@ function ExamEditor({
           <div className="flex justify-end">
             <Button onClick={saveExam} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {examId ? "Save details" : "Create exam"}
+              {examId ? "Detalları yadda saxla" : "İmtahan yarat"}
             </Button>
           </div>
 
