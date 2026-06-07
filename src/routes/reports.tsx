@@ -325,7 +325,7 @@ function ReportsPage() {
       </Card>
 
       {detail && (
-        <AttemptDetailDialog ref={detail} onClose={() => setDetail(null)} />
+        <AttemptDetailDialog detailRef={detail} onClose={() => setDetail(null)} />
       )}
     </div>
   );
@@ -647,10 +647,10 @@ async function fetchAttemptDetail(ref: AttemptDetailRef): Promise<QuestionDetail
 }
 
 function AttemptDetailDialog({
-  ref,
+  detailRef: ref,
   onClose,
 }: {
-  ref: AttemptDetailRef;
+  detailRef: AttemptDetailRef;
   onClose: () => void;
 }) {
   const [loading, setLoading] = useState(true);
