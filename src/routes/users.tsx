@@ -303,29 +303,29 @@ function EditUserDialog({ user, isSuperAdmin, onClose, onSaved }: { user: UserRo
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Edit user · ID {user.employee_id}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>İstifadəçini redaktə et · ID {user.employee_id}</DialogTitle></DialogHeader>
         <Tabs defaultValue="info">
           <TabsList>
-            <TabsTrigger value="info">Info</TabsTrigger>
+            <TabsTrigger value="info">Məlumat</TabsTrigger>
             <TabsTrigger value="access">{t.users.accessTitle}</TabsTrigger>
           </TabsList>
           <TabsContent value="info" className="space-y-3 pt-3">
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Employee ID" value={employeeId} onChange={setEmployeeId} disabled={!isSuperAdmin} />
-              <Field label="Phone" value={phone} onChange={setPhone} />
+              <Field label="Əməkdaş ID" value={employeeId} onChange={setEmployeeId} disabled={!isSuperAdmin} />
+              <Field label="Telefon" value={phone} onChange={setPhone} />
             </div>
-            <Field label="Full Name" value={fullName} onChange={setFullName} />
-            <Field label="Email" type="email" value={email} onChange={setEmail} disabled={!isSuperAdmin} />
-            <Field label="New password (leave blank to keep)" type="password" value={password} onChange={setPassword} />
+            <Field label="Ad Soyad" value={fullName} onChange={setFullName} />
+            <Field label="E-mail" type="email" value={email} onChange={setEmail} disabled={!isSuperAdmin} />
+            <Field label="Yeni şifrə (dəyişməyəcəksinizsə boş buraxın)" type="password" value={password} onChange={setPassword} />
             {password && (
               <Field label={t.users.confirmPassword} type="password" value={password2} onChange={setPassword2} />
             )}
             <div className="space-y-2">
-              <Label>Roles</Label>
+              <Label>Rollar</Label>
               {(["super_admin", "admin", "user"] as const).map((r) => (
                 <label key={r} className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={roles.includes(r)} onChange={() => toggleRole(r)} className="h-4 w-4" />
-                  {r.replace("_", " ")}
+                  {r === "super_admin" ? "Super admin" : r === "admin" ? "Admin" : "İstifadəçi"}
                 </label>
               ))}
             </div>
