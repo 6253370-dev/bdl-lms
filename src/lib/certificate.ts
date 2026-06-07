@@ -221,7 +221,7 @@ export async function buildCertificateFromTemplate(
   ]);
 
   const dt = new Date(data.issuedAt);
-  const dateStr = dt.toLocaleDateString("az-AZ", { year: "numeric", month: "long", day: "numeric" });
+  const dateStr = formatDateDDMMYYYY(dt);
 
   const valueMap: Record<string, { value: string; bold?: boolean }> = {
     FULL_NAME: { value: data.fullName, bold: true },
