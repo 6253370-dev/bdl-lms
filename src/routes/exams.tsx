@@ -797,7 +797,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between">
                 <span>
-                  Question {current + 1} / {questions.length}
+                  Sual {current + 1} / {questions.length}
                 </span>
                 {remaining !== null && (
                   <span className="text-sm font-mono text-amber-600 flex items-center gap-1">
