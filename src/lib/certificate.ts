@@ -111,6 +111,13 @@ function sanitize(s: string) {
   return s.replace(/[^\p{L}\p{N}\- ]/gu, "").trim().replace(/\s+/g, "_");
 }
 
+export function formatDateDDMMYYYY(d: Date): string {
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+}
+
 // ---------- Template overlay ----------
 let _regularFont: ArrayBuffer | null = null;
 let _boldFont: ArrayBuffer | null = null;
