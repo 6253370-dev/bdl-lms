@@ -611,7 +611,7 @@ function ExamEditor({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Close
+            Bağla
           </Button>
         </DialogFooter>
       </DialogContent>
