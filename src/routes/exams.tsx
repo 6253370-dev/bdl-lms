@@ -666,7 +666,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     });
     if (error || !ok) {
       setVerifying(false);
-      toast.error("Incorrect password");
+      toast.error("Şifrə yanlışdır");
       return;
     }
     const { data: qs } = await supabase
