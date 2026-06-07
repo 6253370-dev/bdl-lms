@@ -10,6 +10,7 @@ import { Award, Download, Eye, Loader2 } from "lucide-react";
 import { downloadCertificateSmart, previewCertificateSmart, type CertificateData } from "@/lib/certificate";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
+import { getSignedTemplateUrl } from "@/lib/signedTemplateUrl";
 
 export const Route = createFileRoute("/certificates")({
   component: () => (
