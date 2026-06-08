@@ -506,6 +506,7 @@ function QuestionsEditor({ quizId, questions, reload }: { quizId: string; questi
     { text: "", is_correct: false },
   ]);
   const [saving, setSaving] = useState(false);
+  const [bankOpen, setBankOpen] = useState(false);
 
   const reset = () => {
     setText("");
@@ -532,6 +533,28 @@ function QuestionsEditor({ quizId, questions, reload }: { quizId: string; questi
     reload();
   };
 
+  const importFromBank = async (items: ImportedQuestion[]) => {
+    let pos = questions.length;
+    for (const item of items) {
+      const { data: q, error } = await supabase.from("quiz_questions").insert({
+        quiz_id: quizId, text: item.text, position: pos++, is_multiple: false,
+      }).select().single();
+      if (error || !q) { toast.error(error?.message ?? "Xəta"); continue; }
+      if (item.answers.length) {
+        await supabase.from("quiz_answers").insert(
+          item.answers.map((a) => ({
+            question_id: q.id,
+            text: a.text,
+            is_correct: a.is_correct,
+            position: a.position,
+          })),
+        );
+      }
+    }
+    toast.success(`${items.length} sual əlavə edildi`);
+    reload();
+  };
+
   const removeQuestion = async (id: string) => {
     if (!confirm("Sual silinsin?")) return;
     await supabase.from("quiz_answers").delete().eq("question_id", id);
@@ -543,7 +566,12 @@ function QuestionsEditor({ quizId, questions, reload }: { quizId: string; questi
   return (
     <div className="space-y-4">
       <Card className="p-4 space-y-3">
-        <div className="font-display font-semibold">Yeni sual</div>
+        <div className="flex items-center justify-between">
+          <div className="font-display font-semibold">Yeni sual</div>
+          <Button size="sm" variant="outline" onClick={() => setBankOpen(true)}>
+            <Library className="h-4 w-4" /> Sual Bankından
+          </Button>
+        </div>
         <Textarea placeholder="Sual mətni" value={text} onChange={(e) => setText(e.target.value)} />
         <div className="space-y-2">
           {answers.map((a, i) => (
@@ -567,6 +595,13 @@ function QuestionsEditor({ quizId, questions, reload }: { quizId: string; questi
         </div>
         <Button onClick={addQuestion} disabled={saving}>{saving ? "..." : "Sualı əlavə et"}</Button>
       </Card>
+      {bankOpen && (
+        <BankPicker
+          open={bankOpen}
+          onClose={() => setBankOpen(false)}
+          onImport={importFromBank}
+        />
+      )}
 
       <div className="space-y-2">
         <div className="font-display font-semibold">Mövcud suallar ({questions.length})</div>
