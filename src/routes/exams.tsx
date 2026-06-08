@@ -911,7 +911,7 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
         a.correct_count,
         a.total_questions,
         a.duration_seconds,
-        a.passed ? "Yes" : "No",
+        a.passed ? "Bəli" : "Xeyr",
         new Date(a.created_at).toISOString(),
       ]),
     ];
