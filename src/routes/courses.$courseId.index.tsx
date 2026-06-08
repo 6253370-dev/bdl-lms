@@ -113,12 +113,12 @@ function CourseBuilderPage() {
   const addBlock = async (type: BlockType) => {
     const position = blocks.length;
     const defaults: Record<BlockType, Partial<Block>> = {
-      lesson: { title: "New Lesson" },
-      practice: { title: "New Practice", time_limit_seconds: 30 },
-      quiz: { title: "New Quiz", time_limit_seconds: 30 },
-      final_exam: { title: "Final Exam", passing_score: 60 },
+      lesson: { title: "Yeni dərs" },
+      practice: { title: "Yeni məşq", time_limit_seconds: 30 },
+      quiz: { title: "Yeni quiz", time_limit_seconds: 30 },
+      final_exam: { title: "Son imtahan", passing_score: 60 },
     };
-    const insertRow = { course_id: courseId, block_type: type, position, title: defaults[type].title ?? "Untitled", ...defaults[type] };
+    const insertRow = { course_id: courseId, block_type: type, position, title: defaults[type].title ?? "Adsız", ...defaults[type] };
     const { data, error } = await supabase
       .from("course_blocks")
       .insert(insertRow)
