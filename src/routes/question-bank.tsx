@@ -368,7 +368,85 @@ function FolderEditor({
     } else {
       payload.created_by = user?.id ?? null;
       ({ error } = await supabase.from("question_bank_folders").insert(payload));
-    }
+}
+
+/* ============ Folder Tree ============ */
+
+function FolderTree({
+  folders,
+  parentId,
+  depth,
+  activeFolder,
+  onSelect,
+  onEdit,
+  onDelete,
+}: {
+  folders: BankFolder[];
+  parentId: string | null;
+  depth: number;
+  activeFolder: string | null;
+  onSelect: (id: string) => void;
+  onEdit: (f: BankFolder) => void;
+  onDelete: (id: string) => void;
+}) {
+  const children = folders.filter((f) => (f.parent_id ?? null) === parentId);
+  if (children.length === 0) return null;
+  return (
+    <>
+      {children.map((f) => {
+        const hasKids = folders.some((c) => c.parent_id === f.id);
+        return (
+          <div key={f.id}>
+            <div
+              className={`group flex items-center gap-2 px-2 py-2 rounded-md text-sm cursor-pointer transition-colors ${
+                activeFolder === f.id
+                  ? "bg-primary/10 text-primary"
+                  : "hover:bg-muted"
+              }`}
+              style={{ paddingLeft: 8 + depth * 14 }}
+              onClick={() => onSelect(f.id)}
+            >
+              {depth > 0 && (
+                <span className="text-muted-foreground/60 -ml-1">└</span>
+              )}
+              <FolderIcon className="h-4 w-4 shrink-0" />
+              <span className="flex-1 truncate">{f.name}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(f);
+                }}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(f.id);
+                }}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {hasKids && (
+              <FolderTree
+                folders={folders}
+                parentId={f.id}
+                depth={depth + 1}
+                activeFolder={activeFolder}
+                onSelect={onSelect}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Yadda saxlanıldı");
