@@ -17,9 +17,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
   FileQuestion, Plus, Play, Trash2, Pencil, Loader2, Users, KeyRound,
-  CheckCircle2, XCircle, Radio, History, Trophy,
+  CheckCircle2, XCircle, Radio, History, Trophy, Library,
 } from "lucide-react";
 import { toast } from "sonner";
+import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
 export const Route = createFileRoute("/quiz")({
   component: () => (
