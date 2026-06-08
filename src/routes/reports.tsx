@@ -671,8 +671,9 @@ function AttemptDetailDialog({
     })();
   }, [ref]);
 
-  const downloadPdf = () => {
-    buildAttemptPdf(ref, questions).save(
+  const downloadPdf = async () => {
+    const doc = await buildAttemptPdf(ref, questions);
+    doc.save(
       `Hesabat_${(ref.user?.full_name ?? "istifadeci").replace(/\s+/g, "_")}_${ref.attemptId.slice(0, 8)}.pdf`,
     );
   };
