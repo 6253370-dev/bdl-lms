@@ -355,7 +355,7 @@ function ExamEditor({
       .from("standalone_exam_questions")
       .insert({
         exam_id: examId,
-        text: "New question",
+        text: "Yeni sual",
         position: questions.length,
       })
       .select()
