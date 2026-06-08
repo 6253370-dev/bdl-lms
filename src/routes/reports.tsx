@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { jsPDF } from "jspdf";
+import { applyAzerbaijaniFont } from "@/lib/pdfFont";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/reports")({
