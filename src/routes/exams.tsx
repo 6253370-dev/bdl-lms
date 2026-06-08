@@ -468,7 +468,7 @@ function ExamEditor({
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{examId ? "Edit exam" : "New exam"}</DialogTitle>
+          <DialogTitle>{examId ? "İmtahanı redaktə et" : "Yeni imtahan"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
