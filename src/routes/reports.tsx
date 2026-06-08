@@ -488,7 +488,8 @@ function AttemptsTable({
     setPdfBusy(row.attemptId);
     try {
       const detail = await fetchAttemptDetail(row);
-      buildAttemptPdf(row, detail).save(
+      const doc = await buildAttemptPdf(row, detail);
+      doc.save(
         `Hesabat_${(row.user?.full_name ?? "istifadeci").replace(/\s+/g, "_")}_${row.attemptId.slice(0, 8)}.pdf`,
       );
     } catch (e: any) {
