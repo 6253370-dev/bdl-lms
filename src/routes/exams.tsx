@@ -153,7 +153,7 @@ function ExamsPage() {
       ) : visibleExams.length === 0 ? (
         <Card className="p-12 text-center border-dashed">
           <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <h3 className="font-display font-semibold">{search ? "Nəticə tapılmadı" : "No exams yet"}</h3>
+          <h3 className="font-display font-semibold">{search ? "Nəticə tapılmadı" : "Hələ imtahan yoxdur"}</h3>
           <p className="text-sm text-muted-foreground mt-1">
             {isAdmin
               ? "Create your first password-protected exam."
