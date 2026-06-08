@@ -192,38 +192,15 @@ function QuestionBankPage() {
               </p>
             ) : (
               <div className="space-y-1">
-                {folders.map((f) => (
-                  <div
-                    key={f.id}
-                    className={`group flex items-center gap-2 px-2 py-2 rounded-md text-sm cursor-pointer transition-colors ${
-                      activeFolder === f.id
-                        ? "bg-primary/10 text-primary"
-                        : "hover:bg-muted"
-                    }`}
-                    onClick={() => setActiveFolder(f.id)}
-                  >
-                    <FolderIcon className="h-4 w-4 shrink-0" />
-                    <span className="flex-1 truncate">{f.name}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFolderDialog({ open: true, folder: f });
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteFolder(f.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
+                <FolderTree
+                  folders={folders}
+                  parentId={null}
+                  depth={0}
+                  activeFolder={activeFolder}
+                  onSelect={setActiveFolder}
+                  onEdit={(f) => setFolderDialog({ open: true, folder: f })}
+                  onDelete={deleteFolder}
+                />
               </div>
             )}
           </Card>
