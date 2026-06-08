@@ -15,11 +15,12 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, Loader2, Trash2, BookOpen, Dumbbell, FileQuestion,
-  GraduationCap, Save, Video, FileText, FileType, Link as LinkIcon, Pencil, Play,
+  GraduationCap, Save, Video, FileText, FileType, Link as LinkIcon, Pencil, Play, Library,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
 import { t } from "@/lib/i18n";
+import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
 export const Route = createFileRoute("/courses/$courseId/")({
   component: () => (
@@ -112,12 +113,12 @@ function CourseBuilderPage() {
   const addBlock = async (type: BlockType) => {
     const position = blocks.length;
     const defaults: Record<BlockType, Partial<Block>> = {
-      lesson: { title: "New Lesson" },
-      practice: { title: "New Practice", time_limit_seconds: 30 },
-      quiz: { title: "New Quiz", time_limit_seconds: 30 },
-      final_exam: { title: "Final Exam", passing_score: 60 },
+      lesson: { title: "Yeni dərs" },
+      practice: { title: "Yeni məşq", time_limit_seconds: 30 },
+      quiz: { title: "Yeni quiz", time_limit_seconds: 30 },
+      final_exam: { title: "Son imtahan", passing_score: 60 },
     };
-    const insertRow = { course_id: courseId, block_type: type, position, title: defaults[type].title ?? "Untitled", ...defaults[type] };
+    const insertRow = { course_id: courseId, block_type: type, position, title: defaults[type].title ?? "Adsız", ...defaults[type] };
     const { data, error } = await supabase
       .from("course_blocks")
       .insert(insertRow)
@@ -497,6 +498,7 @@ interface Question {
 function QuestionsEditor({ blockId }: { blockId: string }) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [open, setOpen] = useState(false);
+  const [bankOpen, setBankOpen] = useState(false);
   const [text, setText] = useState("");
   const [answers, setAnswers] = useState<{ text: string; is_correct: boolean }[]>([
     { text: "", is_correct: true },
@@ -544,6 +546,29 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
     load();
   };
 
+  const importFromBank = async (items: ImportedQuestion[]) => {
+    let pos = questions.length;
+    for (const item of items) {
+      const { data: q, error } = await supabase
+        .from("questions")
+        .insert({ block_id: blockId, text: item.text, position: pos++ })
+        .select().single();
+      if (error || !q) { toast.error(error?.message ?? "Xəta"); continue; }
+      if (item.answers.length) {
+        await supabase.from("answers").insert(
+          item.answers.map((a) => ({
+            question_id: q.id,
+            text: a.text,
+            is_correct: a.is_correct,
+            position: a.position,
+          })),
+        );
+      }
+    }
+    toast.success(`${items.length} sual əlavə edildi`);
+    load();
+  };
+
   const removeQuestion = async (id: string) => {
     await supabase.from("questions").delete().eq("id", id);
     load();
@@ -552,55 +577,60 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <Label>Questions ({questions.length})</Label>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" /> Add Question</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>New question</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label>Question text</Label>
-                <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} />
+        <Label>Suallar ({questions.length})</Label>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setBankOpen(true)}>
+            <Library className="h-3.5 w-3.5 mr-1" /> Sual Bankından
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" /> Yeni sual</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle>Yeni sual</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>Sual mətni</Label>
+                  <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cavablar (doğru olanları işarələyin)</Label>
+                  {answers.map((a, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={a.is_correct}
+                        onChange={(e) => {
+                          const next = [...answers]; next[idx] = { ...a, is_correct: e.target.checked }; setAnswers(next);
+                        }}
+                        className="h-4 w-4"
+                      />
+                      <Input
+                        value={a.text}
+                        onChange={(e) => {
+                          const next = [...answers]; next[idx] = { ...a, text: e.target.value }; setAnswers(next);
+                        }}
+                        placeholder={`Cavab ${idx + 1}`}
+                      />
+                      {answers.length > 2 && (
+                        <Button variant="ghost" size="icon" onClick={() => setAnswers(answers.filter((_, i) => i !== idx))}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button variant="ghost" size="sm" onClick={() => setAnswers([...answers, { text: "", is_correct: false }])}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Variant əlavə et
+                  </Button>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Answers (mark correct ones)</Label>
-                {answers.map((a, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={a.is_correct}
-                      onChange={(e) => {
-                        const next = [...answers]; next[idx] = { ...a, is_correct: e.target.checked }; setAnswers(next);
-                      }}
-                      className="h-4 w-4"
-                    />
-                    <Input
-                      value={a.text}
-                      onChange={(e) => {
-                        const next = [...answers]; next[idx] = { ...a, text: e.target.value }; setAnswers(next);
-                      }}
-                      placeholder={`Answer ${idx + 1}`}
-                    />
-                    {answers.length > 2 && (
-                      <Button variant="ghost" size="icon" onClick={() => setAnswers(answers.filter((_, i) => i !== idx))}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button variant="ghost" size="sm" onClick={() => setAnswers([...answers, { text: "", is_correct: false }])}>
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Add answer
-                </Button>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button onClick={addQuestion}>Save question</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setOpen(false)}>Ləğv et</Button>
+                <Button onClick={addQuestion}>Sualı yadda saxla</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
       <div className="space-y-2">
         {questions.map((q, i) => (
@@ -621,6 +651,13 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
           </div>
         ))}
       </div>
+      {bankOpen && (
+        <BankPicker
+          open={bankOpen}
+          onClose={() => setBankOpen(false)}
+          onImport={importFromBank}
+        />
+      )}
     </div>
   );
 }

@@ -153,7 +153,7 @@ function ExamsPage() {
       ) : visibleExams.length === 0 ? (
         <Card className="p-12 text-center border-dashed">
           <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <h3 className="font-display font-semibold">{search ? "Nəticə tapılmadı" : "No exams yet"}</h3>
+          <h3 className="font-display font-semibold">{search ? "Nəticə tapılmadı" : "Hələ imtahan yoxdur"}</h3>
           <p className="text-sm text-muted-foreground mt-1">
             {isAdmin
               ? "Create your first password-protected exam."
@@ -355,7 +355,7 @@ function ExamEditor({
       .from("standalone_exam_questions")
       .insert({
         exam_id: examId,
-        text: "New question",
+        text: "Yeni sual",
         position: questions.length,
       })
       .select()
@@ -468,7 +468,7 @@ function ExamEditor({
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{examId ? "Edit exam" : "New exam"}</DialogTitle>
+          <DialogTitle>{examId ? "İmtahanı redaktə et" : "Yeni imtahan"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -911,7 +911,7 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
         a.correct_count,
         a.total_questions,
         a.duration_seconds,
-        a.passed ? "Yes" : "No",
+        a.passed ? "Bəli" : "Xeyr",
         new Date(a.created_at).toISOString(),
       ]),
     ];

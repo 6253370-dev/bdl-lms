@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { jsPDF } from "jspdf";
+import { applyAzerbaijaniFont } from "@/lib/pdfFont";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/reports")({
@@ -487,7 +488,8 @@ function AttemptsTable({
     setPdfBusy(row.attemptId);
     try {
       const detail = await fetchAttemptDetail(row);
-      buildAttemptPdf(row, detail).save(
+      const doc = await buildAttemptPdf(row, detail);
+      doc.save(
         `Hesabat_${(row.user?.full_name ?? "istifadeci").replace(/\s+/g, "_")}_${row.attemptId.slice(0, 8)}.pdf`,
       );
     } catch (e: any) {
@@ -669,8 +671,9 @@ function AttemptDetailDialog({
     })();
   }, [ref]);
 
-  const downloadPdf = () => {
-    buildAttemptPdf(ref, questions).save(
+  const downloadPdf = async () => {
+    const doc = await buildAttemptPdf(ref, questions);
+    doc.save(
       `Hesabat_${(ref.user?.full_name ?? "istifadeci").replace(/\s+/g, "_")}_${ref.attemptId.slice(0, 8)}.pdf`,
     );
   };
@@ -760,8 +763,12 @@ function AttemptDetailDialog({
 
 // ---------- PDF ----------
 
-function buildAttemptPdf(ref: AttemptDetailRef, questions: QuestionDetail[]): jsPDF {
+async function buildAttemptPdf(
+  ref: AttemptDetailRef,
+  questions: QuestionDetail[],
+): Promise<jsPDF> {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
+  await applyAzerbaijaniFont(doc);
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const margin = 40;
@@ -774,20 +781,20 @@ function buildAttemptPdf(ref: AttemptDetailRef, questions: QuestionDetail[]): js
     }
   };
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont("NotoSans", "bold");
   doc.setFontSize(16);
   doc.setTextColor(20, 40, 65);
   doc.text("BE Academy — Cəhd hesabatı", margin, y);
-  y += 22;
+  y += 24;
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont("NotoSans", "bold");
   doc.setFontSize(13);
   doc.setTextColor(0, 0, 0);
   const titleLines = doc.splitTextToSize(ref.title, W - margin * 2);
   doc.text(titleLines, margin, y);
-  y += titleLines.length * 16 + 4;
+  y += titleLines.length * 16 + 6;
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont("NotoSans", "normal");
   doc.setFontSize(10);
   doc.setTextColor(80, 80, 80);
   const meta = [
@@ -799,30 +806,31 @@ function buildAttemptPdf(ref: AttemptDetailRef, questions: QuestionDetail[]): js
     doc.text(line, margin, y);
     y += 14;
   });
-  y += 6;
-  doc.setDrawColor(200);
+  y += 8;
+  doc.setDrawColor(210);
   doc.line(margin, y, W - margin, y);
-  y += 14;
+  y += 16;
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont("NotoSans", "bold");
   doc.setFontSize(12);
   doc.setTextColor(20, 40, 65);
   doc.text("Suallar və cavablar", margin, y);
-  y += 18;
+  y += 20;
 
   questions.forEach((q, idx) => {
     ensureSpace(60);
-    doc.setFont("helvetica", "bold");
+    doc.setFont("NotoSans", "bold");
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
     const qLines = doc.splitTextToSize(`${idx + 1}. ${q.text}`, W - margin * 2);
     qLines.forEach((line: string) => {
       ensureSpace(16);
       doc.text(line, margin, y);
-      y += 14;
+      y += 15;
     });
+    y += 2;
 
-    doc.setFont("helvetica", "normal");
+    doc.setFont("NotoSans", "normal");
     doc.setFontSize(10);
 
     q.answers.forEach((a) => {
@@ -835,16 +843,16 @@ function buildAttemptPdf(ref: AttemptDetailRef, questions: QuestionDetail[]): js
 
       if (correct) doc.setTextColor(20, 120, 60);
       else if (selected) doc.setTextColor(180, 35, 35);
-      else doc.setTextColor(60, 60, 60);
+      else doc.setTextColor(70, 70, 70);
 
       const aLines = doc.splitTextToSize(`   ${prefix}  ${a.text}`, W - margin * 2 - 12);
       aLines.forEach((line: string) => {
         ensureSpace(14);
         doc.text(line, margin + 12, y);
-        y += 13;
+        y += 14;
       });
     });
-    y += 6;
+    y += 10;
   });
 
   return doc;
