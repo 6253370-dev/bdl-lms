@@ -694,7 +694,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
           .in("question_id", ids)
           .order("position")
       : { data: [] as any[] };
-    const full = (qs ?? []).map((q) => ({
+    let full = (qs ?? []).map((q) => ({
       ...q,
       answers: (ans ?? []).filter((a: any) => a.question_id === q.id),
     })) as ExamQuestion[];
@@ -702,6 +702,9 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
       setVerifying(false);
       toast.error("Bu imtahanda sual yoxdur");
       return;
+    }
+    if (exam.shuffle_questions) {
+      full = [...full].sort(() => Math.random() - 0.5);
     }
     setQuestions(full);
     setStartedAt(Date.now());
