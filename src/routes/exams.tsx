@@ -329,8 +329,10 @@ function ExamEditor({
       time_limit_seconds: timeLimitMin ? Number(timeLimitMin) * 60 : null,
       passing_score: Number(passingScore) || 60,
       is_published: isPublished,
+      shuffle_questions: shuffleQuestions,
       cover_image_url: coverImageUrl,
     };
+
     if (password.trim()) payload.password = password.trim();
 
     if (examId) {
