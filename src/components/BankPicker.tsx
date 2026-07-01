@@ -153,7 +153,7 @@ export function BankPicker({
   };
 
   const generateAuto = async () => {
-    if (!activeFolder) return toast.error("Qovluq seçin");
+    if (!activeFolder) return toast.error("Mövzu seçin");
     const total = Number(autoCount);
     const e = Number(autoEasy) || 0;
     const m = Number(autoMedium) || 0;
@@ -273,7 +273,7 @@ export function BankPicker({
                     </div>
                   ) : filtered.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-6 text-center">
-                      {activeFolder ? "Sual yoxdur" : "Qovluq seçin"}
+                      {activeFolder ? "Sual yoxdur" : "Mövzu seçin"}
                     </p>
                   ) : (
                     filtered.map((q) => (
