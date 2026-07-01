@@ -890,6 +890,8 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
 function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -916,28 +918,34 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     })();
   }, [exam.id]);
 
-  const exportCSV = () => {
-    const rows = [
-      ["Employee ID", "Name", "Score %", "Correct", "Total", "Duration (s)", "Passed", "Date"],
-      ...attempts.map((a) => [
-        a.profile?.employee_id ?? "",
-        a.profile?.full_name ?? "",
-        a.score_percent,
-        a.correct_count,
-        a.total_questions,
-        a.duration_seconds,
-        a.passed ? "Bəli" : "Xeyr",
-        new Date(a.created_at).toISOString(),
-      ]),
-    ];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${exam.title.replace(/\s+/g, "_")}_results.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const filtered = attempts.filter((a) => {
+    const t = new Date(a.created_at).getTime();
+    if (fromDate && t < new Date(fromDate + "T00:00:00").getTime()) return false;
+    if (toDate && t > new Date(toDate + "T23:59:59").getTime()) return false;
+    return true;
+  });
+
+  const fmt = (iso: string) => {
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
+
+  const exportXLSX = async () => {
+    const XLSX = await import("xlsx");
+    const rows = filtered.map((a) => ({
+      "Əməkdaş ID": a.profile?.employee_id ?? "",
+      "Ad": a.profile?.full_name ?? "",
+      "Bal %": Number(a.score_percent),
+      "Doğru": a.correct_count,
+      "Cəmi": a.total_questions,
+      "Müddət (san)": a.duration_seconds,
+      "Nəticə": a.passed ? "Keçib" : "Keçməyib",
+      "Tarix": fmt(a.created_at),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Nəticələr");
+    XLSX.writeFile(wb, `${exam.title.replace(/\s+/g, "_")}_neticeler.xlsx`);
   };
 
   return (
@@ -946,17 +954,35 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2">
             <span>Nəticələr — {exam.title}</span>
-            <Button size="sm" variant="outline" onClick={exportCSV} disabled={!attempts.length}>
-              <Download className="h-4 w-4" /> CSV ixrac et
+            <Button size="sm" variant="outline" onClick={exportXLSX} disabled={!filtered.length}>
+              <Download className="h-4 w-4" /> Excel ixrac et
             </Button>
           </DialogTitle>
         </DialogHeader>
+
+        <div className="flex flex-wrap items-end gap-3 mb-3">
+          <div className="grid gap-1">
+            <Label className="text-xs">Başlanğıc tarix</Label>
+            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-9" />
+          </div>
+          <div className="grid gap-1">
+            <Label className="text-xs">Son tarix</Label>
+            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-9" />
+          </div>
+          {(fromDate || toDate) && (
+            <Button size="sm" variant="ghost" onClick={() => { setFromDate(""); setToDate(""); }}>
+              Sıfırla
+            </Button>
+          )}
+          <div className="ml-auto text-xs text-muted-foreground">{filtered.length} nəticə</div>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : attempts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">Hələ cəhd yoxdur.</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">Nəticə tapılmadı.</p>
         ) : (
           <div className="border rounded-md overflow-hidden">
             <table className="w-full text-sm">
@@ -971,7 +997,7 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                 </tr>
               </thead>
               <tbody>
-                {attempts.map((a) => (
+                {filtered.map((a) => (
                   <tr key={a.id} className="border-t">
                     <td className="p-2 font-mono text-xs">{a.profile?.employee_id ?? "—"}</td>
                     <td className="p-2">{a.profile?.full_name ?? "—"}</td>
@@ -984,9 +1010,7 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                         {a.passed ? "Keçib" : "Keçməyib"}
                       </Badge>
                     </td>
-                    <td className="p-2 text-xs text-muted-foreground">
-                      {(() => { const d = new Date(a.created_at); return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; })()}
-                    </td>
+                    <td className="p-2 text-xs text-muted-foreground">{fmt(a.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -997,3 +1021,4 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     </Dialog>
   );
 }
+
