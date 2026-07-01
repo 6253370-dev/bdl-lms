@@ -150,7 +150,7 @@ function QuestionBankPage() {
   }, [questions, search]);
 
   const deleteFolder = async (id: string) => {
-    if (!confirm("Qovluq və içindəki bütün suallar silinsin?")) return;
+    if (!confirm("Mövzu və içindəki bütün suallar silinsin?")) return;
     const { error } = await supabase.from("question_bank_folders").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Silindi");
@@ -223,7 +223,7 @@ function QuestionBankPage() {
             {!activeFolder ? (
               <Card className="p-12 text-center border-dashed">
                 <Library className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                <h3 className="font-display font-semibold">Qovluq seçin</h3>
+                <h3 className="font-display font-semibold">Mövzu seçin</h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   Sual əlavə etmək üçün soldan qovluq seçin və ya yeni qovluq yaradın.
                 </p>
@@ -394,7 +394,7 @@ function FolderEditor({
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{folder ? "Qovluğu redaktə et" : "Yeni qovluq"}</DialogTitle>
+          <DialogTitle>{folder ? "Mövzunu redaktə et" : "Yeni mövzu"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-2">
@@ -406,7 +406,7 @@ function FolderEditor({
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
           </div>
           <div className="grid gap-2">
-            <Label>Valideyn qovluq</Label>
+            <Label>Alt mövzu</Label>
             <Select value={parentId} onValueChange={setParentId}>
               <SelectTrigger>
                 <SelectValue />
