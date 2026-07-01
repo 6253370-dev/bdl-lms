@@ -56,6 +56,7 @@ interface Block {
   docx_url: string | null;
   time_limit_seconds: number | null;
   passing_score: number | null;
+  shuffle_questions?: boolean | null;
 }
 
 const blockMeta: Record<BlockType, { icon: typeof BookOpen; label: string; tone: string }> = {
