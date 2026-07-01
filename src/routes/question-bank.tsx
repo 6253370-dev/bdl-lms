@@ -158,11 +158,12 @@ function QuestionBankPage() {
     loadFolders();
   };
 
-  const deleteQuestion = async (id: string) => {
+  const deleteQuestionWithRefresh = async (id: string) => {
     if (!confirm("Sual silinsin?")) return;
     const { error } = await supabase.from("bank_questions").delete().eq("id", id);
     if (error) return toast.error(error.message);
     setQuestions((qs) => qs.filter((q) => q.id !== id));
+    loadFolders();
   };
 
   return (
@@ -187,7 +188,7 @@ function QuestionBankPage() {
           {/* Folders */}
           <Card className="p-4 h-fit">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-sm">Qovluqlar</h2>
+              <h2 className="font-semibold text-sm">Mövzular</h2>
               <Button
                 size="sm"
                 variant="ghost"
@@ -198,12 +199,13 @@ function QuestionBankPage() {
             </div>
             {folders.length === 0 ? (
               <p className="text-xs text-muted-foreground py-4 text-center">
-                Hələ qovluq yoxdur
+                Hələ mövzu yoxdur
               </p>
             ) : (
               <div className="space-y-1">
                 <FolderTree
                   folders={folders}
+                  counts={folderCounts}
                   parentId={null}
                   depth={0}
                   activeFolder={activeFolder}
@@ -214,6 +216,7 @@ function QuestionBankPage() {
               </div>
             )}
           </Card>
+
 
           {/* Questions */}
           <div>
