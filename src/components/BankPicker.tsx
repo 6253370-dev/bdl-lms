@@ -22,7 +22,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Folder as FolderIcon, Loader2, Sparkles, Search } from "lucide-react";
 import { toast } from "sonner";
 
-type Folder = { id: string; name: string };
+type Folder = { id: string; name: string; parent_id: string | null };
 type BankQ = {
   id: string;
   folder_id: string;
@@ -55,6 +55,7 @@ export function BankPicker({
   multiple?: boolean;
 }) {
   const [folders, setFolders] = useState<Folder[]>([]);
+  const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [questions, setQuestions] = useState<BankQ[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -74,11 +75,18 @@ export function BankPicker({
     (async () => {
       const { data } = await supabase
         .from("question_bank_folders")
-        .select("id,name")
+        .select("id,name,parent_id")
         .order("name");
       setFolders((data ?? []) as Folder[]);
+      const { data: qs } = await supabase.from("bank_questions").select("folder_id");
+      const counts: Record<string, number> = {};
+      (qs ?? []).forEach((r: any) => {
+        counts[r.folder_id] = (counts[r.folder_id] ?? 0) + 1;
+      });
+      setFolderCounts(counts);
     })();
   }, [open]);
+
 
   useEffect(() => {
     if (!activeFolder) {
@@ -145,7 +153,7 @@ export function BankPicker({
   };
 
   const generateAuto = async () => {
-    if (!activeFolder) return toast.error("Qovluq seçin");
+    if (!activeFolder) return toast.error("Mövzu seçin");
     const total = Number(autoCount);
     const e = Number(autoEasy) || 0;
     const m = Number(autoMedium) || 0;
@@ -234,22 +242,19 @@ export function BankPicker({
               <div className="space-y-1 max-h-[50vh] overflow-y-auto border rounded-md p-2">
                 {folders.length === 0 && (
                   <p className="text-xs text-muted-foreground p-2">
-                    Sual bankında qovluq yoxdur.
+                    Sual bankında mövzu yoxdur.
                   </p>
                 )}
-                {folders.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setActiveFolder(f.id)}
-                    className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md text-left ${
-                      activeFolder === f.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
-                    }`}
-                  >
-                    <FolderIcon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{f.name}</span>
-                  </button>
-                ))}
+                <FolderPickerTree
+                  folders={folders}
+                  counts={folderCounts}
+                  parentId={null}
+                  depth={0}
+                  activeFolder={activeFolder}
+                  onSelect={setActiveFolder}
+                />
               </div>
+
 
               <div className="space-y-3">
                 <div className="relative">
@@ -268,7 +273,7 @@ export function BankPicker({
                     </div>
                   ) : filtered.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-6 text-center">
-                      {activeFolder ? "Sual yoxdur" : "Qovluq seçin"}
+                      {activeFolder ? "Sual yoxdur" : "Mövzu seçin"}
                     </p>
                   ) : (
                     filtered.map((q) => (
@@ -315,20 +320,30 @@ export function BankPicker({
           <TabsContent value="auto">
             <div className="space-y-4">
               <div className="grid gap-2">
-                <Label>Qovluq</Label>
+                <Label>Mövzu</Label>
                 <Select value={activeFolder ?? ""} onValueChange={setActiveFolder}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Qovluq seçin" />
+                    <SelectValue placeholder="Mövzu seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    {folders.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.name}
-                      </SelectItem>
-                    ))}
+                    {(() => {
+                      const flatten = (parentId: string | null, depth: number): Folder[] => {
+                        const kids = folders.filter((f) => (f.parent_id ?? null) === parentId);
+                        return kids.flatMap((k) => [
+                          { ...k, name: `${"— ".repeat(depth)}${k.name}` },
+                          ...flatten(k.id, depth + 1),
+                        ]);
+                      };
+                      return flatten(null, 0).map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.name} ({folderCounts[f.id] ?? 0})
+                        </SelectItem>
+                      ));
+                    })()}
                   </SelectContent>
                 </Select>
               </div>
+
 
               <div className="grid gap-2">
                 <Label>Sual sayı (çətinlik göstərilməsə)</Label>
@@ -389,3 +404,61 @@ export function BankPicker({
     </Dialog>
   );
 }
+
+function FolderPickerTree({
+  folders,
+  counts,
+  parentId,
+  depth,
+  activeFolder,
+  onSelect,
+}: {
+  folders: Folder[];
+  counts: Record<string, number>;
+  parentId: string | null;
+  depth: number;
+  activeFolder: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const children = folders.filter((f) => (f.parent_id ?? null) === parentId);
+  if (children.length === 0) return null;
+  const totalFor = (id: string): number => {
+    const own = counts[id] ?? 0;
+    const kids = folders.filter((c) => c.parent_id === id);
+    return own + kids.reduce((s, k) => s + totalFor(k.id), 0);
+  };
+  return (
+    <>
+      {children.map((f) => {
+        const hasKids = folders.some((c) => c.parent_id === f.id);
+        return (
+          <div key={f.id}>
+            <button
+              onClick={() => onSelect(f.id)}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md text-left ${
+                activeFolder === f.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
+              }`}
+              style={{ paddingLeft: 8 + depth * 14 }}
+            >
+              {depth > 0 && <span className="text-muted-foreground/60 -ml-1">└</span>}
+              <FolderIcon className="h-4 w-4 shrink-0" />
+              <span className="flex-1 truncate">{f.name}</span>
+              <span className="text-[10px] bg-muted rounded px-1.5 py-0.5">{totalFor(f.id)}</span>
+            </button>
+            {hasKids && (
+              <FolderPickerTree
+                folders={folders}
+                counts={counts}
+                parentId={f.id}
+                depth={depth + 1}
+                activeFolder={activeFolder}
+                onSelect={onSelect}
+              />
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+

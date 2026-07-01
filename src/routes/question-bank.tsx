@@ -74,6 +74,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 function QuestionBankPage() {
   const [folders, setFolders] = useState<BankFolder[]>([]);
+  const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
   const [questions, setQuestions] = useState<BankQuestion[]>([]);
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,7 +94,16 @@ function QuestionBankPage() {
       .select("id,name,description,parent_id")
       .order("name");
     setFolders((data ?? []) as BankFolder[]);
+    const { data: qs } = await supabase
+      .from("bank_questions")
+      .select("folder_id");
+    const counts: Record<string, number> = {};
+    (qs ?? []).forEach((r: any) => {
+      counts[r.folder_id] = (counts[r.folder_id] ?? 0) + 1;
+    });
+    setFolderCounts(counts);
   };
+
 
   const loadQuestions = async (folderId: string | null) => {
     if (!folderId) {
@@ -140,7 +150,7 @@ function QuestionBankPage() {
   }, [questions, search]);
 
   const deleteFolder = async (id: string) => {
-    if (!confirm("Qovluq və içindəki bütün suallar silinsin?")) return;
+    if (!confirm("Mövzu və içindəki bütün suallar silinsin?")) return;
     const { error } = await supabase.from("question_bank_folders").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Silindi");
@@ -148,11 +158,12 @@ function QuestionBankPage() {
     loadFolders();
   };
 
-  const deleteQuestion = async (id: string) => {
+  const deleteQuestionWithRefresh = async (id: string) => {
     if (!confirm("Sual silinsin?")) return;
     const { error } = await supabase.from("bank_questions").delete().eq("id", id);
     if (error) return toast.error(error.message);
     setQuestions((qs) => qs.filter((q) => q.id !== id));
+    loadFolders();
   };
 
   return (
@@ -177,7 +188,7 @@ function QuestionBankPage() {
           {/* Folders */}
           <Card className="p-4 h-fit">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-sm">Qovluqlar</h2>
+              <h2 className="font-semibold text-sm">Mövzular</h2>
               <Button
                 size="sm"
                 variant="ghost"
@@ -188,12 +199,13 @@ function QuestionBankPage() {
             </div>
             {folders.length === 0 ? (
               <p className="text-xs text-muted-foreground py-4 text-center">
-                Hələ qovluq yoxdur
+                Hələ mövzu yoxdur
               </p>
             ) : (
               <div className="space-y-1">
                 <FolderTree
                   folders={folders}
+                  counts={folderCounts}
                   parentId={null}
                   depth={0}
                   activeFolder={activeFolder}
@@ -205,12 +217,13 @@ function QuestionBankPage() {
             )}
           </Card>
 
+
           {/* Questions */}
           <div>
             {!activeFolder ? (
               <Card className="p-12 text-center border-dashed">
                 <Library className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                <h3 className="font-display font-semibold">Qovluq seçin</h3>
+                <h3 className="font-display font-semibold">Mövzu seçin</h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   Sual əlavə etmək üçün soldan qovluq seçin və ya yeni qovluq yaradın.
                 </p>
@@ -291,7 +304,7 @@ function QuestionBankPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => deleteQuestion(q.id)}
+                              onClick={() => deleteQuestionWithRefresh(q.id)}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -328,9 +341,11 @@ function QuestionBankPage() {
           onSaved={() => {
             setQuestionDialog({ open: false, question: null });
             loadQuestions(activeFolder);
+            loadFolders();
           }}
         />
       )}
+
     </div>
   );
 }
@@ -379,7 +394,7 @@ function FolderEditor({
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{folder ? "Qovluğu redaktə et" : "Yeni qovluq"}</DialogTitle>
+          <DialogTitle>{folder ? "Mövzunu redaktə et" : "Yeni mövzu"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-2">
@@ -391,7 +406,7 @@ function FolderEditor({
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
           </div>
           <div className="grid gap-2">
-            <Label>Valideyn qovluq</Label>
+            <Label>Alt mövzu</Label>
             <Select value={parentId} onValueChange={setParentId}>
               <SelectTrigger>
                 <SelectValue />
@@ -576,7 +591,7 @@ function QuestionEditor({
           </div>
 
           <div className="grid gap-2">
-            <Label>Qovluq</Label>
+            <Label>Mövzu</Label>
             <Select value={targetFolder} onValueChange={setTargetFolder}>
               <SelectTrigger>
                 <SelectValue />
@@ -648,6 +663,7 @@ function QuestionEditor({
 
 function FolderTree({
   folders,
+  counts,
   parentId,
   depth,
   activeFolder,
@@ -656,6 +672,7 @@ function FolderTree({
   onDelete,
 }: {
   folders: BankFolder[];
+  counts: Record<string, number>;
   parentId: string | null;
   depth: number;
   activeFolder: string | null;
@@ -665,10 +682,17 @@ function FolderTree({
 }) {
   const children = folders.filter((f) => (f.parent_id ?? null) === parentId);
   if (children.length === 0) return null;
+  // Aggregate count = self + all descendants
+  const totalFor = (id: string): number => {
+    const own = counts[id] ?? 0;
+    const kids = folders.filter((c) => c.parent_id === id);
+    return own + kids.reduce((s, k) => s + totalFor(k.id), 0);
+  };
   return (
     <>
       {children.map((f) => {
         const hasKids = folders.some((c) => c.parent_id === f.id);
+        const count = totalFor(f.id);
         return (
           <div key={f.id}>
             <div
@@ -685,6 +709,9 @@ function FolderTree({
               )}
               <FolderIcon className="h-4 w-4 shrink-0" />
               <span className="flex-1 truncate">{f.name}</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                {count}
+              </Badge>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -707,6 +734,7 @@ function FolderTree({
             {hasKids && (
               <FolderTree
                 folders={folders}
+                counts={counts}
                 parentId={f.id}
                 depth={depth + 1}
                 activeFolder={activeFolder}
@@ -721,3 +749,4 @@ function FolderTree({
     </>
   );
 }
+

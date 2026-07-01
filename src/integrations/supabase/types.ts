@@ -304,6 +304,7 @@ export type Database = {
           pdf_url: string | null
           position: number
           pptx_url: string | null
+          shuffle_questions: boolean
           time_limit_seconds: number | null
           title: string
           updated_at: string
@@ -321,6 +322,7 @@ export type Database = {
           pdf_url?: string | null
           position?: number
           pptx_url?: string | null
+          shuffle_questions?: boolean
           time_limit_seconds?: number | null
           title: string
           updated_at?: string
@@ -338,6 +340,7 @@ export type Database = {
           pdf_url?: string | null
           position?: number
           pptx_url?: string | null
+          shuffle_questions?: boolean
           time_limit_seconds?: number | null
           title?: string
           updated_at?: string
@@ -1214,6 +1217,7 @@ export type Database = {
           is_published: boolean
           passing_score: number
           password: string
+          shuffle_questions: boolean
           time_limit_seconds: number | null
           title: string
           updated_at: string
@@ -1227,6 +1231,7 @@ export type Database = {
           is_published?: boolean
           passing_score?: number
           password: string
+          shuffle_questions?: boolean
           time_limit_seconds?: number | null
           title: string
           updated_at?: string
@@ -1240,6 +1245,7 @@ export type Database = {
           is_published?: boolean
           passing_score?: number
           password?: string
+          shuffle_questions?: boolean
           time_limit_seconds?: number | null
           title?: string
           updated_at?: string

@@ -58,7 +58,9 @@ type Exam = {
   is_published: boolean;
   created_at: string;
   cover_image_url: string | null;
+  shuffle_questions: boolean;
 };
+
 
 type ExamQuestion = {
   id: string;
@@ -96,7 +98,7 @@ function ExamsPage() {
     setLoading(true);
     const { data } = await supabase
       .from("standalone_exams")
-      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at,cover_image_url")
+      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at,cover_image_url,shuffle_questions")
       .order("created_at", { ascending: false });
     setExams((data ?? []) as Exam[]);
     setLoading(false);
@@ -119,9 +121,9 @@ function ExamsPage() {
     <div className="p-6 lg:p-10 max-w-6xl mx-auto">
       <div className="flex items-start justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-display text-3xl font-bold mb-1">Standalone Exams</h1>
+          <h1 className="font-display text-3xl font-bold mb-1">Müstəqil imtahanlar</h1>
           <p className="text-muted-foreground">
-            Password-protected exams independent of courses.
+            Kurslardan asılı olmayan, şifrə ilə qorunan imtahanlar.
           </p>
         </div>
         {isAdmin && (
@@ -131,7 +133,7 @@ function ExamsPage() {
               setEditorOpen(true);
             }}
           >
-            <Plus className="h-4 w-4" /> New exam
+            <Plus className="h-4 w-4" /> Yeni imtahan
           </Button>
         )}
       </div>
@@ -156,8 +158,8 @@ function ExamsPage() {
           <h3 className="font-display font-semibold">{search ? "Nəticə tapılmadı" : "Hələ imtahan yoxdur"}</h3>
           <p className="text-sm text-muted-foreground mt-1">
             {isAdmin
-              ? "Create your first password-protected exam."
-              : "No exams have been published."}
+              ? "İlk şifrəli imtahanınızı yaradın."
+              : "Hələ heç bir imtahan dərc olunmayıb."}
           </p>
         </Card>
       ) : (
@@ -174,13 +176,13 @@ function ExamsPage() {
                 <div className="flex items-center gap-2">
                   <Lock className="h-4 w-4 text-amber-600" />
                   <Badge variant={exam.is_published ? "default" : "secondary"}>
-                    {exam.is_published ? "Published" : "Draft"}
+                    {exam.is_published ? "Dərc olunub" : "Qaralama"}
                   </Badge>
                 </div>
                 {exam.time_limit_seconds && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {Math.round(exam.time_limit_seconds / 60)}m
+                    {Math.round(exam.time_limit_seconds / 60)}d
                   </span>
                 )}
               </div>
@@ -191,12 +193,12 @@ function ExamsPage() {
                 </p>
               )}
               <div className="text-xs text-muted-foreground mt-2">
-                Pass: {exam.passing_score}%
+                Keçid balı: {exam.passing_score}%
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {exam.is_published && (
                   <Button size="sm" onClick={() => setRunnerExam(exam)}>
-                    <Play className="h-4 w-4" /> Take exam
+                    <Play className="h-4 w-4" /> İmtahana başla
                   </Button>
                 )}
                 {isAdmin && (
@@ -209,10 +211,10 @@ function ExamsPage() {
                         setEditorOpen(true);
                       }}
                     >
-                      <Pencil className="h-4 w-4" /> Edit
+                      <Pencil className="h-4 w-4" /> Redaktə et
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setResultsExam(exam)}>
-                      <ListChecks className="h-4 w-4" /> Results
+                      <ListChecks className="h-4 w-4" /> Nəticələr
                     </Button>
                     <Button
                       size="sm"
@@ -236,6 +238,7 @@ function ExamsPage() {
           ))}
         </div>
       )}
+
 
       {editorOpen && (
         <ExamEditor
@@ -283,11 +286,13 @@ function ExamEditor({
   );
   const [passingScore, setPassingScore] = useState(String(exam?.passing_score ?? 60));
   const [isPublished, setIsPublished] = useState(exam?.is_published ?? false);
+  const [shuffleQuestions, setShuffleQuestions] = useState(exam?.shuffle_questions ?? false);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(exam?.cover_image_url ?? null);
   const [examId, setExamId] = useState<string | null>(exam?.id ?? null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [saving, setSaving] = useState(false);
   const [bankOpen, setBankOpen] = useState(false);
+
 
   useEffect(() => {
     if (!examId) return;
@@ -324,8 +329,10 @@ function ExamEditor({
       time_limit_seconds: timeLimitMin ? Number(timeLimitMin) * 60 : null,
       passing_score: Number(passingScore) || 60,
       is_published: isPublished,
+      shuffle_questions: shuffleQuestions,
       cover_image_url: coverImageUrl,
     };
+
     if (password.trim()) payload.password = password.trim();
 
     if (examId) {
@@ -473,11 +480,11 @@ function ExamEditor({
 
         <div className="space-y-4">
           <div className="grid gap-2">
-            <Label>Title</Label>
+            <Label>Başlıq</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
           <div className="grid gap-2">
-            <Label>Description</Label>
+            <Label>Təsvir</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -486,13 +493,13 @@ function ExamEditor({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="grid gap-2">
-              <Label>Password {examId && <span className="text-xs text-muted-foreground">(leave blank to keep)</span>}</Label>
+              <Label>Şifrə {examId && <span className="text-xs text-muted-foreground">(boş buraxsanız dəyişməz)</span>}</Label>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={examId ? "••••••" : "Required"}
+                  placeholder={examId ? "••••••" : "Tələb olunur"}
                 />
                 <button
                   type="button"
@@ -504,16 +511,16 @@ function ExamEditor({
               </div>
             </div>
             <div className="grid gap-2">
-              <Label>Time limit (min)</Label>
+              <Label>Vaxt limiti (dəq)</Label>
               <Input
                 type="number"
                 value={timeLimitMin}
                 onChange={(e) => setTimeLimitMin(e.target.value)}
-                placeholder="Optional"
+                placeholder="Opsional"
               />
             </div>
             <div className="grid gap-2">
-              <Label>Passing score (%)</Label>
+              <Label>Keçid balı (%)</Label>
               <Input
                 type="number"
                 value={passingScore}
@@ -523,7 +530,11 @@ function ExamEditor({
           </div>
           <div className="flex items-center gap-2">
             <Switch checked={isPublished} onCheckedChange={setIsPublished} id="pub" />
-            <Label htmlFor="pub">Published (visible to users)</Label>
+            <Label htmlFor="pub">Dərc olunub (istifadəçilərə görünür)</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={shuffleQuestions} onCheckedChange={setShuffleQuestions} id="shuf" />
+            <Label htmlFor="shuf">Sualları qarışdır (hər istifadəçi üçün fərqli sıra)</Label>
           </div>
 
           <FileUpload
@@ -534,6 +545,7 @@ function ExamEditor({
             accept="image/*"
             folder="covers"
           />
+
 
           <div className="flex justify-end">
             <Button onClick={saveExam} disabled={saving}>
@@ -682,7 +694,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
           .in("question_id", ids)
           .order("position")
       : { data: [] as any[] };
-    const full = (qs ?? []).map((q) => ({
+    let full = (qs ?? []).map((q) => ({
       ...q,
       answers: (ans ?? []).filter((a: any) => a.question_id === q.id),
     })) as ExamQuestion[];
@@ -690,6 +702,9 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
       setVerifying(false);
       toast.error("Bu imtahanda sual yoxdur");
       return;
+    }
+    if (exam.shuffle_questions) {
+      full = [...full].sort(() => Math.random() - 0.5);
     }
     setQuestions(full);
     setStartedAt(Date.now());
@@ -761,16 +776,16 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                 <p className="text-sm text-muted-foreground">{exam.description}</p>
               )}
               <div className="text-sm flex gap-4 text-muted-foreground">
-                <span>Pass: {exam.passing_score}%</span>
+                <span>Keçid balı: {exam.passing_score}%</span>
                 {exam.time_limit_seconds && (
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {Math.round(exam.time_limit_seconds / 60)} min
+                    {Math.round(exam.time_limit_seconds / 60)} dəq
                   </span>
                 )}
               </div>
               <div className="grid gap-2">
-                <Label>Exam password</Label>
+                <Label>İmtahan şifrəsi</Label>
                 <Input
                   type="password"
                   value={password}
@@ -875,6 +890,8 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
 function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -901,28 +918,34 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     })();
   }, [exam.id]);
 
-  const exportCSV = () => {
-    const rows = [
-      ["Employee ID", "Name", "Score %", "Correct", "Total", "Duration (s)", "Passed", "Date"],
-      ...attempts.map((a) => [
-        a.profile?.employee_id ?? "",
-        a.profile?.full_name ?? "",
-        a.score_percent,
-        a.correct_count,
-        a.total_questions,
-        a.duration_seconds,
-        a.passed ? "Bəli" : "Xeyr",
-        new Date(a.created_at).toISOString(),
-      ]),
-    ];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${exam.title.replace(/\s+/g, "_")}_results.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const filtered = attempts.filter((a) => {
+    const t = new Date(a.created_at).getTime();
+    if (fromDate && t < new Date(fromDate + "T00:00:00").getTime()) return false;
+    if (toDate && t > new Date(toDate + "T23:59:59").getTime()) return false;
+    return true;
+  });
+
+  const fmt = (iso: string) => {
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
+
+  const exportXLSX = async () => {
+    const XLSX = await import("xlsx");
+    const rows = filtered.map((a) => ({
+      "Əməkdaş ID": a.profile?.employee_id ?? "",
+      "Ad": a.profile?.full_name ?? "",
+      "Bal %": Number(a.score_percent),
+      "Doğru": a.correct_count,
+      "Cəmi": a.total_questions,
+      "Müddət (san)": a.duration_seconds,
+      "Nəticə": a.passed ? "Keçib" : "Keçməyib",
+      "Tarix": fmt(a.created_at),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Nəticələr");
+    XLSX.writeFile(wb, `${exam.title.replace(/\s+/g, "_")}_neticeler.xlsx`);
   };
 
   return (
@@ -931,17 +954,35 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2">
             <span>Nəticələr — {exam.title}</span>
-            <Button size="sm" variant="outline" onClick={exportCSV} disabled={!attempts.length}>
-              <Download className="h-4 w-4" /> CSV ixrac et
+            <Button size="sm" variant="outline" onClick={exportXLSX} disabled={!filtered.length}>
+              <Download className="h-4 w-4" /> Excel ixrac et
             </Button>
           </DialogTitle>
         </DialogHeader>
+
+        <div className="flex flex-wrap items-end gap-3 mb-3">
+          <div className="grid gap-1">
+            <Label className="text-xs">Başlanğıc tarix</Label>
+            <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="h-9" />
+          </div>
+          <div className="grid gap-1">
+            <Label className="text-xs">Son tarix</Label>
+            <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="h-9" />
+          </div>
+          {(fromDate || toDate) && (
+            <Button size="sm" variant="ghost" onClick={() => { setFromDate(""); setToDate(""); }}>
+              Sıfırla
+            </Button>
+          )}
+          <div className="ml-auto text-xs text-muted-foreground">{filtered.length} nəticə</div>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : attempts.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-8 text-center">Hələ cəhd yoxdur.</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-8 text-center">Nəticə tapılmadı.</p>
         ) : (
           <div className="border rounded-md overflow-hidden">
             <table className="w-full text-sm">
@@ -956,7 +997,7 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                 </tr>
               </thead>
               <tbody>
-                {attempts.map((a) => (
+                {filtered.map((a) => (
                   <tr key={a.id} className="border-t">
                     <td className="p-2 font-mono text-xs">{a.profile?.employee_id ?? "—"}</td>
                     <td className="p-2">{a.profile?.full_name ?? "—"}</td>
@@ -969,9 +1010,7 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                         {a.passed ? "Keçib" : "Keçməyib"}
                       </Badge>
                     </td>
-                    <td className="p-2 text-xs text-muted-foreground">
-                      {(() => { const d = new Date(a.created_at); return `${String(d.getDate()).padStart(2,"0")}.${String(d.getMonth()+1).padStart(2,"0")}.${d.getFullYear()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; })()}
-                    </td>
+                    <td className="p-2 text-xs text-muted-foreground">{fmt(a.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -982,3 +1021,4 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     </Dialog>
   );
 }
+
