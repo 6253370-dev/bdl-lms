@@ -98,7 +98,7 @@ function ExamsPage() {
     setLoading(true);
     const { data } = await supabase
       .from("standalone_exams")
-      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at,cover_image_url")
+      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at,cover_image_url,shuffle_questions")
       .order("created_at", { ascending: false });
     setExams((data ?? []) as Exam[]);
     setLoading(false);
