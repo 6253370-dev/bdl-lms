@@ -480,11 +480,11 @@ function ExamEditor({
 
         <div className="space-y-4">
           <div className="grid gap-2">
-            <Label>Title</Label>
+            <Label>Başlıq</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
           <div className="grid gap-2">
-            <Label>Description</Label>
+            <Label>Təsvir</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -493,13 +493,13 @@ function ExamEditor({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="grid gap-2">
-              <Label>Password {examId && <span className="text-xs text-muted-foreground">(leave blank to keep)</span>}</Label>
+              <Label>Şifrə {examId && <span className="text-xs text-muted-foreground">(boş buraxsanız dəyişməz)</span>}</Label>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={examId ? "••••••" : "Required"}
+                  placeholder={examId ? "••••••" : "Tələb olunur"}
                 />
                 <button
                   type="button"
@@ -511,16 +511,16 @@ function ExamEditor({
               </div>
             </div>
             <div className="grid gap-2">
-              <Label>Time limit (min)</Label>
+              <Label>Vaxt limiti (dəq)</Label>
               <Input
                 type="number"
                 value={timeLimitMin}
                 onChange={(e) => setTimeLimitMin(e.target.value)}
-                placeholder="Optional"
+                placeholder="Opsional"
               />
             </div>
             <div className="grid gap-2">
-              <Label>Passing score (%)</Label>
+              <Label>Keçid balı (%)</Label>
               <Input
                 type="number"
                 value={passingScore}
@@ -530,7 +530,11 @@ function ExamEditor({
           </div>
           <div className="flex items-center gap-2">
             <Switch checked={isPublished} onCheckedChange={setIsPublished} id="pub" />
-            <Label htmlFor="pub">Published (visible to users)</Label>
+            <Label htmlFor="pub">Dərc olunub (istifadəçilərə görünür)</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={shuffleQuestions} onCheckedChange={setShuffleQuestions} id="shuf" />
+            <Label htmlFor="shuf">Sualları qarışdır (hər istifadəçi üçün fərqli sıra)</Label>
           </div>
 
           <FileUpload
@@ -541,6 +545,7 @@ function ExamEditor({
             accept="image/*"
             folder="covers"
           />
+
 
           <div className="flex justify-end">
             <Button onClick={saveExam} disabled={saving}>
