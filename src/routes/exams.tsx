@@ -776,16 +776,16 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                 <p className="text-sm text-muted-foreground">{exam.description}</p>
               )}
               <div className="text-sm flex gap-4 text-muted-foreground">
-                <span>Pass: {exam.passing_score}%</span>
+                <span>Keçid balı: {exam.passing_score}%</span>
                 {exam.time_limit_seconds && (
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {Math.round(exam.time_limit_seconds / 60)} min
+                    {Math.round(exam.time_limit_seconds / 60)} dəq
                   </span>
                 )}
               </div>
               <div className="grid gap-2">
-                <Label>Exam password</Label>
+                <Label>İmtahan şifrəsi</Label>
                 <Input
                   type="password"
                   value={password}
