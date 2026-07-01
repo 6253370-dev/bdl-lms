@@ -663,6 +663,7 @@ function QuestionEditor({
 
 function FolderTree({
   folders,
+  counts,
   parentId,
   depth,
   activeFolder,
@@ -671,6 +672,7 @@ function FolderTree({
   onDelete,
 }: {
   folders: BankFolder[];
+  counts: Record<string, number>;
   parentId: string | null;
   depth: number;
   activeFolder: string | null;
@@ -680,10 +682,17 @@ function FolderTree({
 }) {
   const children = folders.filter((f) => (f.parent_id ?? null) === parentId);
   if (children.length === 0) return null;
+  // Aggregate count = self + all descendants
+  const totalFor = (id: string): number => {
+    const own = counts[id] ?? 0;
+    const kids = folders.filter((c) => c.parent_id === id);
+    return own + kids.reduce((s, k) => s + totalFor(k.id), 0);
+  };
   return (
     <>
       {children.map((f) => {
         const hasKids = folders.some((c) => c.parent_id === f.id);
+        const count = totalFor(f.id);
         return (
           <div key={f.id}>
             <div
@@ -700,6 +709,9 @@ function FolderTree({
               )}
               <FolderIcon className="h-4 w-4 shrink-0" />
               <span className="flex-1 truncate">{f.name}</span>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
+                {count}
+              </Badge>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -722,6 +734,7 @@ function FolderTree({
             {hasKids && (
               <FolderTree
                 folders={folders}
+                counts={counts}
                 parentId={f.id}
                 depth={depth + 1}
                 activeFolder={activeFolder}
@@ -736,3 +749,4 @@ function FolderTree({
     </>
   );
 }
+
