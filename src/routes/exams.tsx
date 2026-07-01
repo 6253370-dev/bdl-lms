@@ -286,11 +286,13 @@ function ExamEditor({
   );
   const [passingScore, setPassingScore] = useState(String(exam?.passing_score ?? 60));
   const [isPublished, setIsPublished] = useState(exam?.is_published ?? false);
+  const [shuffleQuestions, setShuffleQuestions] = useState(exam?.shuffle_questions ?? false);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(exam?.cover_image_url ?? null);
   const [examId, setExamId] = useState<string | null>(exam?.id ?? null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [saving, setSaving] = useState(false);
   const [bankOpen, setBankOpen] = useState(false);
+
 
   useEffect(() => {
     if (!examId) return;
