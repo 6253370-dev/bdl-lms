@@ -121,9 +121,9 @@ function ExamsPage() {
     <div className="p-6 lg:p-10 max-w-6xl mx-auto">
       <div className="flex items-start justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-display text-3xl font-bold mb-1">Standalone Exams</h1>
+          <h1 className="font-display text-3xl font-bold mb-1">Müstəqil imtahanlar</h1>
           <p className="text-muted-foreground">
-            Password-protected exams independent of courses.
+            Kurslardan asılı olmayan, şifrə ilə qorunan imtahanlar.
           </p>
         </div>
         {isAdmin && (
@@ -133,7 +133,7 @@ function ExamsPage() {
               setEditorOpen(true);
             }}
           >
-            <Plus className="h-4 w-4" /> New exam
+            <Plus className="h-4 w-4" /> Yeni imtahan
           </Button>
         )}
       </div>
@@ -158,8 +158,8 @@ function ExamsPage() {
           <h3 className="font-display font-semibold">{search ? "Nəticə tapılmadı" : "Hələ imtahan yoxdur"}</h3>
           <p className="text-sm text-muted-foreground mt-1">
             {isAdmin
-              ? "Create your first password-protected exam."
-              : "No exams have been published."}
+              ? "İlk şifrəli imtahanınızı yaradın."
+              : "Hələ heç bir imtahan dərc olunmayıb."}
           </p>
         </Card>
       ) : (
@@ -176,13 +176,13 @@ function ExamsPage() {
                 <div className="flex items-center gap-2">
                   <Lock className="h-4 w-4 text-amber-600" />
                   <Badge variant={exam.is_published ? "default" : "secondary"}>
-                    {exam.is_published ? "Published" : "Draft"}
+                    {exam.is_published ? "Dərc olunub" : "Qaralama"}
                   </Badge>
                 </div>
                 {exam.time_limit_seconds && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {Math.round(exam.time_limit_seconds / 60)}m
+                    {Math.round(exam.time_limit_seconds / 60)}d
                   </span>
                 )}
               </div>
@@ -193,12 +193,12 @@ function ExamsPage() {
                 </p>
               )}
               <div className="text-xs text-muted-foreground mt-2">
-                Pass: {exam.passing_score}%
+                Keçid balı: {exam.passing_score}%
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {exam.is_published && (
                   <Button size="sm" onClick={() => setRunnerExam(exam)}>
-                    <Play className="h-4 w-4" /> Take exam
+                    <Play className="h-4 w-4" /> İmtahana başla
                   </Button>
                 )}
                 {isAdmin && (
@@ -211,10 +211,10 @@ function ExamsPage() {
                         setEditorOpen(true);
                       }}
                     >
-                      <Pencil className="h-4 w-4" /> Edit
+                      <Pencil className="h-4 w-4" /> Redaktə et
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setResultsExam(exam)}>
-                      <ListChecks className="h-4 w-4" /> Results
+                      <ListChecks className="h-4 w-4" /> Nəticələr
                     </Button>
                     <Button
                       size="sm"
@@ -238,6 +238,7 @@ function ExamsPage() {
           ))}
         </div>
       )}
+
 
       {editorOpen && (
         <ExamEditor
