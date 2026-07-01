@@ -304,7 +304,7 @@ function QuestionBankPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => deleteQuestion(q.id)}
+                              onClick={() => deleteQuestionWithRefresh(q.id)}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
