@@ -320,20 +320,30 @@ export function BankPicker({
           <TabsContent value="auto">
             <div className="space-y-4">
               <div className="grid gap-2">
-                <Label>Qovluq</Label>
+                <Label>Mövzu</Label>
                 <Select value={activeFolder ?? ""} onValueChange={setActiveFolder}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Qovluq seçin" />
+                    <SelectValue placeholder="Mövzu seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    {folders.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.name}
-                      </SelectItem>
-                    ))}
+                    {(() => {
+                      const flatten = (parentId: string | null, depth: number): Folder[] => {
+                        const kids = folders.filter((f) => (f.parent_id ?? null) === parentId);
+                        return kids.flatMap((k) => [
+                          { ...k, name: `${"— ".repeat(depth)}${k.name}` },
+                          ...flatten(k.id, depth + 1),
+                        ]);
+                      };
+                      return flatten(null, 0).map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.name} ({folderCounts[f.id] ?? 0})
+                        </SelectItem>
+                      ));
+                    })()}
                   </SelectContent>
                 </Select>
               </div>
+
 
               <div className="grid gap-2">
                 <Label>Sual sayı (çətinlik göstərilməsə)</Label>
