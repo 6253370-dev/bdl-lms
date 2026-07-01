@@ -58,7 +58,9 @@ type Exam = {
   is_published: boolean;
   created_at: string;
   cover_image_url: string | null;
+  shuffle_questions: boolean;
 };
+
 
 type ExamQuestion = {
   id: string;
