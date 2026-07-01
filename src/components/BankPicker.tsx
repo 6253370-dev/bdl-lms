@@ -394,3 +394,61 @@ export function BankPicker({
     </Dialog>
   );
 }
+
+function FolderPickerTree({
+  folders,
+  counts,
+  parentId,
+  depth,
+  activeFolder,
+  onSelect,
+}: {
+  folders: Folder[];
+  counts: Record<string, number>;
+  parentId: string | null;
+  depth: number;
+  activeFolder: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const children = folders.filter((f) => (f.parent_id ?? null) === parentId);
+  if (children.length === 0) return null;
+  const totalFor = (id: string): number => {
+    const own = counts[id] ?? 0;
+    const kids = folders.filter((c) => c.parent_id === id);
+    return own + kids.reduce((s, k) => s + totalFor(k.id), 0);
+  };
+  return (
+    <>
+      {children.map((f) => {
+        const hasKids = folders.some((c) => c.parent_id === f.id);
+        return (
+          <div key={f.id}>
+            <button
+              onClick={() => onSelect(f.id)}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md text-left ${
+                activeFolder === f.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
+              }`}
+              style={{ paddingLeft: 8 + depth * 14 }}
+            >
+              {depth > 0 && <span className="text-muted-foreground/60 -ml-1">└</span>}
+              <FolderIcon className="h-4 w-4 shrink-0" />
+              <span className="flex-1 truncate">{f.name}</span>
+              <span className="text-[10px] bg-muted rounded px-1.5 py-0.5">{totalFor(f.id)}</span>
+            </button>
+            {hasKids && (
+              <FolderPickerTree
+                folders={folders}
+                counts={counts}
+                parentId={f.id}
+                depth={depth + 1}
+                activeFolder={activeFolder}
+                onSelect={onSelect}
+              />
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
