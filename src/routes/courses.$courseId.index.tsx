@@ -450,13 +450,23 @@ function BlockCard({
             </div>
           )}
           {block.block_type === "final_exam" && (
-            <div className="space-y-2">
-              <Label>Passing score (%)</Label>
-              <Input
-                type="number" min={0} max={100}
-                value={block.passing_score ?? 60}
-                onChange={(e) => onChange({ passing_score: Number(e.target.value) })}
-              />
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>Keçid balı (%)</Label>
+                <Input
+                  type="number" min={0} max={100}
+                  value={block.passing_score ?? 60}
+                  onChange={(e) => onChange({ passing_score: Number(e.target.value) })}
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={!!block.shuffle_questions}
+                  onChange={(e) => onChange({ shuffle_questions: e.target.checked })}
+                />
+                Sualları qarışdır (hər istifadəçi üçün fərqli sıra)
+              </label>
             </div>
           )}
           {(block.block_type === "practice" || block.block_type === "quiz" || block.block_type === "final_exam") && (
