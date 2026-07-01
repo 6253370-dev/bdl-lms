@@ -338,9 +338,11 @@ function QuestionBankPage() {
           onSaved={() => {
             setQuestionDialog({ open: false, question: null });
             loadQuestions(activeFolder);
+            loadFolders();
           }}
         />
       )}
+
     </div>
   );
 }
