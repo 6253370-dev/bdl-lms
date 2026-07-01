@@ -242,22 +242,19 @@ export function BankPicker({
               <div className="space-y-1 max-h-[50vh] overflow-y-auto border rounded-md p-2">
                 {folders.length === 0 && (
                   <p className="text-xs text-muted-foreground p-2">
-                    Sual bankında qovluq yoxdur.
+                    Sual bankında mövzu yoxdur.
                   </p>
                 )}
-                {folders.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setActiveFolder(f.id)}
-                    className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md text-left ${
-                      activeFolder === f.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
-                    }`}
-                  >
-                    <FolderIcon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{f.name}</span>
-                  </button>
-                ))}
+                <FolderPickerTree
+                  folders={folders}
+                  counts={folderCounts}
+                  parentId={null}
+                  depth={0}
+                  activeFolder={activeFolder}
+                  onSelect={setActiveFolder}
+                />
               </div>
+
 
               <div className="space-y-3">
                 <div className="relative">
