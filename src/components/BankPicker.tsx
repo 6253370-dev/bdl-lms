@@ -55,6 +55,7 @@ export function BankPicker({
   multiple?: boolean;
 }) {
   const [folders, setFolders] = useState<Folder[]>([]);
+  const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [questions, setQuestions] = useState<BankQ[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -74,11 +75,18 @@ export function BankPicker({
     (async () => {
       const { data } = await supabase
         .from("question_bank_folders")
-        .select("id,name")
+        .select("id,name,parent_id")
         .order("name");
       setFolders((data ?? []) as Folder[]);
+      const { data: qs } = await supabase.from("bank_questions").select("folder_id");
+      const counts: Record<string, number> = {};
+      (qs ?? []).forEach((r: any) => {
+        counts[r.folder_id] = (counts[r.folder_id] ?? 0) + 1;
+      });
+      setFolderCounts(counts);
     })();
   }, [open]);
+
 
   useEffect(() => {
     if (!activeFolder) {
