@@ -122,7 +122,7 @@ function CourseBuilderPage() {
     const insertRow = { course_id: courseId, block_type: type, position, title: defaults[type].title ?? "Adsız", ...defaults[type] };
     const { data, error } = await supabase
       .from("course_blocks")
-      .insert(insertRow)
+      .insert(insertRow as any)
       .select()
       .single();
     if (error) { toast.error(error.message); return; }
