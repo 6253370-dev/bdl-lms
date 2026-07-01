@@ -74,6 +74,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 function QuestionBankPage() {
   const [folders, setFolders] = useState<BankFolder[]>([]);
+  const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
   const [questions, setQuestions] = useState<BankQuestion[]>([]);
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,7 +94,16 @@ function QuestionBankPage() {
       .select("id,name,description,parent_id")
       .order("name");
     setFolders((data ?? []) as BankFolder[]);
+    const { data: qs } = await supabase
+      .from("bank_questions")
+      .select("folder_id");
+    const counts: Record<string, number> = {};
+    (qs ?? []).forEach((r: any) => {
+      counts[r.folder_id] = (counts[r.folder_id] ?? 0) + 1;
+    });
+    setFolderCounts(counts);
   };
+
 
   const loadQuestions = async (folderId: string | null) => {
     if (!folderId) {
