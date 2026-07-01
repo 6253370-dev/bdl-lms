@@ -591,7 +591,7 @@ function QuestionEditor({
           </div>
 
           <div className="grid gap-2">
-            <Label>Qovluq</Label>
+            <Label>Mövzu</Label>
             <Select value={targetFolder} onValueChange={setTargetFolder}>
               <SelectTrigger>
                 <SelectValue />
