@@ -147,6 +147,7 @@ function CourseBuilderPage() {
         docx_url: block.docx_url,
         time_limit_seconds: block.time_limit_seconds,
         passing_score: block.passing_score,
+        shuffle_questions: block.shuffle_questions ?? false,
       })
       .eq("id", block.id);
     if (error) toast.error(error.message);
