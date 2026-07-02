@@ -689,6 +689,8 @@ function FolderTree({
   onSelect,
   onEdit,
   onDelete,
+  expanded,
+  onToggle,
 }: {
   folders: BankFolder[];
   counts: Record<string, number>;
@@ -698,10 +700,11 @@ function FolderTree({
   onSelect: (id: string) => void;
   onEdit: (f: BankFolder) => void;
   onDelete: (id: string) => void;
+  expanded: Set<string>;
+  onToggle: (id: string) => void;
 }) {
   const children = folders.filter((f) => (f.parent_id ?? null) === parentId);
   if (children.length === 0) return null;
-  // Aggregate count = self + all descendants
   const totalFor = (id: string): number => {
     const own = counts[id] ?? 0;
     const kids = folders.filter((c) => c.parent_id === id);
@@ -711,20 +714,37 @@ function FolderTree({
     <>
       {children.map((f) => {
         const hasKids = folders.some((c) => c.parent_id === f.id);
+        const isOpen = expanded.has(f.id);
         const count = totalFor(f.id);
         return (
           <div key={f.id}>
             <div
-              className={`group flex items-center gap-2 px-2 py-2 rounded-md text-sm cursor-pointer transition-colors ${
+              className={`group flex items-center gap-1 px-2 py-2 rounded-md text-sm cursor-pointer transition-colors ${
                 activeFolder === f.id
                   ? "bg-primary/10 text-primary"
                   : "hover:bg-muted"
               }`}
-              style={{ paddingLeft: 8 + depth * 14 }}
+              style={{ paddingLeft: 4 + depth * 14 }}
               onClick={() => onSelect(f.id)}
             >
-              {depth > 0 && (
-                <span className="text-muted-foreground/60 -ml-1">└</span>
+              {hasKids ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggle(f.id);
+                  }}
+                  className="p-0.5 text-muted-foreground hover:text-foreground shrink-0"
+                  aria-label={isOpen ? "Bağla" : "Aç"}
+                >
+                  {isOpen ? (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              ) : (
+                <span className="w-[18px] shrink-0" />
               )}
               <FolderIcon className="h-4 w-4 shrink-0" />
               <span className="flex-1 truncate">{f.name}</span>
@@ -750,7 +770,7 @@ function FolderTree({
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
-            {hasKids && (
+            {hasKids && isOpen && (
               <FolderTree
                 folders={folders}
                 counts={counts}
@@ -760,6 +780,8 @@ function FolderTree({
                 onSelect={onSelect}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                expanded={expanded}
+                onToggle={onToggle}
               />
             )}
           </div>
@@ -767,5 +789,6 @@ function FolderTree({
       })}
     </>
   );
+
 }
 
