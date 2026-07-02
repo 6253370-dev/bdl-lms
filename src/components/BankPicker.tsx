@@ -262,6 +262,8 @@ export function BankPicker({
                   depth={0}
                   activeFolder={activeFolder}
                   onSelect={setActiveFolder}
+                  expanded={expanded}
+                  onToggle={toggleExpanded}
                 />
               </div>
 
