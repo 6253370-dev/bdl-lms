@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Folder as FolderIcon, Loader2, Sparkles, Search } from "lucide-react";
+import { Folder as FolderIcon, Loader2, Sparkles, Search, ChevronRight, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 type Folder = { id: string; name: string; parent_id: string | null };
