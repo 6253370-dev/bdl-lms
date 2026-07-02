@@ -71,7 +71,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col transition-transform lg:static",
+          "fixed top-0 left-0 z-40 w-64 h-[100dvh] max-h-[100dvh] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col overflow-y-auto overscroll-contain transition-transform lg:static lg:h-auto lg:max-h-none lg:overflow-visible",
+          "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
           open ? "translate-x-0" : "-translate-x-full",
           desktopHidden ? "lg:hidden" : "lg:translate-x-0",
         )}
