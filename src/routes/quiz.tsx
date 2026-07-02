@@ -474,7 +474,7 @@ function QuizFormDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85dvh] overflow-y-auto">
         <DialogHeader><DialogTitle>{existing ? "Quiz redaktəsi" : "Yeni quiz"}</DialogTitle></DialogHeader>
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>

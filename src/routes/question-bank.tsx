@@ -542,7 +542,7 @@ function QuestionEditor({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{question ? "Sualı redaktə et" : "Yeni sual"}</DialogTitle>
         </DialogHeader>

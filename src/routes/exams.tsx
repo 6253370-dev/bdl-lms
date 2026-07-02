@@ -473,7 +473,7 @@ function ExamEditor({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{examId ? "İmtahanı redaktə et" : "Yeni imtahan"}</DialogTitle>
         </DialogHeader>
@@ -950,7 +950,7 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2">
             <span>Nəticələr — {exam.title}</span>
