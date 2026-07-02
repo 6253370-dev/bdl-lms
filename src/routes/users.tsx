@@ -302,7 +302,7 @@ function EditUserDialog({ user, isSuperAdmin, onClose, onSaved }: { user: UserRo
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85dvh] overflow-y-auto">
         <DialogHeader><DialogTitle>İstifadəçini redaktə et · ID {user.employee_id}</DialogTitle></DialogHeader>
         <Tabs defaultValue="info">
           <TabsList>

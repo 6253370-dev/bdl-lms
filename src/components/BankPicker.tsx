@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Folder as FolderIcon, Loader2, Sparkles, Search } from "lucide-react";
+import { Folder as FolderIcon, Loader2, Sparkles, Search, ChevronRight, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 
 type Folder = { id: string; name: string; parent_id: string | null };
@@ -62,6 +62,15 @@ export function BankPicker({
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<"manual" | "auto">("manual");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) => {
+    setExpanded((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
 
   // Auto-generate state
   const [autoCount, setAutoCount] = useState("10");
@@ -78,6 +87,7 @@ export function BankPicker({
         .select("id,name,parent_id")
         .order("name");
       setFolders((data ?? []) as Folder[]);
+      setExpanded((prev) => (prev.size > 0 ? prev : new Set((data ?? []).map((f: any) => f.id))));
       const { data: qs } = await supabase.from("bank_questions").select("folder_id");
       const counts: Record<string, number> = {};
       (qs ?? []).forEach((r: any) => {
@@ -224,7 +234,7 @@ export function BankPicker({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Sual Bankından əlavə et</DialogTitle>
         </DialogHeader>
@@ -252,6 +262,8 @@ export function BankPicker({
                   depth={0}
                   activeFolder={activeFolder}
                   onSelect={setActiveFolder}
+                  expanded={expanded}
+                  onToggle={toggleExpanded}
                 />
               </div>
 
@@ -412,6 +424,8 @@ function FolderPickerTree({
   depth,
   activeFolder,
   onSelect,
+  expanded,
+  onToggle,
 }: {
   folders: Folder[];
   counts: Record<string, number>;
@@ -419,6 +433,8 @@ function FolderPickerTree({
   depth: number;
   activeFolder: string | null;
   onSelect: (id: string) => void;
+  expanded: Set<string>;
+  onToggle: (id: string) => void;
 }) {
   const children = folders.filter((f) => (f.parent_id ?? null) === parentId);
   if (children.length === 0) return null;
@@ -431,21 +447,45 @@ function FolderPickerTree({
     <>
       {children.map((f) => {
         const hasKids = folders.some((c) => c.parent_id === f.id);
+        const isOpen = expanded.has(f.id);
         return (
           <div key={f.id}>
-            <button
-              onClick={() => onSelect(f.id)}
-              className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md text-left ${
+            <div
+              className={`w-full flex items-center gap-1 px-2 py-1.5 text-sm rounded-md ${
                 activeFolder === f.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
               }`}
-              style={{ paddingLeft: 8 + depth * 14 }}
+              style={{ paddingLeft: 4 + depth * 14 }}
             >
-              {depth > 0 && <span className="text-muted-foreground/60 -ml-1">└</span>}
-              <FolderIcon className="h-4 w-4 shrink-0" />
-              <span className="flex-1 truncate">{f.name}</span>
-              <span className="text-[10px] bg-muted rounded px-1.5 py-0.5">{totalFor(f.id)}</span>
-            </button>
-            {hasKids && (
+              {hasKids ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggle(f.id);
+                  }}
+                  className="p-0.5 text-muted-foreground hover:text-foreground shrink-0"
+                  aria-label={isOpen ? "Bağla" : "Aç"}
+                >
+                  {isOpen ? (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              ) : (
+                <span className="w-[18px] shrink-0" />
+              )}
+              <button
+                type="button"
+                onClick={() => onSelect(f.id)}
+                className="flex-1 flex items-center gap-2 min-w-0 text-left"
+              >
+                <FolderIcon className="h-4 w-4 shrink-0" />
+                <span className="flex-1 truncate">{f.name}</span>
+                <span className="text-[10px] bg-muted rounded px-1.5 py-0.5">{totalFor(f.id)}</span>
+              </button>
+            </div>
+            {hasKids && isOpen && (
               <FolderPickerTree
                 folders={folders}
                 counts={counts}
@@ -453,6 +493,8 @@ function FolderPickerTree({
                 depth={depth + 1}
                 activeFolder={activeFolder}
                 onSelect={onSelect}
+                expanded={expanded}
+                onToggle={onToggle}
               />
             )}
           </div>
@@ -461,4 +503,5 @@ function FolderPickerTree({
     </>
   );
 }
+
 
