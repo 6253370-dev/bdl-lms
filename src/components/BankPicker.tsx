@@ -62,6 +62,15 @@ export function BankPicker({
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<"manual" | "auto">("manual");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) => {
+    setExpanded((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
 
   // Auto-generate state
   const [autoCount, setAutoCount] = useState("10");
