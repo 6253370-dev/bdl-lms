@@ -87,6 +87,7 @@ export function BankPicker({
         .select("id,name,parent_id")
         .order("name");
       setFolders((data ?? []) as Folder[]);
+      setExpanded((prev) => (prev.size > 0 ? prev : new Set((data ?? []).map((f: any) => f.id))));
       const { data: qs } = await supabase.from("bank_questions").select("folder_id");
       const counts: Record<string, number> = {};
       (qs ?? []).forEach((r: any) => {
