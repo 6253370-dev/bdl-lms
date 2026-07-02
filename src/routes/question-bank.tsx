@@ -106,6 +106,11 @@ function QuestionBankPage() {
       .select("id,name,description,parent_id")
       .order("name");
     setFolders((data ?? []) as BankFolder[]);
+    setExpanded((prev) => {
+      if (prev.size > 0) return prev;
+      return new Set((data ?? []).map((f: any) => f.id));
+    });
+
     const { data: qs } = await supabase
       .from("bank_questions")
       .select("folder_id");
