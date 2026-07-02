@@ -229,6 +229,8 @@ function QuestionBankPage() {
                   onSelect={setActiveFolder}
                   onEdit={(f) => setFolderDialog({ open: true, folder: f })}
                   onDelete={deleteFolder}
+                  expanded={expanded}
+                  onToggle={toggleExpanded}
                 />
               </div>
             )}
