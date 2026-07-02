@@ -89,6 +89,16 @@ function QuestionBankPage() {
     question: null,
   });
   const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleExpanded = (id: string) => {
+    setExpanded((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
+
 
   const loadFolders = async () => {
     const { data } = await supabase
