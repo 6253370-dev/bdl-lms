@@ -13,11 +13,13 @@ import { Route as UsersRouteImport } from './routes/users'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as QuestionBankRouteImport } from './routes/question-bank'
+import { Route as LibraryRouteImport } from './routes/library'
 import { Route as ExamsRouteImport } from './routes/exams'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ChampionsRouteImport } from './routes/champions'
 import { Route as CertificatesRouteImport } from './routes/certificates'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CoursesIndexRouteImport } from './routes/courses.index'
 import { Route as AdminCommentsRouteImport } from './routes/admin.comments'
@@ -44,6 +46,11 @@ const QuestionBankRoute = QuestionBankRouteImport.update({
   path: '/question-bank',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExamsRoute = ExamsRouteImport.update({
   id: '/exams',
   path: '/exams',
@@ -67,6 +74,11 @@ const CertificatesRoute = CertificatesRouteImport.update({
 const CalendarRoute = CalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AttendanceRoute = AttendanceRouteImport.update({
+  id: '/attendance',
+  path: '/attendance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -97,11 +109,13 @@ const CoursesCourseIdPlayRoute = CoursesCourseIdPlayRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/attendance': typeof AttendanceRoute
   '/calendar': typeof CalendarRoute
   '/certificates': typeof CertificatesRoute
   '/champions': typeof ChampionsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
+  '/library': typeof LibraryRoute
   '/question-bank': typeof QuestionBankRoute
   '/quiz': typeof QuizRoute
   '/reports': typeof ReportsRoute
@@ -113,11 +127,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/attendance': typeof AttendanceRoute
   '/calendar': typeof CalendarRoute
   '/certificates': typeof CertificatesRoute
   '/champions': typeof ChampionsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
+  '/library': typeof LibraryRoute
   '/question-bank': typeof QuestionBankRoute
   '/quiz': typeof QuizRoute
   '/reports': typeof ReportsRoute
@@ -130,11 +146,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/attendance': typeof AttendanceRoute
   '/calendar': typeof CalendarRoute
   '/certificates': typeof CertificatesRoute
   '/champions': typeof ChampionsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
+  '/library': typeof LibraryRoute
   '/question-bank': typeof QuestionBankRoute
   '/quiz': typeof QuizRoute
   '/reports': typeof ReportsRoute
@@ -148,11 +166,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/attendance'
     | '/calendar'
     | '/certificates'
     | '/champions'
     | '/dashboard'
     | '/exams'
+    | '/library'
     | '/question-bank'
     | '/quiz'
     | '/reports'
@@ -164,11 +184,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/attendance'
     | '/calendar'
     | '/certificates'
     | '/champions'
     | '/dashboard'
     | '/exams'
+    | '/library'
     | '/question-bank'
     | '/quiz'
     | '/reports'
@@ -180,11 +202,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/attendance'
     | '/calendar'
     | '/certificates'
     | '/champions'
     | '/dashboard'
     | '/exams'
+    | '/library'
     | '/question-bank'
     | '/quiz'
     | '/reports'
@@ -197,11 +221,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AttendanceRoute: typeof AttendanceRoute
   CalendarRoute: typeof CalendarRoute
   CertificatesRoute: typeof CertificatesRoute
   ChampionsRoute: typeof ChampionsRoute
   DashboardRoute: typeof DashboardRoute
   ExamsRoute: typeof ExamsRoute
+  LibraryRoute: typeof LibraryRoute
   QuestionBankRoute: typeof QuestionBankRoute
   QuizRoute: typeof QuizRoute
   ReportsRoute: typeof ReportsRoute
@@ -242,6 +268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuestionBankRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/exams': {
       id: '/exams'
       path: '/exams'
@@ -275,6 +308,13 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof CalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/attendance': {
+      id: '/attendance'
+      path: '/attendance'
+      fullPath: '/attendance'
+      preLoaderRoute: typeof AttendanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -317,11 +357,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AttendanceRoute: AttendanceRoute,
   CalendarRoute: CalendarRoute,
   CertificatesRoute: CertificatesRoute,
   ChampionsRoute: ChampionsRoute,
   DashboardRoute: DashboardRoute,
   ExamsRoute: ExamsRoute,
+  LibraryRoute: LibraryRoute,
   QuestionBankRoute: QuestionBankRoute,
   QuizRoute: QuizRoute,
   ReportsRoute: ReportsRoute,

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
   BookOpen, Plus, Search, Download, Eye, Pencil, Trash2, Upload, Loader2,
-  LayoutGrid, List, ImageIcon, FileText, Download as DownloadIcon, X,
+  LayoutGrid, List, Image as ImageIcon, FileText, Download as DownloadIcon, X,
 } from "lucide-react";
 import { toast } from "sonner";
 
