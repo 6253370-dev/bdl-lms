@@ -98,6 +98,122 @@ export type Database = {
           },
         ]
       }
+      attendance_lesson_participants: {
+        Row: {
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          lesson_id: string
+          patronymic: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          lesson_id: string
+          patronymic?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          lesson_id?: string
+          patronymic?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_lesson_participants_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_lessons: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string
+          id: string
+          start_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date: string
+          id?: string
+          start_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          start_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      attendance_records: {
+        Row: {
+          attendance_date: string
+          created_at: string
+          id: string
+          lesson_id: string
+          participant_id: string
+          present: boolean
+          updated_at: string
+        }
+        Insert: {
+          attendance_date: string
+          created_at?: string
+          id?: string
+          lesson_id: string
+          participant_id: string
+          present?: boolean
+          updated_at?: string
+        }
+        Update: {
+          attendance_date?: string
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          participant_id?: string
+          present?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_lesson_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_answers: {
         Row: {
           id: string
@@ -600,6 +716,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      library_books: {
+        Row: {
+          author: string | null
+          category: string | null
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          file_name: string | null
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          author?: string | null
+          category?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          author?: string | null
+          category?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
       }
       notifications: {
         Row: {
