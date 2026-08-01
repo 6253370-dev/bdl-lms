@@ -349,9 +349,25 @@ function LibraryPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="font-medium">{b.title}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-1.5">
+                          {b.title}
+                          {b.description && (
+                            <TooltipProvider delayDuration={200}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button" onClick={() => setDetailsBook(b)} className="text-muted-foreground hover:text-foreground">
+                                    <Info className="h-3.5 w-3.5" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs whitespace-pre-wrap">{b.description}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{b.author ?? "-"}</TableCell>
-                      <TableCell>{b.category ?? "-"}</TableCell>
+                      <TableCell>{bookCategory(b) ?? "-"}</TableCell>
                       <TableCell><Badge variant="secondary">{b.file_type.toUpperCase()}</Badge></TableCell>
                       <TableCell>{formatSize(b.file_size)}</TableCell>
                       <TableCell>{profileNames.get(b.uploaded_by ?? "") ?? "-"}</TableCell>
