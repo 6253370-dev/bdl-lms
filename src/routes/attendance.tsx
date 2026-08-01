@@ -495,6 +495,7 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
             <h1 className="text-2xl font-display font-bold">{lesson.title}</h1>
             <p className="text-sm text-muted-foreground">
               {formatDate(lesson.start_date)} — {formatDate(lesson.end_date)} · {dates.length} gün
+              {teacherLabel && <> · Müəllim: {teacherLabel}</>}
             </p>
           </div>
         </div>
