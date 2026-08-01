@@ -227,13 +227,54 @@ function LessonEditor({
   const [description, setDescription] = useState(lesson?.description ?? "");
   const [startDate, setStartDate] = useState(lesson?.start_date ?? isoDate(new Date()));
   const [endDate, setEndDate] = useState(lesson?.end_date ?? isoDate(new Date()));
+  const [teacherMode, setTeacherMode] = useState<"lms" | "manual">(lesson?.teacher_user_id ? "lms" : "manual");
+  const [teacherUserId, setTeacherUserId] = useState<string | null>(lesson?.teacher_user_id ?? null);
+  const [tLast, setTLast] = useState(lesson?.teacher_last_name ?? "");
+  const [tFirst, setTFirst] = useState(lesson?.teacher_first_name ?? "");
+  const [tPat, setTPat] = useState(lesson?.teacher_patronymic ?? "");
+  const [teacherSearch, setTeacherSearch] = useState("");
+  const [teacherResults, setTeacherResults] = useState<Profile[]>([]);
+  const [examDates, setExamDates] = useState<string[]>(lesson?.exam_dates ?? []);
   const [saving, setSaving] = useState(false);
+
+  const allDates = useMemo(
+    () => (startDate && endDate && new Date(endDate) >= new Date(startDate) ? generateDates(startDate, endDate) : []),
+    [startDate, endDate],
+  );
+
+  useEffect(() => {
+    const q = teacherSearch.trim();
+    if (teacherMode !== "lms" || q.length < 2) { setTeacherResults([]); return; }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,employee_id,full_name,email")
+        .or(`full_name.ilike.%${q}%,employee_id.ilike.%${q}%,email.ilike.%${q}%`)
+        .limit(10);
+      if (!cancelled) setTeacherResults((data as Profile[]) ?? []);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [teacherSearch, teacherMode]);
+
+  const toggleExamDate = (d: string) =>
+    setExamDates((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
 
   const save = async () => {
     if (!title.trim()) { toast.error("Ad daxil edin"); return; }
     if (new Date(endDate) < new Date(startDate)) { toast.error("Son tarix başlanğıcdan əvvəl ola bilməz"); return; }
     setSaving(true);
-    const payload = { title: title.trim(), description: description.trim() || null, start_date: startDate, end_date: endDate };
+    const payload = {
+      title: title.trim(),
+      description: description.trim() || null,
+      start_date: startDate,
+      end_date: endDate,
+      teacher_user_id: teacherMode === "lms" ? teacherUserId : null,
+      teacher_last_name: teacherMode === "manual" ? (tLast.trim() || null) : null,
+      teacher_first_name: teacherMode === "manual" ? (tFirst.trim() || null) : null,
+      teacher_patronymic: teacherMode === "manual" ? (tPat.trim() || null) : null,
+      exam_dates: examDates.filter((d) => allDates.includes(d)),
+    };
     const { error } = lesson
       ? await supabase.from("attendance_lessons").update(payload).eq("id", lesson.id)
       : await supabase.from("attendance_lessons").insert({ ...payload, created_by: userId });
