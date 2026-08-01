@@ -142,8 +142,13 @@ export type Database = {
           created_by: string | null
           description: string | null
           end_date: string
+          exam_dates: string[]
           id: string
           start_date: string
+          teacher_first_name: string | null
+          teacher_last_name: string | null
+          teacher_patronymic: string | null
+          teacher_user_id: string | null
           title: string
           updated_at: string
         }
@@ -152,8 +157,13 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           end_date: string
+          exam_dates?: string[]
           id?: string
           start_date: string
+          teacher_first_name?: string | null
+          teacher_last_name?: string | null
+          teacher_patronymic?: string | null
+          teacher_user_id?: string | null
           title: string
           updated_at?: string
         }
@@ -162,8 +172,13 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           end_date?: string
+          exam_dates?: string[]
           id?: string
           start_date?: string
+          teacher_first_name?: string | null
+          teacher_last_name?: string | null
+          teacher_patronymic?: string | null
+          teacher_user_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -721,6 +736,7 @@ export type Database = {
         Row: {
           author: string | null
           category: string | null
+          category_id: string | null
           cover_image_url: string | null
           created_at: string
           description: string | null
@@ -736,6 +752,7 @@ export type Database = {
         Insert: {
           author?: string | null
           category?: string | null
+          category_id?: string | null
           cover_image_url?: string | null
           created_at?: string
           description?: string | null
@@ -751,6 +768,7 @@ export type Database = {
         Update: {
           author?: string | null
           category?: string | null
+          category_id?: string | null
           cover_image_url?: string | null
           created_at?: string
           description?: string | null
@@ -762,6 +780,35 @@ export type Database = {
           title?: string
           updated_at?: string
           uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_books_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "library_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      library_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }

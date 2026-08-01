@@ -46,6 +46,11 @@ type Lesson = {
   description: string | null;
   start_date: string;
   end_date: string;
+  teacher_user_id: string | null;
+  teacher_last_name: string | null;
+  teacher_first_name: string | null;
+  teacher_patronymic: string | null;
+  exam_dates: string[] | null;
   created_by: string | null;
   created_at: string;
 };
@@ -222,13 +227,54 @@ function LessonEditor({
   const [description, setDescription] = useState(lesson?.description ?? "");
   const [startDate, setStartDate] = useState(lesson?.start_date ?? isoDate(new Date()));
   const [endDate, setEndDate] = useState(lesson?.end_date ?? isoDate(new Date()));
+  const [teacherMode, setTeacherMode] = useState<"lms" | "manual">(lesson?.teacher_user_id ? "lms" : "manual");
+  const [teacherUserId, setTeacherUserId] = useState<string | null>(lesson?.teacher_user_id ?? null);
+  const [tLast, setTLast] = useState(lesson?.teacher_last_name ?? "");
+  const [tFirst, setTFirst] = useState(lesson?.teacher_first_name ?? "");
+  const [tPat, setTPat] = useState(lesson?.teacher_patronymic ?? "");
+  const [teacherSearch, setTeacherSearch] = useState("");
+  const [teacherResults, setTeacherResults] = useState<Profile[]>([]);
+  const [examDates, setExamDates] = useState<string[]>(lesson?.exam_dates ?? []);
   const [saving, setSaving] = useState(false);
+
+  const allDates = useMemo(
+    () => (startDate && endDate && new Date(endDate) >= new Date(startDate) ? generateDates(startDate, endDate) : []),
+    [startDate, endDate],
+  );
+
+  useEffect(() => {
+    const q = teacherSearch.trim();
+    if (teacherMode !== "lms" || q.length < 2) { setTeacherResults([]); return; }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id,employee_id,full_name,email")
+        .or(`full_name.ilike.%${q}%,employee_id.ilike.%${q}%,email.ilike.%${q}%`)
+        .limit(10);
+      if (!cancelled) setTeacherResults((data as Profile[]) ?? []);
+    }, 300);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [teacherSearch, teacherMode]);
+
+  const toggleExamDate = (d: string) =>
+    setExamDates((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
 
   const save = async () => {
     if (!title.trim()) { toast.error("Ad daxil edin"); return; }
     if (new Date(endDate) < new Date(startDate)) { toast.error("Son tarix başlanğıcdan əvvəl ola bilməz"); return; }
     setSaving(true);
-    const payload = { title: title.trim(), description: description.trim() || null, start_date: startDate, end_date: endDate };
+    const payload = {
+      title: title.trim(),
+      description: description.trim() || null,
+      start_date: startDate,
+      end_date: endDate,
+      teacher_user_id: teacherMode === "lms" ? teacherUserId : null,
+      teacher_last_name: teacherMode === "manual" ? (tLast.trim() || null) : null,
+      teacher_first_name: teacherMode === "manual" ? (tFirst.trim() || null) : null,
+      teacher_patronymic: teacherMode === "manual" ? (tPat.trim() || null) : null,
+      exam_dates: examDates.filter((d) => allDates.includes(d)),
+    };
     const { error } = lesson
       ? await supabase.from("attendance_lessons").update(payload).eq("id", lesson.id)
       : await supabase.from("attendance_lessons").insert({ ...payload, created_by: userId });
@@ -261,6 +307,71 @@ function LessonEditor({
               <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label>Müəllim</Label>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" variant={teacherMode === "lms" ? "default" : "outline"} onClick={() => setTeacherMode("lms")}>LMS istifadəçisi</Button>
+              <Button type="button" size="sm" variant={teacherMode === "manual" ? "default" : "outline"} onClick={() => setTeacherMode("manual")}>Əl ilə</Button>
+            </div>
+            {teacherMode === "lms" ? (
+              <div className="space-y-2">
+                <Input
+                  value={teacherSearch}
+                  onChange={(e) => setTeacherSearch(e.target.value)}
+                  placeholder="Ad, ID və ya e-mail üzrə axtar..."
+                />
+                {teacherUserId && (
+                  <div className="text-xs text-muted-foreground flex items-center gap-2">
+                    Seçildi
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setTeacherUserId(null)}>Təmizlə</Button>
+                  </div>
+                )}
+                {teacherResults.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto rounded-md border divide-y">
+                    {teacherResults.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-muted ${teacherUserId === p.id ? "bg-muted" : ""}`}
+                        onClick={() => { setTeacherUserId(p.id); setTeacherSearch(p.full_name); setTeacherResults([]); }}
+                      >
+                        {p.full_name} <span className="text-xs text-muted-foreground">· {p.employee_id}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                <Input value={tLast} onChange={(e) => setTLast(e.target.value)} placeholder="Soyad" />
+                <Input value={tFirst} onChange={(e) => setTFirst(e.target.value)} placeholder="Ad" />
+                <Input value={tPat} onChange={(e) => setTPat(e.target.value)} placeholder="Ata adı" />
+              </div>
+            )}
+          </div>
+
+          {allDates.length > 0 && (
+            <div className="space-y-2">
+              <Label>İmtahan günləri</Label>
+              <p className="text-xs text-muted-foreground">İmtahan olan günləri seç — cədvəldə və Excel-də yaşıl rənglə göstəriləcək.</p>
+              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 rounded-md border">
+                {allDates.map((d) => {
+                  const on = examDates.includes(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => toggleExamDate(d)}
+                      className={`px-2 py-1 rounded-md text-xs border transition-colors ${on ? "bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-400" : "hover:bg-muted"}`}
+                    >
+                      {formatShort(d)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Ləğv et</Button>
@@ -275,6 +386,17 @@ function LessonEditor({
 
 function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }) {
   const dates = useMemo(() => generateDates(lesson.start_date, lesson.end_date), [lesson.start_date, lesson.end_date]);
+  const examSet = useMemo(() => new Set(lesson.exam_dates ?? []), [lesson.exam_dates]);
+  const isExamDate = (d: string) => examSet.has(d);
+  const [teacherLabel, setTeacherLabel] = useState(
+    [lesson.teacher_last_name, lesson.teacher_first_name, lesson.teacher_patronymic].filter(Boolean).join(" "),
+  );
+
+  useEffect(() => {
+    if (!lesson.teacher_user_id) return;
+    supabase.from("profiles").select("full_name").eq("id", lesson.teacher_user_id).maybeSingle()
+      .then(({ data }) => { if (data) setTeacherLabel((data as { full_name: string }).full_name); });
+  }, [lesson.teacher_user_id]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [records, setRecords] = useState<Map<string, boolean>>(new Map()); // key: `${participantId}|${date}`
   const [loading, setLoading] = useState(true);
@@ -334,7 +456,9 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
     const infoRows: (string | number)[][] = [
       ["Dərs adı", lesson.title],
       ["Təsvir", lesson.description ?? ""],
+      ["Müəllim", teacherLabel || "—"],
       ["Tarix aralığı", `${formatDate(lesson.start_date)} — ${formatDate(lesson.end_date)}`],
+      ["İmtahan günləri", (lesson.exam_dates ?? []).map(formatDate).join(", ") || "—"],
       ["Export tarixi", formatDate(isoDate(new Date()))],
       ["Ümumi iştirakçı", participants.length],
       ["Dərs günləri", dates.length],
@@ -344,7 +468,7 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
     infoWs["!cols"] = [{ wch: 22 }, { wch: 44 }];
     XLSX.utils.book_append_sheet(wb, infoWs, "Məlumat");
 
-    const header = ["№", "İştirakçı", ...dates.map(formatShort), "Cəmi", "Faiz %"];
+    const header = ["№", "İştirakçı", ...dates.map((d) => (isExamDate(d) ? `${formatShort(d)} (İmtahan)` : formatShort(d))), "Cəmi", "Faiz %"];
     const rows: (string | number)[][] = [header];
     participants.forEach((p, i) => {
       const rowCells: (string | number)[] = [i + 1, participantName(p)];
@@ -371,6 +495,7 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
             <h1 className="text-2xl font-display font-bold">{lesson.title}</h1>
             <p className="text-sm text-muted-foreground">
               {formatDate(lesson.start_date)} — {formatDate(lesson.end_date)} · {dates.length} gün
+              {teacherLabel && <> · Müəllim: {teacherLabel}</>}
             </p>
           </div>
         </div>
@@ -401,7 +526,11 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
               <TableHeader>
                 <TableRow>
                   <TableHead className="sticky left-0 bg-background z-10 min-w-[220px]">İştirakçı</TableHead>
-                  {dates.map((d) => (<TableHead key={d} className="text-center whitespace-nowrap">{formatShort(d)}</TableHead>))}
+                  {dates.map((d) => (
+                    <TableHead key={d} className={`text-center whitespace-nowrap ${isExamDate(d) ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : ""}`}>
+                      {formatShort(d)}
+                    </TableHead>
+                  ))}
                   <TableHead className="text-center">Faiz</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
@@ -419,8 +548,10 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
                       {dates.map((d) => {
                         const on = !!records.get(`${p.id}|${d}`);
                         return (
-                          <TableCell key={d} className="text-center">
-                            <Checkbox checked={on} onCheckedChange={(v) => toggle(p.id, d, !!v)} />
+                          <TableCell key={d} className={`text-center ${isExamDate(d) ? "bg-emerald-500/10" : ""}`}>
+                            <div className="flex items-center justify-center">
+                              <Checkbox checked={on} onCheckedChange={(v) => toggle(p.id, d, !!v)} />
+                            </div>
                           </TableCell>
                         );
                       })}

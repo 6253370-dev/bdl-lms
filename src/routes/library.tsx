@@ -16,12 +16,17 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { PdfViewer } from "@/components/PdfViewer";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
   BookOpen, Plus, Search, Download, Eye, Pencil, Trash2, Upload, Loader2,
   LayoutGrid, List, Image as ImageIcon, FileText, Download as DownloadIcon, X,
+  Tags, Info,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,12 +52,15 @@ const BUCKET = "library-books";
 const ALLOWED_EXT = ["pdf", "docx", "doc", "djvu", "epub", "fb2", "mobi", "azw3"];
 const IMG_EXT = ["jpg", "jpeg", "png", "webp"];
 
+type Category = { id: string; name: string };
+
 type Book = {
   id: string;
   title: string;
   author: string | null;
   description: string | null;
   category: string | null;
+  category_id: string | null;
   cover_image_url: string | null;
   file_url: string; // storage path
   file_type: string;
@@ -97,6 +105,14 @@ function LibraryPage() {
   const [previewBook, setPreviewBook] = useState<Book | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [coverUrls, setCoverUrls] = useState<Map<string, string>>(new Map());
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [catManagerOpen, setCatManagerOpen] = useState(false);
+  const [detailsBook, setDetailsBook] = useState<Book | null>(null);
+
+  const loadCategories = async () => {
+    const { data } = await supabase.from("library_categories").select("id,name").order("name");
+    setCategories((data as Category[]) ?? []);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -128,12 +144,17 @@ function LibraryPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadCategories(); }, []);
 
-  const categories = useMemo(
-    () => Array.from(new Set(books.map((b) => b.category).filter(Boolean))) as string[],
-    [books],
-  );
+  const categoryNames = useMemo(() => {
+    const m = new Map<string, string>();
+    categories.forEach((c) => m.set(c.id, c.name));
+    return m;
+  }, [categories]);
+
+  const bookCategory = (b: Book) =>
+    (b.category_id ? categoryNames.get(b.category_id) : null) ?? b.category ?? null;
+
   const types = useMemo(
     () => Array.from(new Set(books.map((b) => b.file_type.toLowerCase()))),
     [books],
@@ -142,7 +163,7 @@ function LibraryPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let arr = books.filter((b) => {
-      if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
+      if (categoryFilter !== "all" && b.category_id !== categoryFilter) return false;
       if (typeFilter !== "all" && b.file_type.toLowerCase() !== typeFilter) return false;
       if (!q) return true;
       return (
@@ -192,7 +213,7 @@ function LibraryPage() {
       rows.push([
         b.title,
         b.author ?? "",
-        b.category ?? "",
+        bookCategory(b) ?? "",
         b.file_type.toUpperCase(),
         formatSize(b.file_size),
         profileNames.get(b.uploaded_by ?? "") ?? "",
@@ -219,6 +240,9 @@ function LibraryPage() {
         <div className="flex gap-2">
           {isAdmin && (
             <>
+              <Button variant="outline" onClick={() => setCatManagerOpen(true)}>
+                <Tags className="h-4 w-4 mr-2" /> Kateqoriyalar
+              </Button>
               <Button variant="outline" onClick={exportExcel}>
                 <DownloadIcon className="h-4 w-4 mr-2" /> Excel
               </Button>
@@ -245,7 +269,7 @@ function LibraryPage() {
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Kateqoriya" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Bütün kateqoriyalar</SelectItem>
-              {categories.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+              {categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -286,9 +310,11 @@ function LibraryPage() {
                   <BookCard
                     key={b.id}
                     book={b}
+                    categoryName={bookCategory(b)}
                     coverUrl={coverUrls.get(b.id) ?? null}
                     onPreview={() => openPreview(b)}
                     onDownload={() => download(b)}
+                    onDetails={() => setDetailsBook(b)}
                     onEdit={isAdmin ? () => { setEditing(b); setEditorOpen(true); } : undefined}
                     onDelete={isAdmin ? () => remove(b) : undefined}
                   />
@@ -325,9 +351,25 @@ function LibraryPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="font-medium">{b.title}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-1.5">
+                          {b.title}
+                          {b.description && (
+                            <TooltipProvider delayDuration={200}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button type="button" onClick={() => setDetailsBook(b)} className="text-muted-foreground hover:text-foreground">
+                                    <Info className="h-3.5 w-3.5" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs whitespace-pre-wrap">{b.description}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{b.author ?? "-"}</TableCell>
-                      <TableCell>{b.category ?? "-"}</TableCell>
+                      <TableCell>{bookCategory(b) ?? "-"}</TableCell>
                       <TableCell><Badge variant="secondary">{b.file_type.toUpperCase()}</Badge></TableCell>
                       <TableCell>{formatSize(b.file_size)}</TableCell>
                       <TableCell>{profileNames.get(b.uploaded_by ?? "") ?? "-"}</TableCell>
@@ -360,10 +402,49 @@ function LibraryPage() {
         <BookEditor
           book={editing}
           userId={user?.id ?? null}
+          categories={categories}
+          onOpenCategories={() => setCatManagerOpen(true)}
           onClose={() => setEditorOpen(false)}
           onSaved={() => { setEditorOpen(false); load(); }}
         />
       )}
+
+      {catManagerOpen && (
+        <CategoryManager
+          categories={categories}
+          onClose={() => setCatManagerOpen(false)}
+          onChanged={() => { loadCategories(); load(); }}
+        />
+      )}
+
+      <Dialog open={!!detailsBook} onOpenChange={(o) => { if (!o) setDetailsBook(null); }}>
+        <DialogContent className="max-w-lg w-full">
+          <DialogHeader>
+            <DialogTitle>{detailsBook?.title}</DialogTitle>
+            <DialogDescription>{detailsBook?.author ?? "Müəllif göstərilməyib"}</DialogDescription>
+          </DialogHeader>
+          {detailsBook && (
+            <div className="space-y-3 text-sm">
+              <div className="flex flex-wrap gap-2">
+                {bookCategory(detailsBook) && <Badge variant="secondary">{bookCategory(detailsBook)}</Badge>}
+                <Badge variant="outline">{detailsBook.file_type.toUpperCase()}</Badge>
+                <Badge variant="outline">{formatSize(detailsBook.file_size)}</Badge>
+              </div>
+              <div className="whitespace-pre-wrap text-muted-foreground">
+                {detailsBook.description?.trim() || "Təsvir əlavə olunmayıb."}
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button size="sm" onClick={() => { const b = detailsBook; setDetailsBook(null); openPreview(b); }}>
+                  <Eye className="h-4 w-4 mr-2" />Bax
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => download(detailsBook)}>
+                  <Download className="h-4 w-4 mr-2" />Yüklə
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!previewBook} onOpenChange={(o) => { if (!o) { setPreviewBook(null); setPreviewUrl(null); } }}>
         <DialogContent className="max-w-5xl w-full">
@@ -371,6 +452,11 @@ function LibraryPage() {
             <DialogTitle>{previewBook?.title}</DialogTitle>
             <DialogDescription>{previewBook?.author}</DialogDescription>
           </DialogHeader>
+          {previewBook?.description && (
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap border-l-2 border-primary/40 pl-3">
+              {previewBook.description}
+            </p>
+          )}
           {previewBook && <PreviewBody book={previewBook} url={previewUrl} onDownload={() => download(previewBook)} />}
         </DialogContent>
       </Dialog>
@@ -379,10 +465,10 @@ function LibraryPage() {
 }
 
 function BookCard({
-  book, coverUrl, onPreview, onDownload, onEdit, onDelete,
+  book, categoryName, coverUrl, onPreview, onDownload, onDetails, onEdit, onDelete,
 }: {
-  book: Book; coverUrl: string | null;
-  onPreview: () => void; onDownload: () => void;
+  book: Book; categoryName: string | null; coverUrl: string | null;
+  onPreview: () => void; onDownload: () => void; onDetails: () => void;
   onEdit?: () => void; onDelete?: () => void;
 }) {
   return (
@@ -403,6 +489,23 @@ function BookCard({
       <div className="mt-2 space-y-1">
         <div className="text-sm font-medium line-clamp-2">{book.title}</div>
         {book.author && <div className="text-xs text-muted-foreground line-clamp-1">{book.author}</div>}
+        {categoryName && <div className="text-[11px] text-primary/80 line-clamp-1">{categoryName}</div>}
+        {book.description && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={onDetails}
+                  className="text-left text-xs text-muted-foreground line-clamp-2 hover:text-foreground"
+                >
+                  {book.description}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs whitespace-pre-wrap">{book.description}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       <div className="mt-2 flex gap-1">
         <Button size="sm" variant="outline" className="flex-1 h-8" onClick={onPreview}>
@@ -428,7 +531,7 @@ function PreviewBody({ book, url, onDownload }: { book: Book; url: string | null
     return <div className="py-16 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
   if (t === "pdf") {
-    return <iframe src={url} title={book.title} className="w-full h-[70vh] rounded-md border" />;
+    return <PdfViewer url={url} className="max-h-[70vh] overflow-y-auto pr-1" />;
   }
   if (["jpg", "jpeg", "png", "webp"].includes(t)) {
     return <img src={url} alt={book.title} className="w-full max-h-[70vh] object-contain" />;
@@ -455,15 +558,17 @@ function PreviewBody({ book, url, onDownload }: { book: Book; url: string | null
 }
 
 function BookEditor({
-  book, userId, onClose, onSaved,
+  book, userId, categories, onOpenCategories, onClose, onSaved,
 }: {
   book: Book | null; userId: string | null;
+  categories: Category[]; onOpenCategories: () => void;
   onClose: () => void; onSaved: () => void;
 }) {
   const [title, setTitle] = useState(book?.title ?? "");
   const [author, setAuthor] = useState(book?.author ?? "");
   const [description, setDescription] = useState(book?.description ?? "");
-  const [category, setCategory] = useState(book?.category ?? "");
+  const [categoryId, setCategoryId] = useState<string | null>(book?.category_id ?? null);
+  const [catSearch, setCatSearch] = useState("");
   const [filePath, setFilePath] = useState(book?.file_url ?? "");
   const [fileType, setFileType] = useState(book?.file_type ?? "");
   const [fileSize, setFileSize] = useState<number | null>(book?.file_size ?? null);
@@ -509,7 +614,8 @@ function BookEditor({
       title: title.trim(),
       author: author.trim() || null,
       description: description.trim() || null,
-      category: category.trim() || null,
+      category_id: categoryId,
+      category: categoryId ? (categories.find((c) => c.id === categoryId)?.name ?? null) : null,
       cover_image_url: coverPath,
       file_url: filePath,
       file_type: fileType,
@@ -543,8 +649,30 @@ function BookEditor({
               <Input value={author} onChange={(e) => setAuthor(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Kateqoriya</Label>
-              <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="məs. Biznes, Texnologiya" />
+              <div className="flex items-center justify-between">
+                <Label>Kateqoriya</Label>
+                <button type="button" className="text-xs text-primary hover:underline" onClick={onOpenCategories}>
+                  İdarə et
+                </button>
+              </div>
+              <Select value={categoryId ?? "none"} onValueChange={(v) => setCategoryId(v === "none" ? null : v)}>
+                <SelectTrigger><SelectValue placeholder="Kateqoriya seç" /></SelectTrigger>
+                <SelectContent>
+                  <div className="p-2">
+                    <Input
+                      value={catSearch}
+                      onChange={(e) => setCatSearch(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      placeholder="Axtar..."
+                      className="h-8"
+                    />
+                  </div>
+                  <SelectItem value="none">Kateqoriyasız</SelectItem>
+                  {categories
+                    .filter((c) => c.name.toLowerCase().includes(catSearch.trim().toLowerCase()))
+                    .map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="space-y-2">
@@ -596,6 +724,105 @@ function BookEditor({
           <Button onClick={save} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Yadda saxla
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CategoryManager({
+  categories, onClose, onChanged,
+}: {
+  categories: Category[]; onClose: () => void; onChanged: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [search, setSearch] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const create = async () => {
+    const v = name.trim();
+    if (!v) return;
+    setBusy(true);
+    const { error } = await supabase.from("library_categories").insert({ name: v });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    setName("");
+    toast.success("Kateqoriya yaradıldı");
+    onChanged();
+  };
+
+  const rename = async (id: string) => {
+    const v = editingName.trim();
+    if (!v) return;
+    setBusy(true);
+    const { error } = await supabase.from("library_categories").update({ name: v }).eq("id", id);
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    setEditingId(null);
+    toast.success("Yeniləndi");
+    onChanged();
+  };
+
+  const remove = async (c: Category) => {
+    if (!confirm(`"${c.name}" kateqoriyası silinsin? Kitablar "Kateqoriyasız" olacaq.`)) return;
+    setBusy(true);
+    await supabase.from("library_books").update({ category_id: null, category: null }).eq("category_id", c.id);
+    const { error } = await supabase.from("library_categories").delete().eq("id", c.id);
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Silindi");
+    onChanged();
+  };
+
+  const list = categories.filter((c) => c.name.toLowerCase().includes(search.trim().toLowerCase()));
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg w-full">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Tags className="h-5 w-5" /> Kateqoriyalar</DialogTitle>
+          <DialogDescription>Kateqoriya yarat, adını dəyiş və ya sil.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Yeni kateqoriya adı" />
+            <Button onClick={create} disabled={busy || !name.trim()}><Plus className="h-4 w-4" /></Button>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Axtar..." className="pl-9" />
+          </div>
+          <div className="max-h-[45vh] overflow-y-auto divide-y rounded-md border">
+            {list.length === 0 && (
+              <div className="p-4 text-center text-sm text-muted-foreground">Kateqoriya yoxdur.</div>
+            )}
+            {list.map((c) => (
+              <div key={c.id} className="flex items-center gap-2 p-2">
+                {editingId === c.id ? (
+                  <>
+                    <Input value={editingName} onChange={(e) => setEditingName(e.target.value)} className="h-8" />
+                    <Button size="sm" onClick={() => rename(c.id)} disabled={busy}>Saxla</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Ləğv</Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 text-sm">{c.name}</span>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingId(c.id); setEditingName(c.name); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => remove(c)}>
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Bağla</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
