@@ -105,6 +105,14 @@ function LibraryPage() {
   const [previewBook, setPreviewBook] = useState<Book | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [coverUrls, setCoverUrls] = useState<Map<string, string>>(new Map());
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [catManagerOpen, setCatManagerOpen] = useState(false);
+  const [detailsBook, setDetailsBook] = useState<Book | null>(null);
+
+  const loadCategories = async () => {
+    const { data } = await supabase.from("library_categories").select("id,name").order("name");
+    setCategories((data as Category[]) ?? []);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -136,12 +144,17 @@ function LibraryPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadCategories(); }, []);
 
-  const categories = useMemo(
-    () => Array.from(new Set(books.map((b) => b.category).filter(Boolean))) as string[],
-    [books],
-  );
+  const categoryNames = useMemo(() => {
+    const m = new Map<string, string>();
+    categories.forEach((c) => m.set(c.id, c.name));
+    return m;
+  }, [categories]);
+
+  const bookCategory = (b: Book) =>
+    (b.category_id ? categoryNames.get(b.category_id) : null) ?? b.category ?? null;
+
   const types = useMemo(
     () => Array.from(new Set(books.map((b) => b.file_type.toLowerCase()))),
     [books],
@@ -150,7 +163,7 @@ function LibraryPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let arr = books.filter((b) => {
-      if (categoryFilter !== "all" && b.category !== categoryFilter) return false;
+      if (categoryFilter !== "all" && b.category_id !== categoryFilter) return false;
       if (typeFilter !== "all" && b.file_type.toLowerCase() !== typeFilter) return false;
       if (!q) return true;
       return (
