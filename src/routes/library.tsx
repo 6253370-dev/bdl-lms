@@ -541,15 +541,17 @@ function PreviewBody({ book, url, onDownload }: { book: Book; url: string | null
 }
 
 function BookEditor({
-  book, userId, onClose, onSaved,
+  book, userId, categories, onOpenCategories, onClose, onSaved,
 }: {
   book: Book | null; userId: string | null;
+  categories: Category[]; onOpenCategories: () => void;
   onClose: () => void; onSaved: () => void;
 }) {
   const [title, setTitle] = useState(book?.title ?? "");
   const [author, setAuthor] = useState(book?.author ?? "");
   const [description, setDescription] = useState(book?.description ?? "");
-  const [category, setCategory] = useState(book?.category ?? "");
+  const [categoryId, setCategoryId] = useState<string | null>(book?.category_id ?? null);
+  const [catSearch, setCatSearch] = useState("");
   const [filePath, setFilePath] = useState(book?.file_url ?? "");
   const [fileType, setFileType] = useState(book?.file_type ?? "");
   const [fileSize, setFileSize] = useState<number | null>(book?.file_size ?? null);
