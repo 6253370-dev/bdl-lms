@@ -447,7 +447,9 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
     const infoRows: (string | number)[][] = [
       ["Dərs adı", lesson.title],
       ["Təsvir", lesson.description ?? ""],
+      ["Müəllim", teacherLabel || "—"],
       ["Tarix aralığı", `${formatDate(lesson.start_date)} — ${formatDate(lesson.end_date)}`],
+      ["İmtahan günləri", (lesson.exam_dates ?? []).map(formatDate).join(", ") || "—"],
       ["Export tarixi", formatDate(isoDate(new Date()))],
       ["Ümumi iştirakçı", participants.length],
       ["Dərs günləri", dates.length],
@@ -457,7 +459,7 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
     infoWs["!cols"] = [{ wch: 22 }, { wch: 44 }];
     XLSX.utils.book_append_sheet(wb, infoWs, "Məlumat");
 
-    const header = ["№", "İştirakçı", ...dates.map(formatShort), "Cəmi", "Faiz %"];
+    const header = ["№", "İştirakçı", ...dates.map((d) => (isExamDate(d) ? `${formatShort(d)} (İmtahan)` : formatShort(d))), "Cəmi", "Faiz %"];
     const rows: (string | number)[][] = [header];
     participants.forEach((p, i) => {
       const rowCells: (string | number)[] = [i + 1, participantName(p)];
