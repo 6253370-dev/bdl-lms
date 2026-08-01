@@ -384,10 +384,49 @@ function LibraryPage() {
         <BookEditor
           book={editing}
           userId={user?.id ?? null}
+          categories={categories}
+          onOpenCategories={() => setCatManagerOpen(true)}
           onClose={() => setEditorOpen(false)}
           onSaved={() => { setEditorOpen(false); load(); }}
         />
       )}
+
+      {catManagerOpen && (
+        <CategoryManager
+          categories={categories}
+          onClose={() => setCatManagerOpen(false)}
+          onChanged={() => { loadCategories(); load(); }}
+        />
+      )}
+
+      <Dialog open={!!detailsBook} onOpenChange={(o) => { if (!o) setDetailsBook(null); }}>
+        <DialogContent className="max-w-lg w-full">
+          <DialogHeader>
+            <DialogTitle>{detailsBook?.title}</DialogTitle>
+            <DialogDescription>{detailsBook?.author ?? "Müəllif göstərilməyib"}</DialogDescription>
+          </DialogHeader>
+          {detailsBook && (
+            <div className="space-y-3 text-sm">
+              <div className="flex flex-wrap gap-2">
+                {bookCategory(detailsBook) && <Badge variant="secondary">{bookCategory(detailsBook)}</Badge>}
+                <Badge variant="outline">{detailsBook.file_type.toUpperCase()}</Badge>
+                <Badge variant="outline">{formatSize(detailsBook.file_size)}</Badge>
+              </div>
+              <div className="whitespace-pre-wrap text-muted-foreground">
+                {detailsBook.description?.trim() || "Təsvir əlavə olunmayıb."}
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button size="sm" onClick={() => { const b = detailsBook; setDetailsBook(null); openPreview(b); }}>
+                  <Eye className="h-4 w-4 mr-2" />Bax
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => download(detailsBook)}>
+                  <Download className="h-4 w-4 mr-2" />Yüklə
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!previewBook} onOpenChange={(o) => { if (!o) { setPreviewBook(null); setPreviewUrl(null); } }}>
         <DialogContent className="max-w-5xl w-full">
@@ -395,6 +434,11 @@ function LibraryPage() {
             <DialogTitle>{previewBook?.title}</DialogTitle>
             <DialogDescription>{previewBook?.author}</DialogDescription>
           </DialogHeader>
+          {previewBook?.description && (
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap border-l-2 border-primary/40 pl-3">
+              {previewBook.description}
+            </p>
+          )}
           {previewBook && <PreviewBody book={previewBook} url={previewUrl} onDownload={() => download(previewBook)} />}
         </DialogContent>
       </Dialog>
