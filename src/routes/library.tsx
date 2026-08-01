@@ -213,7 +213,7 @@ function LibraryPage() {
       rows.push([
         b.title,
         b.author ?? "",
-        b.category ?? "",
+        bookCategory(b) ?? "",
         b.file_type.toUpperCase(),
         formatSize(b.file_size),
         profileNames.get(b.uploaded_by ?? "") ?? "",
