@@ -310,9 +310,11 @@ function LibraryPage() {
                   <BookCard
                     key={b.id}
                     book={b}
+                    categoryName={bookCategory(b)}
                     coverUrl={coverUrls.get(b.id) ?? null}
                     onPreview={() => openPreview(b)}
                     onDownload={() => download(b)}
+                    onDetails={() => setDetailsBook(b)}
                     onEdit={isAdmin ? () => { setEditing(b); setEditorOpen(true); } : undefined}
                     onDelete={isAdmin ? () => remove(b) : undefined}
                   />
