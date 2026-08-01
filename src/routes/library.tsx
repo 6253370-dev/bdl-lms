@@ -531,7 +531,7 @@ function PreviewBody({ book, url, onDownload }: { book: Book; url: string | null
     return <div className="py-16 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
   if (t === "pdf") {
-    return <iframe src={url} title={book.title} className="w-full h-[70vh] rounded-md border" />;
+    return <PdfViewer url={url} className="max-h-[70vh] overflow-y-auto pr-1" />;
   }
   if (["jpg", "jpeg", "png", "webp"].includes(t)) {
     return <img src={url} alt={book.title} className="w-full max-h-[70vh] object-contain" />;
