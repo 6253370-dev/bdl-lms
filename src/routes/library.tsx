@@ -266,7 +266,7 @@ function LibraryPage() {
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Kateqoriya" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Bütün kateqoriyalar</SelectItem>
-              {categories.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+              {categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
