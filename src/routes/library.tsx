@@ -465,10 +465,10 @@ function LibraryPage() {
 }
 
 function BookCard({
-  book, coverUrl, onPreview, onDownload, onEdit, onDelete,
+  book, categoryName, coverUrl, onPreview, onDownload, onDetails, onEdit, onDelete,
 }: {
-  book: Book; coverUrl: string | null;
-  onPreview: () => void; onDownload: () => void;
+  book: Book; categoryName: string | null; coverUrl: string | null;
+  onPreview: () => void; onDownload: () => void; onDetails: () => void;
   onEdit?: () => void; onDelete?: () => void;
 }) {
   return (
@@ -489,6 +489,23 @@ function BookCard({
       <div className="mt-2 space-y-1">
         <div className="text-sm font-medium line-clamp-2">{book.title}</div>
         {book.author && <div className="text-xs text-muted-foreground line-clamp-1">{book.author}</div>}
+        {categoryName && <div className="text-[11px] text-primary/80 line-clamp-1">{categoryName}</div>}
+        {book.description && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={onDetails}
+                  className="text-left text-xs text-muted-foreground line-clamp-2 hover:text-foreground"
+                >
+                  {book.description}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs whitespace-pre-wrap">{book.description}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       <div className="mt-2 flex gap-1">
         <Button size="sm" variant="outline" className="flex-1 h-8" onClick={onPreview}>
