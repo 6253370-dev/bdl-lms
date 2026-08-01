@@ -629,8 +629,30 @@ function BookEditor({
               <Input value={author} onChange={(e) => setAuthor(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Kateqoriya</Label>
-              <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="məs. Biznes, Texnologiya" />
+              <div className="flex items-center justify-between">
+                <Label>Kateqoriya</Label>
+                <button type="button" className="text-xs text-primary hover:underline" onClick={onOpenCategories}>
+                  İdarə et
+                </button>
+              </div>
+              <Select value={categoryId ?? "none"} onValueChange={(v) => setCategoryId(v === "none" ? null : v)}>
+                <SelectTrigger><SelectValue placeholder="Kateqoriya seç" /></SelectTrigger>
+                <SelectContent>
+                  <div className="p-2">
+                    <Input
+                      value={catSearch}
+                      onChange={(e) => setCatSearch(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      placeholder="Axtar..."
+                      className="h-8"
+                    />
+                  </div>
+                  <SelectItem value="none">Kateqoriyasız</SelectItem>
+                  {categories
+                    .filter((c) => c.name.toLowerCase().includes(catSearch.trim().toLowerCase()))
+                    .map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="space-y-2">
