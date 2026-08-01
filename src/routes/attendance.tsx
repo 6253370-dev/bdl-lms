@@ -386,6 +386,8 @@ function LessonEditor({
 
 function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }) {
   const dates = useMemo(() => generateDates(lesson.start_date, lesson.end_date), [lesson.start_date, lesson.end_date]);
+  const examSet = useMemo(() => new Set(lesson.exam_dates ?? []), [lesson.exam_dates]);
+  const isExamDate = (d: string) => examSet.has(d);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [records, setRecords] = useState<Map<string, boolean>>(new Map()); // key: `${participantId}|${date}`
   const [loading, setLoading] = useState(true);
