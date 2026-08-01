@@ -729,3 +729,102 @@ function BookEditor({
     </Dialog>
   );
 }
+
+function CategoryManager({
+  categories, onClose, onChanged,
+}: {
+  categories: Category[]; onClose: () => void; onChanged: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [search, setSearch] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const create = async () => {
+    const v = name.trim();
+    if (!v) return;
+    setBusy(true);
+    const { error } = await supabase.from("library_categories").insert({ name: v });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    setName("");
+    toast.success("Kateqoriya yaradıldı");
+    onChanged();
+  };
+
+  const rename = async (id: string) => {
+    const v = editingName.trim();
+    if (!v) return;
+    setBusy(true);
+    const { error } = await supabase.from("library_categories").update({ name: v }).eq("id", id);
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    setEditingId(null);
+    toast.success("Yeniləndi");
+    onChanged();
+  };
+
+  const remove = async (c: Category) => {
+    if (!confirm(`"${c.name}" kateqoriyası silinsin? Kitablar "Kateqoriyasız" olacaq.`)) return;
+    setBusy(true);
+    await supabase.from("library_books").update({ category_id: null, category: null }).eq("category_id", c.id);
+    const { error } = await supabase.from("library_categories").delete().eq("id", c.id);
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Silindi");
+    onChanged();
+  };
+
+  const list = categories.filter((c) => c.name.toLowerCase().includes(search.trim().toLowerCase()));
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg w-full">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Tags className="h-5 w-5" /> Kateqoriyalar</DialogTitle>
+          <DialogDescription>Kateqoriya yarat, adını dəyiş və ya sil.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Yeni kateqoriya adı" />
+            <Button onClick={create} disabled={busy || !name.trim()}><Plus className="h-4 w-4" /></Button>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Axtar..." className="pl-9" />
+          </div>
+          <div className="max-h-[45vh] overflow-y-auto divide-y rounded-md border">
+            {list.length === 0 && (
+              <div className="p-4 text-center text-sm text-muted-foreground">Kateqoriya yoxdur.</div>
+            )}
+            {list.map((c) => (
+              <div key={c.id} className="flex items-center gap-2 p-2">
+                {editingId === c.id ? (
+                  <>
+                    <Input value={editingName} onChange={(e) => setEditingName(e.target.value)} className="h-8" />
+                    <Button size="sm" onClick={() => rename(c.id)} disabled={busy}>Saxla</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Ləğv</Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 text-sm">{c.name}</span>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingId(c.id); setEditingName(c.name); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => remove(c)}>
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Bağla</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
