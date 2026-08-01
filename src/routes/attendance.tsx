@@ -46,6 +46,11 @@ type Lesson = {
   description: string | null;
   start_date: string;
   end_date: string;
+  teacher_user_id: string | null;
+  teacher_last_name: string | null;
+  teacher_first_name: string | null;
+  teacher_patronymic: string | null;
+  exam_dates: string[] | null;
   created_by: string | null;
   created_at: string;
 };
