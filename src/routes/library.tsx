@@ -52,12 +52,15 @@ const BUCKET = "library-books";
 const ALLOWED_EXT = ["pdf", "docx", "doc", "djvu", "epub", "fb2", "mobi", "azw3"];
 const IMG_EXT = ["jpg", "jpeg", "png", "webp"];
 
+type Category = { id: string; name: string };
+
 type Book = {
   id: string;
   title: string;
   author: string | null;
   description: string | null;
   category: string | null;
+  category_id: string | null;
   cover_image_url: string | null;
   file_url: string; // storage path
   file_type: string;
