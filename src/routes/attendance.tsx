@@ -388,6 +388,15 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
   const dates = useMemo(() => generateDates(lesson.start_date, lesson.end_date), [lesson.start_date, lesson.end_date]);
   const examSet = useMemo(() => new Set(lesson.exam_dates ?? []), [lesson.exam_dates]);
   const isExamDate = (d: string) => examSet.has(d);
+  const [teacherLabel, setTeacherLabel] = useState(
+    [lesson.teacher_last_name, lesson.teacher_first_name, lesson.teacher_patronymic].filter(Boolean).join(" "),
+  );
+
+  useEffect(() => {
+    if (!lesson.teacher_user_id) return;
+    supabase.from("profiles").select("full_name").eq("id", lesson.teacher_user_id).maybeSingle()
+      .then(({ data }) => { if (data) setTeacherLabel((data as { full_name: string }).full_name); });
+  }, [lesson.teacher_user_id]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [records, setRecords] = useState<Map<string, boolean>>(new Map()); // key: `${participantId}|${date}`
   const [loading, setLoading] = useState(true);
