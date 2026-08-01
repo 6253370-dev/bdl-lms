@@ -512,7 +512,11 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
               <TableHeader>
                 <TableRow>
                   <TableHead className="sticky left-0 bg-background z-10 min-w-[220px]">İştirakçı</TableHead>
-                  {dates.map((d) => (<TableHead key={d} className="text-center whitespace-nowrap">{formatShort(d)}</TableHead>))}
+                  {dates.map((d) => (
+                    <TableHead key={d} className={`text-center whitespace-nowrap ${isExamDate(d) ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : ""}`}>
+                      {formatShort(d)}
+                    </TableHead>
+                  ))}
                   <TableHead className="text-center">Faiz</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
