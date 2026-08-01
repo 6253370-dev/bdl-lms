@@ -16,12 +16,17 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { PdfViewer } from "@/components/PdfViewer";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
   BookOpen, Plus, Search, Download, Eye, Pencil, Trash2, Upload, Loader2,
   LayoutGrid, List, Image as ImageIcon, FileText, Download as DownloadIcon, X,
+  Tags, Info,
 } from "lucide-react";
 import { toast } from "sonner";
 
