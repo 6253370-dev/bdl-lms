@@ -530,8 +530,10 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
                       {dates.map((d) => {
                         const on = !!records.get(`${p.id}|${d}`);
                         return (
-                          <TableCell key={d} className="text-center">
-                            <Checkbox checked={on} onCheckedChange={(v) => toggle(p.id, d, !!v)} />
+                          <TableCell key={d} className={`text-center ${isExamDate(d) ? "bg-emerald-500/10" : ""}`}>
+                            <div className="flex items-center justify-center">
+                              <Checkbox checked={on} onCheckedChange={(v) => toggle(p.id, d, !!v)} />
+                            </div>
                           </TableCell>
                         );
                       })}
