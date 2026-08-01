@@ -240,6 +240,9 @@ function LibraryPage() {
         <div className="flex gap-2">
           {isAdmin && (
             <>
+              <Button variant="outline" onClick={() => setCatManagerOpen(true)}>
+                <Tags className="h-4 w-4 mr-2" /> Kateqoriyalar
+              </Button>
               <Button variant="outline" onClick={exportExcel}>
                 <DownloadIcon className="h-4 w-4 mr-2" /> Excel
               </Button>
