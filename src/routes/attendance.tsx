@@ -307,6 +307,71 @@ function LessonEditor({
               <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label>Müəllim</Label>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" variant={teacherMode === "lms" ? "default" : "outline"} onClick={() => setTeacherMode("lms")}>LMS istifadəçisi</Button>
+              <Button type="button" size="sm" variant={teacherMode === "manual" ? "default" : "outline"} onClick={() => setTeacherMode("manual")}>Əl ilə</Button>
+            </div>
+            {teacherMode === "lms" ? (
+              <div className="space-y-2">
+                <Input
+                  value={teacherSearch}
+                  onChange={(e) => setTeacherSearch(e.target.value)}
+                  placeholder="Ad, ID və ya e-mail üzrə axtar..."
+                />
+                {teacherUserId && (
+                  <div className="text-xs text-muted-foreground flex items-center gap-2">
+                    Seçildi
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setTeacherUserId(null)}>Təmizlə</Button>
+                  </div>
+                )}
+                {teacherResults.length > 0 && (
+                  <div className="max-h-40 overflow-y-auto rounded-md border divide-y">
+                    {teacherResults.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className={`w-full text-left px-3 py-2 text-sm hover:bg-muted ${teacherUserId === p.id ? "bg-muted" : ""}`}
+                        onClick={() => { setTeacherUserId(p.id); setTeacherSearch(p.full_name); setTeacherResults([]); }}
+                      >
+                        {p.full_name} <span className="text-xs text-muted-foreground">· {p.employee_id}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                <Input value={tLast} onChange={(e) => setTLast(e.target.value)} placeholder="Soyad" />
+                <Input value={tFirst} onChange={(e) => setTFirst(e.target.value)} placeholder="Ad" />
+                <Input value={tPat} onChange={(e) => setTPat(e.target.value)} placeholder="Ata adı" />
+              </div>
+            )}
+          </div>
+
+          {allDates.length > 0 && (
+            <div className="space-y-2">
+              <Label>İmtahan günləri</Label>
+              <p className="text-xs text-muted-foreground">İmtahan olan günləri seç — cədvəldə və Excel-də yaşıl rənglə göstəriləcək.</p>
+              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 rounded-md border">
+                {allDates.map((d) => {
+                  const on = examDates.includes(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => toggleExamDate(d)}
+                      className={`px-2 py-1 rounded-md text-xs border transition-colors ${on ? "bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-400" : "hover:bg-muted"}`}
+                    >
+                      {formatShort(d)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Ləğv et</Button>
