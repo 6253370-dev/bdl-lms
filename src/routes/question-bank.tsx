@@ -480,7 +480,26 @@ function QuestionEditor({
   const [timeLimit, setTimeLimit] = useState(
     question?.time_limit_seconds ? String(question.time_limit_seconds) : "",
   );
-  const [targetFolder, setTargetFolder] = useState(question?.folder_id ?? folderId);
+  const initialFolder = question?.folder_id ?? folderId;
+  const rootOf = (id: string): string => {
+    let cur = folders.find((f) => f.id === id);
+    while (cur?.parent_id) {
+      const p = folders.find((f) => f.id === cur!.parent_id);
+      if (!p) break;
+      cur = p;
+    }
+    return cur?.id ?? id;
+  };
+  const initialRoot = initialFolder ? rootOf(initialFolder) : "";
+  const [rootFolder, setRootFolder] = useState(initialRoot);
+  const [subFolder, setSubFolder] = useState(
+    initialFolder && initialFolder !== initialRoot ? initialFolder : "",
+  );
+  const [openRoots, setOpenRoots] = useState<Set<string>>(new Set());
+  const rootFolders = folders.filter((f) => !f.parent_id);
+  const subOptions = folders.filter((f) => f.parent_id === rootFolder);
+  const targetFolder = subFolder || rootFolder;
+
   const [answers, setAnswers] = useState<{ id?: string; text: string; is_correct: boolean }[]>(
     question?.answers && question.answers.length
       ? question.answers.map((a) => ({ id: a.id, text: a.text, is_correct: a.is_correct }))
