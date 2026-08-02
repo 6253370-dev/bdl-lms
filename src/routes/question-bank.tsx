@@ -106,10 +106,7 @@ function QuestionBankPage() {
       .select("id,name,description,parent_id")
       .order("name");
     setFolders((data ?? []) as BankFolder[]);
-    setExpanded((prev) => {
-      if (prev.size > 0) return prev;
-      return new Set((data ?? []).map((f: any) => f.id));
-    });
+
 
     const { data: qs } = await supabase
       .from("bank_questions")
@@ -483,7 +480,26 @@ function QuestionEditor({
   const [timeLimit, setTimeLimit] = useState(
     question?.time_limit_seconds ? String(question.time_limit_seconds) : "",
   );
-  const [targetFolder, setTargetFolder] = useState(question?.folder_id ?? folderId);
+  const initialFolder = question?.folder_id ?? folderId;
+  const rootOf = (id: string): string => {
+    let cur = folders.find((f) => f.id === id);
+    while (cur?.parent_id) {
+      const p = folders.find((f) => f.id === cur!.parent_id);
+      if (!p) break;
+      cur = p;
+    }
+    return cur?.id ?? id;
+  };
+  const initialRoot = initialFolder ? rootOf(initialFolder) : "";
+  const [rootFolder, setRootFolder] = useState(initialRoot);
+  const [subFolder, setSubFolder] = useState(
+    initialFolder && initialFolder !== initialRoot ? initialFolder : "",
+  );
+  const [openRoots, setOpenRoots] = useState<Set<string>>(new Set());
+  const rootFolders = folders.filter((f) => !f.parent_id);
+  const subOptions = folders.filter((f) => f.parent_id === rootFolder);
+  const targetFolder = subFolder || rootFolder;
+
   const [answers, setAnswers] = useState<{ id?: string; text: string; is_correct: boolean }[]>(
     question?.answers && question.answers.length
       ? question.answers.map((a) => ({ id: a.id, text: a.text, is_correct: a.is_correct }))
@@ -502,6 +518,8 @@ function QuestionEditor({
 
   const save = async () => {
     if (!text.trim()) return toast.error("Sual mətni tələb olunur");
+    if (!targetFolder) return toast.error("Mövzu seçin");
+
     if (type !== "open_ended") {
       const valid = answers.filter((a) => a.text.trim());
       if (valid.length < 2) return toast.error("Ən az 2 cavab variantı tələb olunur");
@@ -609,21 +627,92 @@ function QuestionEditor({
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label>Mövzu</Label>
-            <Select value={targetFolder} onValueChange={setTargetFolder}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {folders.map((f) => (
-                  <SelectItem key={f.id} value={f.id}>
-                    {f.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>Mövzu</Label>
+              <div className="border rounded-md max-h-44 overflow-y-auto p-1">
+                {rootFolders.length === 0 && (
+                  <p className="text-xs text-muted-foreground p-2">Mövzu yoxdur</p>
+                )}
+                {rootFolders.map((f) => {
+                  const kids = folders.filter((c) => c.parent_id === f.id);
+                  const isOpen = openRoots.has(f.id);
+                  return (
+                    <div key={f.id}>
+                      <div
+                        className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-sm cursor-pointer ${
+                          rootFolder === f.id ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                        }`}
+                        onClick={() => {
+                          setRootFolder(f.id);
+                          setSubFolder("");
+                        }}
+                      >
+                        {kids.length > 0 ? (
+                          <button
+                            type="button"
+                            aria-label={isOpen ? "Bağla" : "Aç"}
+                            className="p-0.5 text-muted-foreground shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenRoots((s) => {
+                                const n = new Set(s);
+                                n.has(f.id) ? n.delete(f.id) : n.add(f.id);
+                                return n;
+                              });
+                            }}
+                          >
+                            {isOpen ? (
+                              <ChevronDown className="h-3.5 w-3.5" />
+                            ) : (
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        ) : (
+                          <span className="w-[18px] shrink-0" />
+                        )}
+                        <FolderIcon className="h-4 w-4 shrink-0" />
+                        <span className="flex-1 truncate">{f.name}</span>
+                      </div>
+                      {isOpen &&
+                        kids.map((k) => (
+                          <div
+                            key={k.id}
+                            className="pl-8 pr-2 py-1 text-xs text-muted-foreground truncate"
+                          >
+                            {k.name}
+                          </div>
+                        ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Alt mövzu</Label>
+              <Select
+                value={subFolder}
+                onValueChange={setSubFolder}
+                disabled={!rootFolder || subOptions.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={rootFolder ? "Alt mövzu seçin (opsional)" : "Əvvəlcə mövzu seçin"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {subOptions.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {rootFolder && subOptions.length === 0 && (
+                <p className="text-xs text-muted-foreground">Bu mövzunun alt mövzusu yoxdur</p>
+              )}
+            </div>
           </div>
+
 
           {type !== "open_ended" && (
             <div className="space-y-2">
@@ -756,7 +845,8 @@ function FolderTree({
                   e.stopPropagation();
                   onEdit(f);
                 }}
-                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
+                aria-label="Redaktə et"
+                className="p-1 text-muted-foreground hover:text-foreground md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -765,8 +855,10 @@ function FolderTree({
                   e.stopPropagation();
                   onDelete(f.id);
                 }}
-                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                aria-label="Sil"
+                className="p-1 text-muted-foreground hover:text-destructive md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
               >
+
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
