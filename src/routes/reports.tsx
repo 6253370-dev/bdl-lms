@@ -80,7 +80,7 @@ type ExamAttempt = {
 
 type AttemptKind = "course" | "exam";
 
-interface AttemptDetailRef {
+export interface AttemptDetailRef {
   kind: AttemptKind;
   attemptId: string;
   title: string;
@@ -648,7 +648,7 @@ async function fetchAttemptDetail(ref: AttemptDetailRef): Promise<QuestionDetail
   }
 }
 
-function AttemptDetailDialog({
+export function AttemptDetailDialog({
   detailRef: ref,
   onClose,
 }: {
