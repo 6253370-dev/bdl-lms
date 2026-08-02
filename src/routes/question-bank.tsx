@@ -753,7 +753,8 @@ function FolderTree({
                   e.stopPropagation();
                   onEdit(f);
                 }}
-                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
+                aria-label="Redaktə et"
+                className="p-1 text-muted-foreground hover:text-foreground md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -762,8 +763,10 @@ function FolderTree({
                   e.stopPropagation();
                   onDelete(f.id);
                 }}
-                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                aria-label="Sil"
+                className="p-1 text-muted-foreground hover:text-destructive md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
               >
+
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
