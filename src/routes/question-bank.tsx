@@ -518,6 +518,8 @@ function QuestionEditor({
 
   const save = async () => {
     if (!text.trim()) return toast.error("Sual mətni tələb olunur");
+    if (!targetFolder) return toast.error("Mövzu seçin");
+
     if (type !== "open_ended") {
       const valid = answers.filter((a) => a.text.trim());
       if (valid.length < 2) return toast.error("Ən az 2 cavab variantı tələb olunur");
