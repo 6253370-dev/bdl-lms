@@ -1027,7 +1027,7 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                             title: exam.title,
                             user: a.profile
                               ? {
-                                  id: a.profile.id,
+                                  id: a.user_id,
                                   full_name: a.profile.full_name,
                                   employee_id: a.profile.employee_id,
                                 }
