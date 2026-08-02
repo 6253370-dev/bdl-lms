@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AttemptDetailDialog, type AttemptDetailRef } from "./reports";
 import { useAuth } from "@/lib/auth";
 import {
   ClipboardList,
@@ -892,6 +893,7 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
   const [loading, setLoading] = useState(true);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [detail, setDetail] = useState<AttemptDetailRef | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -994,6 +996,7 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                   <th className="p-2 text-right">Doğru</th>
                   <th className="p-2">Status</th>
                   <th className="p-2">Tarix</th>
+                  <th className="p-2 text-right">Bax</th>
                 </tr>
               </thead>
               <tbody>
@@ -1011,11 +1014,43 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                       </Badge>
                     </td>
                     <td className="p-2 text-xs text-muted-foreground">{fmt(a.created_at)}</td>
+                    <td className="p-2 text-right">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        title="Cavab vərəqəsi"
+                        onClick={() =>
+                          setDetail({
+                            kind: "exam",
+                            attemptId: a.id,
+                            title: exam.title,
+                            user: a.profile
+                              ? {
+                                  id: a.user_id,
+                                  full_name: a.profile.full_name,
+                                  employee_id: a.profile.employee_id,
+                                }
+                              : undefined,
+                            score: Number(a.score_percent),
+                            passed: a.passed,
+                            duration: a.duration_seconds,
+                            date: a.created_at,
+                            parentId: exam.id,
+                          })
+                        }
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        )}
+        {detail && (
+          <AttemptDetailDialog detailRef={detail} onClose={() => setDetail(null)} />
         )}
       </DialogContent>
     </Dialog>
