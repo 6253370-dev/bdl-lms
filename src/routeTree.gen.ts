@@ -13,6 +13,7 @@ import { Route as UsersRouteImport } from './routes/users'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as QuestionBankRouteImport } from './routes/question-bank'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as ExamsRouteImport } from './routes/exams'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -44,6 +45,11 @@ const QuizRoute = QuizRouteImport.update({
 const QuestionBankRoute = QuestionBankRouteImport.update({
   id: '/question-bank',
   path: '/question-bank',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryRoute = LibraryRouteImport.update({
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
   '/library': typeof LibraryRoute
+  '/profile': typeof ProfileRoute
   '/question-bank': typeof QuestionBankRoute
   '/quiz': typeof QuizRoute
   '/reports': typeof ReportsRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
   '/library': typeof LibraryRoute
+  '/profile': typeof ProfileRoute
   '/question-bank': typeof QuestionBankRoute
   '/quiz': typeof QuizRoute
   '/reports': typeof ReportsRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
   '/library': typeof LibraryRoute
+  '/profile': typeof ProfileRoute
   '/question-bank': typeof QuestionBankRoute
   '/quiz': typeof QuizRoute
   '/reports': typeof ReportsRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/exams'
     | '/library'
+    | '/profile'
     | '/question-bank'
     | '/quiz'
     | '/reports'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/exams'
     | '/library'
+    | '/profile'
     | '/question-bank'
     | '/quiz'
     | '/reports'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/exams'
     | '/library'
+    | '/profile'
     | '/question-bank'
     | '/quiz'
     | '/reports'
@@ -228,6 +240,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   ExamsRoute: typeof ExamsRoute
   LibraryRoute: typeof LibraryRoute
+  ProfileRoute: typeof ProfileRoute
   QuestionBankRoute: typeof QuestionBankRoute
   QuizRoute: typeof QuizRoute
   ReportsRoute: typeof ReportsRoute
@@ -266,6 +279,13 @@ declare module '@tanstack/react-router' {
       path: '/question-bank'
       fullPath: '/question-bank'
       preLoaderRoute: typeof QuestionBankRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library': {
@@ -364,6 +384,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   ExamsRoute: ExamsRoute,
   LibraryRoute: LibraryRoute,
+  ProfileRoute: ProfileRoute,
   QuestionBankRoute: QuestionBankRoute,
   QuizRoute: QuizRoute,
   ReportsRoute: ReportsRoute,
