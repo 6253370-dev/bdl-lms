@@ -5,7 +5,16 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+
 import { Loader2, MessageSquare, Send, Trash2, ArrowLeft, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -51,8 +60,11 @@ function AdminCommentsPage() {
   const [courses, setCourses] = useState<Record<string, CourseLite>>({});
   const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
   const [active, setActive] = useState<ThreadKey | null>(null);
+  const [courseFilter, setCourseFilter] = useState<string>("all");
+  const [lessonFilter, setLessonFilter] = useState<string>("all");
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
+
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -97,7 +109,7 @@ function AdminCommentsPage() {
 
   useEffect(() => { if (isAdmin) load(); }, [isAdmin, load]);
 
-  const threads = useMemo<ThreadInfo[]>(() => {
+  const allThreads = useMemo<ThreadInfo[]>(() => {
     const map = new Map<string, ThreadInfo>();
     for (const c of comments) {
       const key = `${c.user_id}|${c.block_id}`;
@@ -123,6 +135,40 @@ function AdminCommentsPage() {
     }
     return Array.from(map.values()).sort((a, b) => (a.lastAt < b.lastAt ? 1 : -1));
   }, [comments, profiles, blocks, courses]);
+
+  const courseOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    allThreads.forEach((th) => {
+      if (th.course) map.set(th.course.id, th.course.title);
+    });
+    return Array.from(map, ([id, title]) => ({ id, title })).sort((a, b) =>
+      a.title.localeCompare(b.title, "az"),
+    );
+  }, [allThreads]);
+
+  const lessonOptions = useMemo(() => {
+    if (courseFilter === "all") return [];
+    const map = new Map<string, string>();
+    allThreads
+      .filter((th) => th.course?.id === courseFilter)
+      .forEach((th) => {
+        if (th.block) map.set(th.block.id, th.block.title);
+      });
+    return Array.from(map, ([id, title]) => ({ id, title })).sort((a, b) =>
+      a.title.localeCompare(b.title, "az"),
+    );
+  }, [allThreads, courseFilter]);
+
+  const threads = useMemo(
+    () =>
+      allThreads.filter((th) => {
+        if (courseFilter !== "all" && th.course?.id !== courseFilter) return false;
+        if (lessonFilter !== "all" && th.blockId !== lessonFilter) return false;
+        return true;
+      }),
+    [allThreads, courseFilter, lessonFilter],
+  );
+
 
   const activeMessages = useMemo(() => {
     if (!active) return [];
