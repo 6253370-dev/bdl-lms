@@ -112,6 +112,8 @@ function ReportsPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [userFilter, setUserFilter] = useState<string>("all");
+  const [userSearch, setUserSearch] = useState("");
+
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
@@ -247,15 +249,34 @@ function ReportsPage() {
             <Select value={userFilter} onValueChange={setUserFilter}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
+                <div className="p-2 sticky top-0 bg-popover z-10">
+                  <Input
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    placeholder="Axtar (ad və ya ID)"
+                    className="h-8"
+                  />
+                </div>
                 <SelectItem value="all">{t.reports.allUsers}</SelectItem>
-                {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.full_name} ({p.employee_id})
-                  </SelectItem>
-                ))}
+                {profiles
+                  .filter((p) => {
+                    const q = userSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    return (
+                      p.full_name.toLowerCase().includes(q) ||
+                      String(p.employee_id).toLowerCase().includes(q)
+                    );
+                  })
+                  .map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.full_name} ({p.employee_id})
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="grid gap-1.5">
             <Label className="text-xs">{t.reports.status}</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
