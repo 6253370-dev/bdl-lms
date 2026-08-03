@@ -221,6 +221,49 @@ function AdminCommentsPage() {
       </div>
       <p className="text-muted-foreground mb-6">{t.comments.adminSubtitle}</p>
 
+      <Card className="p-4 mb-6">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label className="text-xs">{t.comments.course}</Label>
+            <Select
+              value={courseFilter}
+              onValueChange={(v) => {
+                setCourseFilter(v);
+                setLessonFilter("all");
+                setActive(null);
+              }}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Bütün kurslar</SelectItem>
+                {courseOptions.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-xs">{t.comments.lesson}</Label>
+            <Select
+              value={lessonFilter}
+              onValueChange={(v) => { setLessonFilter(v); setActive(null); }}
+              disabled={courseFilter === "all"}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Əvvəlcə kurs seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Bütün dərslər</SelectItem>
+                {lessonOptions.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>{b.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </Card>
+
+
       {loading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
