@@ -365,6 +365,11 @@ function CourseBuilderPage() {
                 </Button>
               </div>
             )}
+            <TemplateLibrary
+              isAdmin={isAdmin}
+              currentUrl={course.certificate_template_url}
+              onApply={(url) => updateCourseField({ certificate_template_url: url })}
+            />
           </Card>
         </TabsContent>
       </Tabs>
