@@ -645,6 +645,9 @@ function LiveRoom({ roomId, onLeave }: { roomId: string; onLeave: () => void }) 
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [myParticipantId, setMyParticipantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { musicOn, toggleMusic } = useRoomMusic(room?.status ?? "lobby");
+
+
 
   // join (auto for non-admin)
   useEffect(() => {
