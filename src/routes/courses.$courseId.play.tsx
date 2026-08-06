@@ -157,7 +157,15 @@ function CoursePlayer() {
             <p className="text-muted-foreground">{t.player.noContent}</p>
           </Card>
         ) : active.block_type === "lesson" ? (
-          <LessonView block={active} />
+          <LessonView
+            key={active.id}
+            block={active}
+            nextBlockId={(() => {
+              const i = blocks.findIndex((b) => b.id === active.id);
+              return i >= 0 && i < blocks.length - 1 ? blocks[i + 1].id : null;
+            })()}
+            onGoNext={(id) => setActiveId(id)}
+          />
         ) : (
           <AssessmentView
             key={active.id}
