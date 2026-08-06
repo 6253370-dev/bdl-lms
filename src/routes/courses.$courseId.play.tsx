@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, BookOpen, Dumbbell, FileQuestion, GraduationCap,
@@ -219,7 +219,7 @@ function LessonView({ block, nextBlockId, onGoNext }: { block: Block; nextBlockI
           onClick={() => (nextBlockId ? onGoNext(nextBlockId) : navigate({ to: "/courses" }))}
         >
           {unlocked ? null : <Clock className="h-4 w-4 mr-2" />}
-          {nextBlockId ? t.player.continue ?? "Davam et" : t.player.allCourses}
+          {nextBlockId ? "Davam et" : t.player.allCourses}
         </Button>
       </Card>
 
