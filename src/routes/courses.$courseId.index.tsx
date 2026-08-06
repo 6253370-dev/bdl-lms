@@ -377,6 +377,124 @@ function CourseBuilderPage() {
   );
 }
 
+interface CertTemplate {
+  id: string;
+  name: string;
+  file_url: string;
+  file_type: string;
+  is_active: boolean;
+}
+
+function TemplateLibrary({
+  isAdmin, currentUrl, onApply,
+}: {
+  isAdmin: boolean;
+  currentUrl: string | null;
+  onApply: (url: string) => void;
+}) {
+  const [items, setItems] = useState<CertTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("certificate_templates")
+      .select("id,name,file_url,file_type,is_active")
+      .order("created_at", { ascending: false });
+    setItems((data ?? []) as CertTemplate[]);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const saveCurrent = async () => {
+    if (!currentUrl) { toast.error("Əvvəlcə şablon faylı yükləyin"); return; }
+    if (!name.trim()) { toast.error("Şablon adı yazın"); return; }
+    setSaving(true);
+    const { error } = await supabase.from("certificate_templates").insert({
+      name: name.trim(),
+      file_url: currentUrl,
+      file_type: currentUrl.toLowerCase().endsWith(".pptx") ? "pptx" : "pdf",
+      is_active: true,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    setName("");
+    toast.success("Şablon kitabxanaya əlavə edildi");
+    load();
+  };
+
+  const remove = async (id: string) => {
+    const { error } = await supabase.from("certificate_templates").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Şablon silindi");
+    load();
+  };
+
+  return (
+    <div className="border-t pt-4 space-y-3">
+      <div>
+        <h4 className="font-display font-semibold text-sm">Şablon kitabxanası</h4>
+        <p className="text-xs text-muted-foreground">
+          Bir dəfə yüklənən şablonu bütün kurslarda təkrar istifadə edin.
+        </p>
+      </div>
+
+      {isAdmin && (
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input
+            placeholder="Şablon adı (məs. Rəsmi BE Academy)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Button variant="outline" onClick={saveCurrent} disabled={saving || !currentUrl}>
+            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+            Kitabxanaya əlavə et
+          </Button>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Yüklənir…</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Hələ saxlanmış şablon yoxdur.</p>
+      ) : (
+        <div className="space-y-2">
+          {items.map((tpl) => {
+            const applied = tpl.file_url === currentUrl;
+            return (
+              <div key={tpl.id} className="flex items-center gap-2 rounded-lg border p-2.5">
+                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium truncate">{tpl.name}</div>
+                  <div className="text-[11px] uppercase text-muted-foreground">{tpl.file_type}</div>
+                </div>
+                <Button
+                  size="sm"
+                  variant={applied ? "secondary" : "outline"}
+                  disabled={!isAdmin || applied}
+                  onClick={() => onApply(tpl.file_url)}
+                >
+                  {applied ? "İstifadədə" : "Tətbiq et"}
+                </Button>
+                {isAdmin && (
+                  <Button size="icon" variant="ghost" onClick={() => remove(tpl.id)} aria-label="Sil">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
 function BlockCard({
   block, isAdmin, onChange, onSave, onDelete,
 }: {
