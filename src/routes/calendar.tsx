@@ -401,9 +401,14 @@ function CalendarPage() {
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {(details.invitees ?? []).map((i) => (
-                      <Badge key={i.id} variant="outline" className="text-xs">
+                      <Badge
+                        key={i.id}
+                        variant={i.status === "accepted" ? "default" : i.status === "declined" ? "destructive" : "outline"}
+                        className="text-xs"
+                      >
                         {i.full_name ?? i.user_id.slice(0, 6)}
                         {i.user_id === user?.id && " (sən)"}
+                        {` · ${rsvpLabel[i.status] ?? i.status}`}
                       </Badge>
                     ))}
                     {!(details.invitees ?? []).length && (
@@ -411,12 +416,36 @@ function CalendarPage() {
                     )}
                   </div>
                 </div>
+                {myInvite(details) && eventStatus(details) !== "completed" && (
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="text-xs text-muted-foreground">Dəvətə cavab</div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant={myInvite(details)?.status === "accepted" ? "default" : "outline"}
+                        onClick={() => respond(details, "accepted")}
+                      >
+                        <Check className="h-4 w-4" /> Qəbul edirəm
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={myInvite(details)?.status === "declined" ? "destructive" : "outline"}
+                        onClick={() => respond(details, "declined")}
+                      >
+                        <X className="h-4 w-4" /> İmtina
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Badge>{statusLabel(eventStatus(details))}</Badge>
                 </div>
               </div>
               <DialogFooter className="gap-2 sm:justify-between">
                 <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => downloadIcs(details)}>
+                    <Download className="h-4 w-4" /> Təqvimə əlavə et
+                  </Button>
                   {isAdmin && (
                     <>
                       <Button variant="outline" size="sm" onClick={() => { setDetails(null); openEdit(details); }}>
