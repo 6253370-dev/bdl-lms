@@ -17,8 +17,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
   FileQuestion, Plus, Play, Trash2, Pencil, Loader2, Users, KeyRound,
-  CheckCircle2, XCircle, Radio, History, Trophy, Library,
+  CheckCircle2, XCircle, Radio, History, Trophy, Library, Volume2, VolumeX,
 } from "lucide-react";
+import { useRoomMusic } from "@/lib/roomMusic";
 import { toast } from "sonner";
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
@@ -644,6 +645,9 @@ function LiveRoom({ roomId, onLeave }: { roomId: string; onLeave: () => void }) 
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [myParticipantId, setMyParticipantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { musicOn, toggleMusic } = useRoomMusic(room?.status ?? "lobby");
+
+
 
   // join (auto for non-admin)
   useEffect(() => {
@@ -721,6 +725,15 @@ function LiveRoom({ roomId, onLeave }: { roomId: string; onLeave: () => void }) 
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="text-sm"><Users className="h-3.5 w-3.5 mr-1" /> {participants.length}</Badge>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleMusic}
+            title={musicOn ? "Musiqini söndür" : "Otaq musiqisini yandır"}
+            aria-label={musicOn ? "Musiqini söndür" : "Otaq musiqisini yandır"}
+          >
+            {musicOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+          </Button>
           <Button variant="outline" size="sm" onClick={onLeave}>Çıx</Button>
         </div>
       </div>

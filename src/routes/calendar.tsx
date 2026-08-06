@@ -35,6 +35,9 @@ import {
   Users as UsersIcon,
   MapPin,
   Play,
+  Check,
+  X,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -110,6 +113,47 @@ function eventStatus(ev: EventRow): "upcoming" | "ongoing" | "completed" {
   return "ongoing";
 }
 
+function icsDate(d: Date) {
+  return `${d.toISOString().replace(/[-:]/g, "").split(".")[0]}Z`;
+}
+
+function escapeIcs(s: string) {
+  return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+}
+
+function downloadIcs(ev: EventRow) {
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//BE Academy LMS//AZ",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${ev.id}@beacademy`,
+    `DTSTAMP:${icsDate(new Date())}`,
+    `DTSTART:${icsDate(new Date(ev.starts_at))}`,
+    `DTEND:${icsDate(new Date(ev.ends_at))}`,
+    `SUMMARY:${escapeIcs(ev.title)}`,
+    ev.location ? `LOCATION:${escapeIcs(ev.location)}` : "",
+    ev.description ? `DESCRIPTION:${escapeIcs(ev.description)}` : "",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].filter(Boolean);
+  const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${ev.title.replace(/[^\p{L}\p{N}]+/gu, "_")}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const rsvpLabel: Record<string, string> = {
+  invited: "Cavab gözlənilir",
+  accepted: "Qəbul edildi",
+  declined: "İmtina edildi",
+};
+
 function CalendarPage() {
   const { isAdmin, user } = useAuth();
   const [view, setView] = useState<ViewMode>("week");
@@ -164,6 +208,27 @@ function CalendarPage() {
     }
     setEvents(rows);
   };
+
+  const myInvite = (ev: EventRow) => (ev.invitees ?? []).find((i) => i.user_id === user?.id) ?? null;
+
+  const respond = async (ev: EventRow, status: "accepted" | "declined") => {
+    const inv = myInvite(ev);
+    if (!inv) return;
+    const { error } = await supabase
+      .from("exam_event_invitees")
+      .update({ status })
+      .eq("id", inv.id);
+    if (error) { toast.error(error.message); return; }
+    const updated: EventRow = {
+      ...ev,
+      invitees: (ev.invitees ?? []).map((i) => (i.id === inv.id ? { ...i, status } : i)),
+    };
+    setDetails(updated);
+    setEvents((prev) => prev.map((e) => (e.id === ev.id ? updated : e)));
+    toast.success(status === "accepted" ? "Dəvət qəbul edildi" : "Dəvətdən imtina edildi");
+  };
+
+
 
   useEffect(() => {
     load();
@@ -360,9 +425,14 @@ function CalendarPage() {
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {(details.invitees ?? []).map((i) => (
-                      <Badge key={i.id} variant="outline" className="text-xs">
+                      <Badge
+                        key={i.id}
+                        variant={i.status === "accepted" ? "default" : i.status === "declined" ? "destructive" : "outline"}
+                        className="text-xs"
+                      >
                         {i.full_name ?? i.user_id.slice(0, 6)}
                         {i.user_id === user?.id && " (sən)"}
+                        {` · ${rsvpLabel[i.status] ?? i.status}`}
                       </Badge>
                     ))}
                     {!(details.invitees ?? []).length && (
@@ -370,12 +440,36 @@ function CalendarPage() {
                     )}
                   </div>
                 </div>
+                {myInvite(details) && eventStatus(details) !== "completed" && (
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <div className="text-xs text-muted-foreground">Dəvətə cavab</div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant={myInvite(details)?.status === "accepted" ? "default" : "outline"}
+                        onClick={() => respond(details, "accepted")}
+                      >
+                        <Check className="h-4 w-4" /> Qəbul edirəm
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={myInvite(details)?.status === "declined" ? "destructive" : "outline"}
+                        onClick={() => respond(details, "declined")}
+                      >
+                        <X className="h-4 w-4" /> İmtina
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Badge>{statusLabel(eventStatus(details))}</Badge>
                 </div>
               </div>
               <DialogFooter className="gap-2 sm:justify-between">
                 <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => downloadIcs(details)}>
+                    <Download className="h-4 w-4" /> Təqvimə əlavə et
+                  </Button>
                   {isAdmin && (
                     <>
                       <Button variant="outline" size="sm" onClick={() => { setDetails(null); openEdit(details); }}>

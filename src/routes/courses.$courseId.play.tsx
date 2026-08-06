@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, BookOpen, Dumbbell, FileQuestion, GraduationCap,
@@ -157,7 +157,15 @@ function CoursePlayer() {
             <p className="text-muted-foreground">{t.player.noContent}</p>
           </Card>
         ) : active.block_type === "lesson" ? (
-          <LessonView block={active} />
+          <LessonView
+            key={active.id}
+            block={active}
+            nextBlockId={(() => {
+              const i = blocks.findIndex((b) => b.id === active.id);
+              return i >= 0 && i < blocks.length - 1 ? blocks[i + 1].id : null;
+            })()}
+            onGoNext={(id) => setActiveId(id)}
+          />
         ) : (
           <AssessmentView
             key={active.id}
@@ -175,17 +183,62 @@ function CoursePlayer() {
   );
 }
 
-function LessonView({ block }: { block: Block }) {
-  // unwrap to allow full content + comments stacked
+const WATCH_REQUIRED = 0.8; // 80%
+
+function LessonView({ block, nextBlockId, onGoNext }: { block: Block; nextBlockId: string | null; onGoNext: (id: string) => void }) {
+  const navigate = useNavigate();
+  const [watched, setWatched] = useState(0); // 0..1 of unique watched time
+  const hasVideo = !!block.video_url;
+  const unlocked = !hasVideo || watched >= WATCH_REQUIRED;
+
   return (
     <div className="space-y-6">
-      <LessonContent block={block} />
+      <LessonContent block={block} onProgress={setWatched} />
+
+      <Card className="p-5 space-y-3">
+        {hasVideo && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">
+                {unlocked ? "Dərs izlənildi" : `Davam etmək üçün videonun ən azı ${Math.round(WATCH_REQUIRED * 100)}%-ni izləyin`}
+              </span>
+              <span className="font-semibold">{Math.min(100, Math.round(watched * 100))}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className={cn("h-full transition-all", unlocked ? "bg-success" : "bg-primary")}
+                style={{ width: `${Math.min(100, watched * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+        <Button
+          className="w-full"
+          size="lg"
+          disabled={!unlocked}
+          onClick={() => (nextBlockId ? onGoNext(nextBlockId) : navigate({ to: "/courses" }))}
+        >
+          {unlocked ? null : <Clock className="h-4 w-4 mr-2" />}
+          {nextBlockId ? "Davam et" : t.player.allCourses}
+        </Button>
+      </Card>
+
       <LessonComments blockId={block.id} courseId={block.course_id} />
     </div>
   );
 }
 
-function LessonContent({ block }: { block: Block }) {
+function LessonContent({ block, onProgress }: { block: Block; onProgress?: (ratio: number) => void }) {
+  const seen = useRef<Set<number>>(new Set());
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handleTimeUpdate = () => {
+    const v = videoRef.current;
+    if (!v || !v.duration || !isFinite(v.duration)) return;
+    seen.current.add(Math.floor(v.currentTime));
+    onProgress?.(Math.min(1, seen.current.size / Math.floor(v.duration)));
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -208,7 +261,14 @@ function LessonContent({ block }: { block: Block }) {
 
       {block.video_url && (
         <Card className="overflow-hidden">
-          <video src={block.video_url} controls className="w-full" />
+          <video
+            ref={videoRef}
+            src={block.video_url}
+            controls
+            className="w-full"
+            onTimeUpdate={handleTimeUpdate}
+            onEnded={() => onProgress?.(1)}
+          />
         </Card>
       )}
 
