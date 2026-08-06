@@ -17,8 +17,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
   FileQuestion, Plus, Play, Trash2, Pencil, Loader2, Users, KeyRound,
-  CheckCircle2, XCircle, Radio, History, Trophy, Library,
+  CheckCircle2, XCircle, Radio, History, Trophy, Library, Volume2, VolumeX,
 } from "lucide-react";
+import { useRoomMusic } from "@/lib/roomMusic";
 import { toast } from "sonner";
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
