@@ -209,6 +209,27 @@ function CalendarPage() {
     setEvents(rows);
   };
 
+  const myInvite = (ev: EventRow) => (ev.invitees ?? []).find((i) => i.user_id === user?.id) ?? null;
+
+  const respond = async (ev: EventRow, status: "accepted" | "declined") => {
+    const inv = myInvite(ev);
+    if (!inv) return;
+    const { error } = await supabase
+      .from("exam_event_invitees")
+      .update({ status })
+      .eq("id", inv.id);
+    if (error) { toast.error(error.message); return; }
+    const updated: EventRow = {
+      ...ev,
+      invitees: (ev.invitees ?? []).map((i) => (i.id === inv.id ? { ...i, status } : i)),
+    };
+    setDetails(updated);
+    setEvents((prev) => prev.map((e) => (e.id === ev.id ? updated : e)));
+    toast.success(status === "accepted" ? "Dəvət qəbul edildi" : "Dəvətdən imtina edildi");
+  };
+
+
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
