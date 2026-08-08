@@ -53,17 +53,31 @@ export const Route = createFileRoute("/calendar")({
 type ViewMode = "month" | "week" | "day";
 
 type ExamLite = { id: string; title: string };
+type CourseLite = { id: string; title: string };
+type OfflineLessonLite = { id: string; title: string; start_date: string; end_date: string };
+type EventType = "exam" | "online_course" | "offline_course";
+const EVENT_TYPE_LABEL: Record<EventType, string> = {
+  exam: "Müstəqil imtahan",
+  online_course: "Online kurs",
+  offline_course: "Offline kurs",
+};
 type ProfileLite = { id: string; full_name: string; employee_id: string };
 type Invitee = { id: string; user_id: string; status: string; full_name?: string; employee_id?: string };
 type EventRow = {
   id: string;
-  exam_id: string;
+  event_type: EventType;
+  exam_id: string | null;
+  course_id: string | null;
+  attendance_lesson_id: string | null;
+  notes: string | null;
   title: string;
   description: string | null;
   location: string | null;
   starts_at: string;
   ends_at: string;
   exam?: { title: string } | null;
+  course?: { title: string } | null;
+  offline_lesson?: { title: string } | null;
   invitees?: Invitee[];
 };
 
@@ -160,6 +174,8 @@ function CalendarPage() {
   const [cursor, setCursor] = useState<Date>(startOfDay(new Date()));
   const [events, setEvents] = useState<EventRow[]>([]);
   const [exams, setExams] = useState<ExamLite[]>([]);
+  const [courses, setCourses] = useState<CourseLite[]>([]);
+  const [offlineLessons, setOfflineLessons] = useState<OfflineLessonLite[]>([]);
   const [profiles, setProfiles] = useState<ProfileLite[]>([]);
   const [editorOpen, setEditorOpen] = useState(false);
   const [activeEvent, setActiveEvent] = useState<EventRow | null>(null);
@@ -181,7 +197,7 @@ function CalendarPage() {
   const load = async () => {
     const { data } = await supabase
       .from("exam_events")
-      .select("id,exam_id,title,description,location,starts_at,ends_at,exam:standalone_exams(title),invitees:exam_event_invitees(id,user_id,status)")
+      .select("id,event_type,exam_id,course_id,attendance_lesson_id,notes,title,description,location,starts_at,ends_at,exam:standalone_exams(title),course:courses(title),offline_lesson:attendance_lessons(title),invitees:exam_event_invitees(id,user_id,status)")
       .gte("starts_at", range.from.toISOString())
       .lt("starts_at", range.to.toISOString())
       .order("starts_at");
@@ -240,9 +256,13 @@ function CalendarPage() {
     Promise.all([
       supabase.from("standalone_exams").select("id,title").eq("is_published", true).order("title"),
       supabase.from("profiles").select("id,full_name,employee_id").order("full_name"),
-    ]).then(([e, p]) => {
+      supabase.from("courses").select("id,title").order("title"),
+      supabase.from("attendance_lessons").select("id,title,start_date,end_date").order("start_date", { ascending: false }),
+    ]).then(([e, p, c, l]) => {
       setExams((e.data ?? []) as ExamLite[]);
       setProfiles((p.data ?? []) as ProfileLite[]);
+      setCourses((c.data ?? []) as CourseLite[]);
+      setOfflineLessons((l.data ?? []) as OfflineLessonLite[]);
     });
   }, [isAdmin]);
 
@@ -253,7 +273,11 @@ function CalendarPage() {
     end.setHours(start.getHours() + 1);
     setActiveEvent({
       id: "",
-      exam_id: "",
+      event_type: "exam",
+      exam_id: null,
+      course_id: null,
+      attendance_lesson_id: null,
+      notes: null,
       title: "",
       description: "",
       location: "",
@@ -412,10 +436,22 @@ function CalendarPage() {
                     <MapPin className="h-4 w-4" /> {details.location}
                   </div>
                 )}
-                {details.exam?.title && (
-                  <div>
-                    <Badge variant="secondary">İmtahan</Badge>{" "}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary">{EVENT_TYPE_LABEL[details.event_type] ?? "Hadisə"}</Badge>
+                  {details.event_type === "exam" && details.exam?.title && (
                     <span className="font-medium">{details.exam.title}</span>
+                  )}
+                  {details.event_type === "online_course" && details.course?.title && (
+                    <span className="font-medium">{details.course.title}</span>
+                  )}
+                  {details.event_type === "offline_course" && details.offline_lesson?.title && (
+                    <span className="font-medium">{details.offline_lesson.title}</span>
+                  )}
+                </div>
+                {details.notes && (
+                  <div className="rounded-md bg-muted/50 p-3 text-xs whitespace-pre-wrap">
+                    <div className="font-medium mb-1">Əlavə qeydlər</div>
+                    {details.notes}
                   </div>
                 )}
                 {details.description && <p className="whitespace-pre-wrap">{details.description}</p>}
@@ -481,10 +517,17 @@ function CalendarPage() {
                     </>
                   )}
                 </div>
-                {eventStatus(details) !== "completed" && details.exam_id && (
+                {eventStatus(details) !== "completed" && details.event_type === "exam" && details.exam_id && (
                   <Button asChild size="sm">
                     <Link to="/exams">
                       <Play className="h-4 w-4" /> İmtahana keç
+                    </Link>
+                  </Button>
+                )}
+                {eventStatus(details) !== "completed" && details.event_type === "online_course" && details.course_id && (
+                  <Button asChild size="sm">
+                    <Link to="/courses/$courseId" params={{ courseId: details.course_id }}>
+                      <Play className="h-4 w-4" /> Kursa keç
                     </Link>
                   </Button>
                 )}
