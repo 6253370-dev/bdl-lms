@@ -183,31 +183,40 @@ function CoursePlayer() {
   );
 }
 
-const WATCH_REQUIRED = 0.8; // 80%
-
 function LessonView({ block, nextBlockId, onGoNext }: { block: Block; nextBlockId: string | null; onGoNext: (id: string) => void }) {
   const navigate = useNavigate();
-  const [watched, setWatched] = useState(0); // 0..1 of unique watched time
-  const hasVideo = !!block.video_url;
-  const unlocked = !hasVideo || watched >= WATCH_REQUIRED;
+  const required = block.min_view_seconds ?? 0;
+  const [elapsed, setElapsed] = useState(0);
+  const unlocked = required <= 0 || elapsed >= required;
+
+  useEffect(() => {
+    setElapsed(0);
+    if (!block.min_view_seconds) return;
+    const id = window.setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [block.id, block.min_view_seconds]);
+
+  const remaining = Math.max(0, required - elapsed);
 
   return (
     <div className="space-y-6">
-      <LessonContent block={block} onProgress={setWatched} />
+      <LessonContent block={block} />
 
       <Card className="p-5 space-y-3">
-        {hasVideo && (
+        {required > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                {unlocked ? "Dərs izlənildi" : `Davam etmək üçün videonun ən azı ${Math.round(WATCH_REQUIRED * 100)}%-ni izləyin`}
+                {unlocked
+                  ? "Minimum baxış vaxtı tamamlandı"
+                  : `Davam etmək üçün daha ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")} qalıb`}
               </span>
-              <span className="font-semibold">{Math.min(100, Math.round(watched * 100))}%</span>
+              <span className="font-semibold">{Math.min(100, Math.round((elapsed / required) * 100))}%</span>
             </div>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <div
                 className={cn("h-full transition-all", unlocked ? "bg-success" : "bg-primary")}
-                style={{ width: `${Math.min(100, watched * 100)}%` }}
+                style={{ width: `${Math.min(100, (elapsed / required) * 100)}%` }}
               />
             </div>
           </div>
@@ -227,6 +236,7 @@ function LessonView({ block, nextBlockId, onGoNext }: { block: Block; nextBlockI
     </div>
   );
 }
+
 
 function LessonContent({ block, onProgress }: { block: Block; onProgress?: (ratio: number) => void }) {
   const seen = useRef<Set<number>>(new Set());
