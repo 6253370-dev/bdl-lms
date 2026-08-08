@@ -431,6 +431,7 @@ export type Database = {
           docx_url: string | null
           external_video_url: string | null
           id: string
+          min_view_seconds: number | null
           passing_score: number | null
           pdf_url: string | null
           position: number
@@ -449,6 +450,7 @@ export type Database = {
           docx_url?: string | null
           external_video_url?: string | null
           id?: string
+          min_view_seconds?: number | null
           passing_score?: number | null
           pdf_url?: string | null
           position?: number
@@ -467,6 +469,7 @@ export type Database = {
           docx_url?: string | null
           external_video_url?: string | null
           id?: string
+          min_view_seconds?: number | null
           passing_score?: number | null
           pdf_url?: string | null
           position?: number
@@ -518,6 +521,7 @@ export type Database = {
       }
       courses: {
         Row: {
+          certificate_template_id: string | null
           certificate_template_url: string | null
           cover_image_url: string | null
           created_at: string
@@ -531,6 +535,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          certificate_template_id?: string | null
           certificate_template_url?: string | null
           cover_image_url?: string | null
           created_at?: string
@@ -544,6 +549,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          certificate_template_id?: string | null
           certificate_template_url?: string | null
           cover_image_url?: string | null
           created_at?: string
@@ -557,6 +563,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "courses_certificate_template_id_fkey"
+            columns: ["certificate_template_id"]
+            isOneToOne: false
+            referencedRelation: "certificate_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "courses_folder_id_fkey"
             columns: ["folder_id"]
@@ -600,42 +613,68 @@ export type Database = {
       }
       exam_events: {
         Row: {
+          attendance_lesson_id: string | null
+          course_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
           ends_at: string
-          exam_id: string
+          event_type: string
+          exam_id: string | null
           id: string
           location: string | null
+          notes: string | null
           starts_at: string
           title: string
           updated_at: string
         }
         Insert: {
+          attendance_lesson_id?: string | null
+          course_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           ends_at: string
-          exam_id: string
+          event_type?: string
+          exam_id?: string | null
           id?: string
           location?: string | null
+          notes?: string | null
           starts_at: string
           title: string
           updated_at?: string
         }
         Update: {
+          attendance_lesson_id?: string | null
+          course_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           ends_at?: string
-          exam_id?: string
+          event_type?: string
+          exam_id?: string | null
           id?: string
           location?: string | null
+          notes?: string | null
           starts_at?: string
           title?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "exam_events_attendance_lesson_id_fkey"
+            columns: ["attendance_lesson_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_events_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "exam_events_exam_id_fkey"
             columns: ["exam_id"]
@@ -847,29 +886,38 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string
           employee_id: string
+          first_name: string | null
           full_name: string
           id: string
+          last_name: string | null
           phone: string | null
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email: string
           employee_id: string
+          first_name?: string | null
           full_name: string
           id: string
+          last_name?: string | null
           phone?: string | null
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string
           employee_id?: string
+          first_name?: string | null
           full_name?: string
           id?: string
+          last_name?: string | null
           phone?: string | null
           updated_at?: string
         }
@@ -1148,6 +1196,7 @@ export type Database = {
           description: string | null
           id: string
           is_published: boolean
+          music_url: string | null
           passing_score: number
           time_limit_seconds: number | null
           title: string
@@ -1159,6 +1208,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_published?: boolean
+          music_url?: string | null
           passing_score?: number
           time_limit_seconds?: number | null
           title: string
@@ -1170,6 +1220,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_published?: boolean
+          music_url?: string | null
           passing_score?: number
           time_limit_seconds?: number | null
           title?: string
@@ -1420,6 +1471,8 @@ export type Database = {
       }
       standalone_exams: {
         Row: {
+          certificate_template_id: string | null
+          certificate_template_url: string | null
           cover_image_url: string | null
           created_at: string
           created_by: string | null
@@ -1434,6 +1487,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          certificate_template_id?: string | null
+          certificate_template_url?: string | null
           cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -1448,6 +1503,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          certificate_template_id?: string | null
+          certificate_template_url?: string | null
           cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -1461,7 +1518,15 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "standalone_exams_certificate_template_id_fkey"
+            columns: ["certificate_template_id"]
+            isOneToOne: false
+            referencedRelation: "certificate_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_course_access: {
         Row: {
