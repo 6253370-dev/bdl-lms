@@ -11,10 +11,10 @@ import { downloadCertificateSmart, previewCertificateSmart, type CertificateData
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 
-export const Route = createFileRoute("/certificates")({
+export const Route = createFileRoute("/certificates/my")({
   component: () => (
     <ProtectedRoute>
-      <CertificatesPage />
+      <MyCertificatesPage />
     </ProtectedRoute>
   ),
 });
@@ -29,7 +29,7 @@ interface CertRow {
   course_id: string;
 }
 
-function CertificatesPage() {
+function MyCertificatesPage() {
   const { user } = useAuth();
   const [certs, setCerts] = useState<CertRow[]>([]);
   const [templates, setTemplates] = useState<Record<string, string | null>>({});
