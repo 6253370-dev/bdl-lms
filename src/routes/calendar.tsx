@@ -544,6 +544,8 @@ function CalendarPage() {
           onOpenChange={setEditorOpen}
           event={activeEvent}
           exams={exams}
+          courses={courses}
+          offlineLessons={offlineLessons}
           profiles={profiles}
           onSaved={() => { setEditorOpen(false); setActiveEvent(null); load(); }}
         />
@@ -719,18 +721,24 @@ function TimeView({
 
 /* ------------------------- Editor ------------------------- */
 function EditorDialog({
-  open, onOpenChange, event, exams, profiles, onSaved,
+  open, onOpenChange, event, exams, courses, offlineLessons, profiles, onSaved,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   event: EventRow | null;
   exams: ExamLite[];
+  courses: CourseLite[];
+  offlineLessons: OfflineLessonLite[];
   profiles: ProfileLite[];
   onSaved: () => void;
 }) {
   const { user } = useAuth();
   const [title, setTitle] = useState("");
+  const [eventType, setEventType] = useState<EventType>("exam");
   const [examId, setExamId] = useState("");
+  const [courseId, setCourseId] = useState("");
+  const [lessonId, setLessonId] = useState("");
+  const [notes, setNotes] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [start, setStart] = useState("");
@@ -742,7 +750,11 @@ function EditorDialog({
   useEffect(() => {
     if (!event) return;
     setTitle(event.title || "");
+    setEventType(event.event_type ?? "exam");
     setExamId(event.exam_id || "");
+    setCourseId(event.course_id || "");
+    setLessonId(event.attendance_lesson_id || "");
+    setNotes(event.notes || "");
     setDescription(event.description || "");
     setLocation(event.location || "");
     setStart(toLocalInput(new Date(event.starts_at)));
@@ -765,7 +777,10 @@ function EditorDialog({
 
   const handleSave = async () => {
     if (!title.trim()) return toast.error("Başlıq tələb olunur");
-    if (!examId) return toast.error("İmtahan seçin");
+    if (eventType === "exam" && !examId) return toast.error("İmtahan seçin");
+    if (eventType === "online_course" && !courseId) return toast.error("Kurs seçin");
+    if (eventType === "offline_course" && !lessonId) return toast.error("Offline kurs seçin");
+    if (eventType === "offline_course" && !location.trim()) return toast.error("Offline kurs üçün məkan tələb olunur");
     if (!start || !end) return toast.error("Tarix/saat tələb olunur");
     const s = new Date(start);
     const e = new Date(end);
@@ -776,7 +791,11 @@ function EditorDialog({
       let eventId: string = event?.id ?? "";
       const payload = {
         title: title.trim(),
-        exam_id: examId,
+        event_type: eventType,
+        exam_id: eventType === "exam" ? examId : null,
+        course_id: eventType === "online_course" ? courseId : null,
+        attendance_lesson_id: eventType === "offline_course" ? lessonId : null,
+        notes: notes.trim() || null,
         description: description.trim() || null,
         location: location.trim() || null,
         starts_at: s.toISOString(),
@@ -821,7 +840,7 @@ function EditorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85dvh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{event?.id ? "Hadisəni redaktə et" : "Yeni imtahan hadisəsi"}</DialogTitle>
+          <DialogTitle>{event?.id ? "Hadisəni redaktə et" : "Yeni hadisə"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -829,16 +848,55 @@ function EditorDialog({
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="məs: Q4 Təhlükəsizlik İmtahanı" />
           </div>
           <div>
-            <Label>İmtahan</Label>
-            <Select value={examId} onValueChange={setExamId}>
-              <SelectTrigger><SelectValue placeholder="İmtahan seç" /></SelectTrigger>
+            <Label>Hadisə növü</Label>
+            <Select value={eventType} onValueChange={(v) => setEventType(v as EventType)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {exams.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
-                ))}
+                <SelectItem value="exam">Müstəqil imtahan</SelectItem>
+                <SelectItem value="online_course">Online kurs</SelectItem>
+                <SelectItem value="offline_course">Offline kurs</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {eventType === "exam" && (
+            <div>
+              <Label>İmtahan</Label>
+              <Select value={examId} onValueChange={setExamId}>
+                <SelectTrigger><SelectValue placeholder="İmtahan seç" /></SelectTrigger>
+                <SelectContent>
+                  {exams.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {eventType === "online_course" && (
+            <div>
+              <Label>Online kurs</Label>
+              <Select value={courseId} onValueChange={setCourseId}>
+                <SelectTrigger><SelectValue placeholder="Kurs seç" /></SelectTrigger>
+                <SelectContent>
+                  {courses.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {eventType === "offline_course" && (
+            <div>
+              <Label>Offline kurs (Davamiyyət modulundan)</Label>
+              <Select value={lessonId} onValueChange={setLessonId}>
+                <SelectTrigger><SelectValue placeholder="Offline kurs seç" /></SelectTrigger>
+                <SelectContent>
+                  {offlineLessons.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>{l.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Başlama</Label>
@@ -850,12 +908,16 @@ function EditorDialog({
             </div>
           </div>
           <div>
-            <Label>Yer (istəyə bağlı)</Label>
+            <Label>{eventType === "offline_course" ? "Məkan" : "Yer (istəyə bağlı)"}</Label>
             <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Otaq, link və s." />
           </div>
           <div>
             <Label>Dəvət mesajı</Label>
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+          </div>
+          <div>
+            <Label>Əlavə qeydlər</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Özünlə gətir, iştirak qaydaları və s." />
           </div>
           <div>
             <Label>İştirakçılar ({selected.size})</Label>
