@@ -56,6 +56,7 @@ interface Block {
   pptx_url: string | null;
   docx_url: string | null;
   time_limit_seconds: number | null;
+  min_view_seconds: number | null;
   passing_score: number | null;
   shuffle_questions?: boolean | null;
 }
@@ -147,6 +148,7 @@ function CourseBuilderPage() {
         pptx_url: block.pptx_url,
         docx_url: block.docx_url,
         time_limit_seconds: block.time_limit_seconds,
+        min_view_seconds: block.min_view_seconds,
         passing_score: block.passing_score,
         shuffle_questions: block.shuffle_questions ?? false,
       })
@@ -428,6 +430,21 @@ function BlockCard({
               <FileUpload label="DOCX" icon={FileType} value={block.docx_url} onChange={(v) => onChange({ docx_url: v })} accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" folder="docx" />
             </div>
           )}
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Minimum baxış vaxtı (saniyə)</Label>
+              <Input
+                type="number"
+                min={0}
+                placeholder="məs. 120 — boş buraxsanız məhdudiyyət yoxdur"
+                value={block.min_view_seconds ?? ""}
+                onChange={(e) => onChange({ min_view_seconds: Number(e.target.value) || null })}
+              />
+              <p className="text-xs text-muted-foreground">
+                İstifadəçi bu müddət keçmədən növbəti bölməyə keçə bilməyəcək.
+              </p>
+            </div>
+          </div>
           {(block.block_type === "practice" || block.block_type === "quiz") && (
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="space-y-2">
