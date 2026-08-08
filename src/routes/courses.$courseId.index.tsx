@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
+import { CertificateTemplateSelect } from "@/components/CertificateTemplateSelect";
 import { t } from "@/lib/i18n";
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
@@ -55,6 +56,7 @@ interface Block {
   pptx_url: string | null;
   docx_url: string | null;
   time_limit_seconds: number | null;
+  min_view_seconds: number | null;
   passing_score: number | null;
   shuffle_questions?: boolean | null;
 }
@@ -146,6 +148,7 @@ function CourseBuilderPage() {
         pptx_url: block.pptx_url,
         docx_url: block.docx_url,
         time_limit_seconds: block.time_limit_seconds,
+        min_view_seconds: block.min_view_seconds,
         passing_score: block.passing_score,
         shuffle_questions: block.shuffle_questions ?? false,
       })
@@ -329,24 +332,14 @@ function CourseBuilderPage() {
               <div>
                 <h3 className="font-display font-semibold">Sertifikat şablonu</h3>
                 <p className="text-sm text-muted-foreground">
-                  PDF və ya PPTX şablon yükləyin. İstifadəçi sertifikatı{" "}
-                  <strong>PDF formatında</strong> alacaq və ad, kurs, nəticə, tarix, seriya
-                  avtomatik şablonun üzərinə yazılacaq.
-                  <br />
-                  <span className="text-xs">
-                    Qeyd: Avtomatik doldurma yalnız PDF şablonlarda işləyir. PPTX yüklənərsə,
-                    fallback dizayn istifadə olunacaq.
-                  </span>
+                  Şablonlar mərkəzi <strong>Sertifikat Şablonları</strong> modulunda idarə olunur.
+                  Burada yalnız bu kursun imtahanı üçün şablon seçilir.
                 </p>
               </div>
             </div>
-            <FileUpload
-              label="Sertifikat şablonu (PDF tövsiyə olunur)"
-              icon={FileText}
+            <CertificateTemplateSelect
               value={course.certificate_template_url}
               onChange={(v) => updateCourseField({ certificate_template_url: v })}
-              accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
-              folder="certificate-templates"
               disabled={!isAdmin}
             />
             {isAdmin && (
@@ -365,135 +358,12 @@ function CourseBuilderPage() {
                 </Button>
               </div>
             )}
-            <TemplateLibrary
-              isAdmin={isAdmin}
-              currentUrl={course.certificate_template_url}
-              onApply={(url) => updateCourseField({ certificate_template_url: url })}
-            />
           </Card>
         </TabsContent>
       </Tabs>
     </div>
   );
 }
-
-interface CertTemplate {
-  id: string;
-  name: string;
-  file_url: string;
-  file_type: string;
-  is_active: boolean;
-}
-
-function TemplateLibrary({
-  isAdmin, currentUrl, onApply,
-}: {
-  isAdmin: boolean;
-  currentUrl: string | null;
-  onApply: (url: string) => void;
-}) {
-  const [items, setItems] = useState<CertTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from("certificate_templates")
-      .select("id,name,file_url,file_type,is_active")
-      .order("created_at", { ascending: false });
-    setItems((data ?? []) as CertTemplate[]);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const saveCurrent = async () => {
-    if (!currentUrl) { toast.error("Əvvəlcə şablon faylı yükləyin"); return; }
-    if (!name.trim()) { toast.error("Şablon adı yazın"); return; }
-    setSaving(true);
-    const { error } = await supabase.from("certificate_templates").insert({
-      name: name.trim(),
-      file_url: currentUrl,
-      file_type: currentUrl.toLowerCase().endsWith(".pptx") ? "pptx" : "pdf",
-      is_active: true,
-    });
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    setName("");
-    toast.success("Şablon kitabxanaya əlavə edildi");
-    load();
-  };
-
-  const remove = async (id: string) => {
-    const { error } = await supabase.from("certificate_templates").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Şablon silindi");
-    load();
-  };
-
-  return (
-    <div className="border-t pt-4 space-y-3">
-      <div>
-        <h4 className="font-display font-semibold text-sm">Şablon kitabxanası</h4>
-        <p className="text-xs text-muted-foreground">
-          Bir dəfə yüklənən şablonu bütün kurslarda təkrar istifadə edin.
-        </p>
-      </div>
-
-      {isAdmin && (
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Input
-            placeholder="Şablon adı (məs. Rəsmi BE Academy)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Button variant="outline" onClick={saveCurrent} disabled={saving || !currentUrl}>
-            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-            Kitabxanaya əlavə et
-          </Button>
-        </div>
-      )}
-
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Yüklənir…</p>
-      ) : items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Hələ saxlanmış şablon yoxdur.</p>
-      ) : (
-        <div className="space-y-2">
-          {items.map((tpl) => {
-            const applied = tpl.file_url === currentUrl;
-            return (
-              <div key={tpl.id} className="flex items-center gap-2 rounded-lg border p-2.5">
-                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium truncate">{tpl.name}</div>
-                  <div className="text-[11px] uppercase text-muted-foreground">{tpl.file_type}</div>
-                </div>
-                <Button
-                  size="sm"
-                  variant={applied ? "secondary" : "outline"}
-                  disabled={!isAdmin || applied}
-                  onClick={() => onApply(tpl.file_url)}
-                >
-                  {applied ? "İstifadədə" : "Tətbiq et"}
-                </Button>
-                {isAdmin && (
-                  <Button size="icon" variant="ghost" onClick={() => remove(tpl.id)} aria-label="Sil">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-
 
 function BlockCard({
   block, isAdmin, onChange, onSave, onDelete,
@@ -560,6 +430,21 @@ function BlockCard({
               <FileUpload label="DOCX" icon={FileType} value={block.docx_url} onChange={(v) => onChange({ docx_url: v })} accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" folder="docx" />
             </div>
           )}
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Minimum baxış vaxtı (saniyə)</Label>
+              <Input
+                type="number"
+                min={0}
+                placeholder="məs. 120 — boş buraxsanız məhdudiyyət yoxdur"
+                value={block.min_view_seconds ?? ""}
+                onChange={(e) => onChange({ min_view_seconds: Number(e.target.value) || null })}
+              />
+              <p className="text-xs text-muted-foreground">
+                İstifadəçi bu müddət keçmədən növbəti bölməyə keçə bilməyəcək.
+              </p>
+            </div>
+          </div>
           {(block.block_type === "practice" || block.block_type === "quiz") && (
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="space-y-2">

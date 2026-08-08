@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,16 +10,24 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ClipboardList, Loader2, Save, User as UserIcon, Award } from "lucide-react";
+import {
+  BookOpen,
+  ClipboardList,
+  Loader2,
+  Save,
+  User as UserIcon,
+  Camera,
+  KeyRound,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
-      { title: "Profilim — BE Academy" },
-      { name: "description", content: "Şəxsi məlumatlar, kurs və imtahan nəticələri, 10 dərəcəlik qiymət sistemi." },
-      { property: "og:title", content: "Profilim — BE Academy" },
-      { property: "og:description", content: "Şəxsi məlumatlar, kurs və imtahan nəticələri, 10 dərəcəlik qiymət sistemi." },
+      { title: "Profil — BE Academy" },
+      { name: "description", content: "Şəxsi məlumatlar, kurs proqresi və iştirak etdiyin imtahanların tarixçəsi." },
+      { property: "og:title", content: "Profil — BE Academy" },
+      { property: "og:description", content: "Şəxsi məlumatlar, kurs proqresi və iştirak etdiyin imtahanların tarixçəsi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -31,22 +39,38 @@ export const Route = createFileRoute("/profile")({
   ),
 });
 
-interface AttemptRow {
+export const RANKS = [
+  "Yeni Başlayan",
+  "Bilik Toplayıcısı",
+  "Araşdırmaçı",
+  "Bacarıq Ovçusu",
+  "Peşəkar Namizəd",
+  "Usta Tələbə",
+  "Akademiya Lideri",
+  "Bilik Arxitektoru",
+  "Master Mentor",
+  "Grand Master",
+];
+
+export function rankFor(completedCourses: number) {
+  const idx = Math.min(RANKS.length - 1, Math.floor(completedCourses / 2));
+  return RANKS[idx];
+}
+
+interface CourseProgress {
   id: string;
   title: string;
+  total: number;
+  done: number;
+  completed: boolean;
+}
+
+interface ExamHistoryRow {
+  id: string;
+  title: string;
+  created_at: string;
   score_percent: number;
   passed: boolean;
-  created_at: string;
-}
-
-function toGrade(percent: number) {
-  return Math.round((percent / 10) * 10) / 10; // 10 dərəcəlik sistem
-}
-
-function gradeTone(g: number) {
-  if (g >= 8) return "text-emerald-600";
-  if (g >= 5) return "text-amber-600";
-  return "text-destructive";
 }
 
 function fmtDate(iso: string) {
@@ -57,69 +81,105 @@ function fmtDate(iso: string) {
 
 function ProfilePage() {
   const { user, profile, roles, refreshProfile } = useAuth();
-  const [fullName, setFullName] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [courseRows, setCourseRows] = useState<AttemptRow[]>([]);
-  const [examRows, setExamRows] = useState<AttemptRow[]>([]);
-  const [certCount, setCertCount] = useState(0);
+  const [courses, setCourses] = useState<CourseProgress[]>([]);
+  const [exams, setExams] = useState<ExamHistoryRow[]>([]);
 
   useEffect(() => {
-    setFullName(profile?.full_name ?? "");
-    setPhone(profile?.phone ?? "");
+    if (!profile) return;
+    const parts = (profile.full_name ?? "").trim().split(/\s+/);
+    setFirstName(profile.first_name ?? parts[0] ?? "");
+    setLastName(profile.last_name ?? parts.slice(1).join(" ") ?? "");
+    setEmail(profile.email ?? "");
+    setPhone(profile.phone ?? "");
+    setAvatarUrl(profile.avatar_url ?? null);
   }, [profile]);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
       setLoading(true);
-      const [{ data: blocks }, { data: exams }, { count }] = await Promise.all([
+      const [{ data: attempts }, { data: examAttempts }, { data: certs }] = await Promise.all([
         supabase
           .from("block_attempts")
-          .select("id, score_percent, passed, created_at, course_id, courses(title)")
+          .select("id,course_id,block_id,passed,score_percent,created_at,courses(title)")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
         supabase
           .from("standalone_exam_attempts")
-          .select("id, score_percent, passed, created_at, standalone_exams(title)")
+          .select("id,score_percent,passed,created_at,standalone_exams(title)")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
-        supabase
-          .from("certificates")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id),
+        supabase.from("certificates").select("course_id").eq("user_id", user.id),
       ]);
-      setCourseRows(
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rows = (attempts ?? []) as any[];
+      const courseIds = Array.from(new Set(rows.map((r) => r.course_id)));
+      let blockCounts: Record<string, number> = {};
+      if (courseIds.length) {
+        const { data: blocks } = await supabase
+          .from("course_blocks")
+          .select("id,course_id")
+          .in("course_id", courseIds);
+        blockCounts = (blocks ?? []).reduce<Record<string, number>>((acc, b) => {
+          acc[b.course_id] = (acc[b.course_id] ?? 0) + 1;
+          return acc;
+        }, {});
+      }
+      const certSet = new Set(((certs ?? []) as { course_id: string }[]).map((c) => c.course_id));
+      const byCourse = new Map<string, CourseProgress>();
+      rows.forEach((r) => {
+        const cur = byCourse.get(r.course_id) ?? {
+          id: r.course_id,
+          title: r.courses?.title ?? "—",
+          total: blockCounts[r.course_id] ?? 0,
+          done: 0,
+          completed: certSet.has(r.course_id),
+        };
+        byCourse.set(r.course_id, cur);
+      });
+      // count distinct passed blocks per course
+      const passedBlocks = new Map<string, Set<string>>();
+      rows.filter((r) => r.passed).forEach((r) => {
+        const set = passedBlocks.get(r.course_id) ?? new Set<string>();
+        set.add(r.block_id);
+        passedBlocks.set(r.course_id, set);
+      });
+      byCourse.forEach((c, id) => {
+        c.done = passedBlocks.get(id)?.size ?? 0;
+        if (c.total && c.done >= c.total) c.completed = true;
+      });
+      setCourses(Array.from(byCourse.values()));
+
+      setExams(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ((blocks ?? []) as any[]).map((b) => ({
-          id: b.id,
-          title: b.courses?.title ?? "—",
-          score_percent: Number(b.score_percent),
-          passed: !!b.passed,
-          created_at: b.created_at,
-        })),
-      );
-      setExamRows(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ((exams ?? []) as any[]).map((e) => ({
+        ((examAttempts ?? []) as any[]).map((e) => ({
           id: e.id,
           title: e.standalone_exams?.title ?? "—",
+          created_at: e.created_at,
           score_percent: Number(e.score_percent),
           passed: !!e.passed,
-          created_at: e.created_at,
         })),
       );
-      setCertCount(count ?? 0);
       setLoading(false);
     })();
   }, [user]);
 
-  const all = useMemo(() => [...courseRows, ...examRows], [courseRows, examRows]);
-  const avgGrade = useMemo(
-    () => (all.length ? toGrade(all.reduce((s, r) => s + r.score_percent, 0) / all.length) : 0),
-    [all],
-  );
+  const completedCourses = useMemo(() => courses.filter((c) => c.completed), [courses]);
+  const ongoingCourses = useMemo(() => courses.filter((c) => !c.completed), [courses]);
+  const rank = rankFor(completedCourses.length);
 
   const roleLabel = roles.includes("super_admin")
     ? "Super admin"
@@ -127,16 +187,65 @@ function ProfilePage() {
       ? "Admin"
       : "İstifadəçi";
 
+  const uploadAvatar = async (file: File) => {
+    if (!user) return;
+    setUploading(true);
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `avatars/${user.id}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("course-media").upload(path, file, {
+      contentType: file.type,
+      upsert: true,
+    });
+    if (error) {
+      setUploading(false);
+      return toast.error(error.message);
+    }
+    const { data } = supabase.storage.from("course-media").getPublicUrl(path);
+    const { error: upErr } = await supabase
+      .from("profiles")
+      .update({ avatar_url: data.publicUrl })
+      .eq("id", user.id);
+    setUploading(false);
+    if (upErr) return toast.error(upErr.message);
+    setAvatarUrl(data.publicUrl);
+    await refreshProfile();
+    toast.success("Profil şəkli yeniləndi");
+  };
+
   const save = async () => {
     if (!user) return;
-    if (!fullName.trim()) return toast.error("Ad soyad boş ola bilməz");
+    if (!firstName.trim()) return toast.error("Ad boş ola bilməz");
+    if (password && password.length < 6) return toast.error("Şifrə ən azı 6 simvol olmalıdır");
+    if (password && password !== password2) return toast.error("Şifrələr uyğun gəlmir");
     setSaving(true);
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: fullName.trim(), phone: phone.trim() || null })
+      .update({
+        first_name: firstName.trim(),
+        last_name: lastName.trim() || null,
+        full_name: fullName,
+        phone: phone.trim() || null,
+        email: email.trim(),
+      })
       .eq("id", user.id);
+    if (error) {
+      setSaving(false);
+      return toast.error("Yadda saxlanmadı");
+    }
+    if (email.trim() && email.trim() !== profile?.email) {
+      const { error: mailErr } = await supabase.auth.updateUser({ email: email.trim() });
+      if (mailErr) toast.error(`E-poçt dəyişmədi: ${mailErr.message}`);
+      else toast.info("E-poçtu təsdiqləmək üçün yeni ünvana məktub göndərildi");
+    }
+    if (password) {
+      const { error: pwErr } = await supabase.auth.updateUser({ password });
+      if (pwErr) toast.error(`Şifrə dəyişmədi: ${pwErr.message}`);
+      else toast.success("Şifrə yeniləndi");
+      setPassword("");
+      setPassword2("");
+    }
     setSaving(false);
-    if (error) return toast.error("Yadda saxlanmadı");
     await refreshProfile();
     toast.success("Profil yeniləndi");
   };
@@ -144,68 +253,99 @@ function ProfilePage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <div className="h-14 w-14 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xl font-semibold">
-          {profile?.full_name?.[0]?.toUpperCase() ?? "?"}
+        <div className="relative">
+          <div className="h-16 w-16 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xl font-semibold overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Profil şəkli" className="h-full w-full object-cover" />
+            ) : (
+              (profile?.full_name?.[0]?.toUpperCase() ?? "?")
+            )}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) uploadAvatar(f);
+              e.target.value = "";
+            }}
+          />
+          <Button
+            size="icon"
+            variant="secondary"
+            className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full shadow"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            aria-label="Profil şəkli yüklə"
+          >
+            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+          </Button>
         </div>
         <div className="min-w-0">
-          <h1 className="text-2xl font-display font-bold truncate">{profile?.full_name ?? "Profil"}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl font-display font-bold truncate">{profile?.full_name ?? "Profil"}</h1>
+            <Badge variant="secondary">{rank}</Badge>
+          </div>
           <p className="text-sm text-muted-foreground">
-            ID {profile?.employee_id} · {roleLabel}
+            ID {profile?.employee_id} · {roleLabel} · Bitirilmiş kurs: {completedCourses.length}
           </p>
         </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="p-4">
-          <div className="text-xs text-muted-foreground mb-1">Ortalama qiymət (10 üzrə)</div>
-          <div className={`text-3xl font-bold ${gradeTone(avgGrade)}`}>{avgGrade.toFixed(1)}</div>
-          <Progress value={avgGrade * 10} className="mt-3 h-2" />
-        </Card>
-        <Card className="p-4">
-          <div className="text-xs text-muted-foreground mb-1">Cəhdlər</div>
-          <div className="text-3xl font-bold">{all.length}</div>
-          <div className="text-xs text-muted-foreground mt-3">
-            Uğurlu: {all.filter((a) => a.passed).length}
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="text-xs text-muted-foreground mb-1">Sertifikatlar</div>
-          <div className="text-3xl font-bold flex items-center gap-2">
-            <Award className="h-6 w-6 text-primary" /> {certCount}
-          </div>
-        </Card>
       </div>
 
       <Tabs defaultValue="info">
         <TabsList>
           <TabsTrigger value="info">
-            <UserIcon className="h-4 w-4 mr-2" /> Şəxsi məlumatlar
+            <UserIcon className="h-4 w-4 mr-2" /> Şəxsi məlumatlarım
           </TabsTrigger>
           <TabsTrigger value="courses">
             <BookOpen className="h-4 w-4 mr-2" /> Kurslarım
           </TabsTrigger>
           <TabsTrigger value="exams">
-            <ClipboardList className="h-4 w-4 mr-2" /> İmtahanlarım
+            <ClipboardList className="h-4 w-4 mr-2" /> İştirak etdiyim imtahanlar
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="info">
           <Card className="p-5 space-y-4 max-w-xl">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Ad</Label>
+                <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Soyad</Label>
+                <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              </div>
+            </div>
             <div className="space-y-2">
-              <Label>Ad, soyad</Label>
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              <Label>E-poçt</Label>
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
             </div>
             <div className="space-y-2">
               <Label>Telefon</Label>
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+994 ..." />
             </div>
-            <div className="space-y-2">
-              <Label>E-poçt</Label>
-              <Input value={profile?.email ?? ""} disabled />
+            <div className="grid gap-4 sm:grid-cols-2 border-t pt-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5"><KeyRound className="h-3.5 w-3.5" /> Yeni şifrə</Label>
+                <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="••••••" />
+              </div>
+              <div className="space-y-2">
+                <Label>Şifrəni təkrarla</Label>
+                <Input value={password2} onChange={(e) => setPassword2(e.target.value)} type="password" placeholder="••••••" />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>İşçi ID</Label>
-              <Input value={profile?.employee_id ?? ""} disabled />
+            <div className="grid gap-4 sm:grid-cols-2 border-t pt-4">
+              <div className="space-y-2">
+                <Label>İstifadəçi ID</Label>
+                <Input value={profile?.employee_id ?? ""} disabled />
+              </div>
+              <div className="space-y-2">
+                <Label>Rol</Label>
+                <Input value={roleLabel} disabled />
+              </div>
             </div>
             <Button onClick={save} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
@@ -214,48 +354,76 @@ function ProfilePage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="courses">
-          <ResultList rows={courseRows} loading={loading} empty="Hələ kurs nəticəniz yoxdur" />
+        <TabsContent value="courses" className="space-y-6">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              <section className="space-y-2">
+                <h2 className="text-sm font-semibold text-muted-foreground">Davam edən kurslar</h2>
+                {ongoingCourses.length ? (
+                  ongoingCourses.map((c) => <CourseProgressCard key={c.id} course={c} />)
+                ) : (
+                  <Card className="p-6 text-center text-sm text-muted-foreground">Davam edən kurs yoxdur</Card>
+                )}
+              </section>
+              <section className="space-y-2">
+                <h2 className="text-sm font-semibold text-muted-foreground">Bitirdiyim kurslar</h2>
+                {completedCourses.length ? (
+                  completedCourses.map((c) => <CourseProgressCard key={c.id} course={c} />)
+                ) : (
+                  <Card className="p-6 text-center text-sm text-muted-foreground">Hələ bitirilmiş kurs yoxdur</Card>
+                )}
+              </section>
+            </>
+          )}
         </TabsContent>
+
         <TabsContent value="exams">
-          <ResultList rows={examRows} loading={loading} empty="Hələ imtahan nəticəniz yoxdur" />
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : exams.length ? (
+            <div className="space-y-2">
+              {exams.map((e) => (
+                <Card key={e.id} className="p-4 flex items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{e.title}</div>
+                    <div className="text-xs text-muted-foreground">{fmtDate(e.created_at)}</div>
+                  </div>
+                  <Badge variant={e.passed ? "default" : "destructive"}>
+                    {e.passed ? "Uğurlu" : "Uğursuz"}
+                  </Badge>
+                  <div className="w-16 text-right font-semibold">{Math.round(e.score_percent)}%</div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-8 text-center text-sm text-muted-foreground">
+              Hələ imtahanda iştirak etməmisiniz
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function ResultList({ rows, loading, empty }: { rows: AttemptRow[]; loading: boolean; empty: string }) {
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-  if (!rows.length) {
-    return <Card className="p-8 text-center text-sm text-muted-foreground">{empty}</Card>;
-  }
+function CourseProgressCard({ course }: { course: CourseProgress }) {
+  const pct = course.total ? Math.min(100, Math.round((course.done / course.total) * 100)) : course.completed ? 100 : 0;
   return (
-    <div className="space-y-2">
-      {rows.map((r) => {
-        const g = toGrade(r.score_percent);
-        return (
-          <Card key={r.id} className="p-4 flex items-center gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">{r.title}</div>
-              <div className="text-xs text-muted-foreground">{fmtDate(r.created_at)}</div>
-            </div>
-            <Badge variant={r.passed ? "default" : "destructive"}>
-              {r.passed ? "Uğurlu" : "Uğursuz"}
-            </Badge>
-            <div className="text-right w-24">
-              <div className={`text-lg font-bold ${gradeTone(g)}`}>{g.toFixed(1)}</div>
-              <div className="text-[11px] text-muted-foreground">{Math.round(r.score_percent)}%</div>
-            </div>
-          </Card>
-        );
-      })}
-    </div>
+    <Card className="p-4 space-y-2">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0 font-medium truncate">{course.title}</div>
+        <span className="text-sm text-muted-foreground">{pct}%</span>
+      </div>
+      <Progress value={pct} className="h-2" />
+      <div className="text-xs text-muted-foreground">
+        {course.done}/{course.total || "?"} bölmə tamamlanıb
+      </div>
+    </Card>
   );
 }

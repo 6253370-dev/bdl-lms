@@ -20,6 +20,8 @@ import {
   CheckCircle2, XCircle, Radio, History, Trophy, Library, Volume2, VolumeX,
 } from "lucide-react";
 import { useRoomMusic } from "@/lib/roomMusic";
+import { FileUpload } from "@/components/FileUpload";
+import { Music } from "lucide-react";
 import { toast } from "sonner";
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
@@ -36,6 +38,7 @@ type Quiz = {
   title: string;
   description: string | null;
   is_published: boolean;
+  music_url: string | null;
   created_at: string;
 };
 
@@ -144,7 +147,7 @@ function AdminPanel({ onEnterRoom }: { onEnterRoom: (r: Room) => void }) {
   const load = async () => {
     setLoading(true);
     const [{ data: q }, { data: r }, { data: h }] = await Promise.all([
-      supabase.from("quizzes").select("id,title,description,is_published,created_at").order("created_at", { ascending: false }),
+      supabase.from("quizzes").select("id,title,description,is_published,music_url,created_at").order("created_at", { ascending: false }),
       supabase.from("quiz_rooms").select("*").neq("status", "finished").order("created_at", { ascending: false }),
       supabase.from("quiz_rooms").select("*").eq("status", "finished").order("finished_at", { ascending: false }).limit(100),
     ]);
@@ -430,6 +433,7 @@ function QuizFormDialog({
   const [title, setTitle] = useState(existing?.title ?? "");
   const [description, setDescription] = useState(existing?.description ?? "");
   const [published, setPublished] = useState(existing?.is_published ?? true);
+  const [musicUrl, setMusicUrl] = useState<string | null>(existing?.music_url ?? null);
   const [saving, setSaving] = useState(false);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [tab, setTab] = useState("info");
@@ -457,6 +461,7 @@ function QuizFormDialog({
       title: title.trim(),
       description: description.trim() || null,
       is_published: published,
+      music_url: musicUrl,
       created_by: userId,
     };
     if (savedId) {
@@ -486,6 +491,15 @@ function QuizFormDialog({
             <div><Label>Başlıq</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
             <div><Label>Təsvir</Label><Textarea value={description ?? ""} onChange={(e) => setDescription(e.target.value)} /></div>
             <div className="flex items-center gap-2"><Switch checked={published} onCheckedChange={setPublished} /><Label>Dərc et</Label></div>
+            <FileUpload
+              label="Fon musiqisi (MP3)"
+              icon={Music}
+              value={musicUrl}
+              onChange={setMusicUrl}
+              accept="audio/mpeg,.mp3"
+              folder="quiz-music"
+            />
+            {musicUrl && <audio src={musicUrl} controls className="w-full" />}
             <DialogFooter>
               <Button variant="outline" onClick={onClose}>Bağla</Button>
               <Button onClick={save} disabled={saving}>{saving ? "..." : "Yadda saxla"}</Button>
@@ -645,7 +659,8 @@ function LiveRoom({ roomId, onLeave }: { roomId: string; onLeave: () => void }) 
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [myParticipantId, setMyParticipantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const { musicOn, toggleMusic } = useRoomMusic(room?.status ?? "lobby");
+  const [musicUrl, setMusicUrl] = useState<string | null>(null);
+  const { musicOn, toggleMusic, hasMusic } = useRoomMusic(musicUrl, room?.status ?? "lobby");
 
 
 
@@ -657,6 +672,9 @@ function LiveRoom({ roomId, onLeave }: { roomId: string; onLeave: () => void }) 
       const { data: r } = await supabase.from("quiz_rooms").select("*").eq("id", roomId).maybeSingle();
       if (!r) { toast.error("Otaq yoxdur"); onLeave(); return; }
       setRoom(r as Room);
+
+      const { data: qz } = await supabase.from("quizzes").select("music_url").eq("id", r.quiz_id).maybeSingle();
+      setMusicUrl((qz as { music_url: string | null } | null)?.music_url ?? null);
 
       // fetch questions
       const { data: qs } = await supabase.from("quiz_questions").select("*").eq("quiz_id", r.quiz_id).order("position");
@@ -725,7 +743,7 @@ function LiveRoom({ roomId, onLeave }: { roomId: string; onLeave: () => void }) 
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="text-sm"><Users className="h-3.5 w-3.5 mr-1" /> {participants.length}</Badge>
-          <Button
+          {hasMusic && <Button
             variant="outline"
             size="icon"
             onClick={toggleMusic}
@@ -733,7 +751,7 @@ function LiveRoom({ roomId, onLeave }: { roomId: string; onLeave: () => void }) 
             aria-label={musicOn ? "Musiqini söndür" : "Otaq musiqisini yandır"}
           >
             {musicOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-          </Button>
+          </Button>}
           <Button variant="outline" size="sm" onClick={onLeave}>Çıx</Button>
         </div>
       </div>
