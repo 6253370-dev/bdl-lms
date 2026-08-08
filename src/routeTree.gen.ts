@@ -18,11 +18,11 @@ import { Route as LibraryRouteImport } from './routes/library'
 import { Route as ExamsRouteImport } from './routes/exams'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ChampionsRouteImport } from './routes/champions'
-import { Route as CertificatesRouteImport } from './routes/certificates'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CoursesIndexRouteImport } from './routes/courses.index'
+import { Route as CertificatesIndexRouteImport } from './routes/certificates.index'
 import { Route as CertificatesMyRouteImport } from './routes/certificates.my'
 import { Route as AdminCommentsRouteImport } from './routes/admin.comments'
 import { Route as CoursesCourseIdIndexRouteImport } from './routes/courses.$courseId.index'
@@ -73,11 +73,6 @@ const ChampionsRoute = ChampionsRouteImport.update({
   path: '/champions',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CertificatesRoute = CertificatesRouteImport.update({
-  id: '/certificates',
-  path: '/certificates',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CalendarRoute = CalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
@@ -96,6 +91,11 @@ const IndexRoute = IndexRouteImport.update({
 const CoursesIndexRoute = CoursesIndexRouteImport.update({
   id: '/courses/',
   path: '/courses/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CertificatesIndexRoute = CertificatesIndexRouteImport.update({
+  id: '/certificates/',
+  path: '/certificates/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CertificatesMyRoute = CertificatesMyRouteImport.update({
@@ -123,7 +123,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/attendance': typeof AttendanceRoute
   '/calendar': typeof CalendarRoute
-  '/certificates': typeof CertificatesRouteWithChildren
   '/champions': typeof ChampionsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
@@ -135,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/users': typeof UsersRoute
   '/admin/comments': typeof AdminCommentsRoute
   '/certificates/my': typeof CertificatesMyRoute
+  '/certificates/': typeof CertificatesIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
   '/courses/$courseId/': typeof CoursesCourseIdIndexRoute
@@ -143,7 +143,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/attendance': typeof AttendanceRoute
   '/calendar': typeof CalendarRoute
-  '/certificates': typeof CertificatesRouteWithChildren
   '/champions': typeof ChampionsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
@@ -155,6 +154,7 @@ export interface FileRoutesByTo {
   '/users': typeof UsersRoute
   '/admin/comments': typeof AdminCommentsRoute
   '/certificates/my': typeof CertificatesMyRoute
+  '/certificates': typeof CertificatesIndexRoute
   '/courses': typeof CoursesIndexRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
   '/courses/$courseId': typeof CoursesCourseIdIndexRoute
@@ -164,7 +164,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/attendance': typeof AttendanceRoute
   '/calendar': typeof CalendarRoute
-  '/certificates': typeof CertificatesRouteWithChildren
   '/champions': typeof ChampionsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
@@ -176,6 +175,7 @@ export interface FileRoutesById {
   '/users': typeof UsersRoute
   '/admin/comments': typeof AdminCommentsRoute
   '/certificates/my': typeof CertificatesMyRoute
+  '/certificates/': typeof CertificatesIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
   '/courses/$courseId/': typeof CoursesCourseIdIndexRoute
@@ -186,7 +186,6 @@ export interface FileRouteTypes {
     | '/'
     | '/attendance'
     | '/calendar'
-    | '/certificates'
     | '/champions'
     | '/dashboard'
     | '/exams'
@@ -198,6 +197,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/admin/comments'
     | '/certificates/my'
+    | '/certificates/'
     | '/courses/'
     | '/courses/$courseId/play'
     | '/courses/$courseId/'
@@ -206,7 +206,6 @@ export interface FileRouteTypes {
     | '/'
     | '/attendance'
     | '/calendar'
-    | '/certificates'
     | '/champions'
     | '/dashboard'
     | '/exams'
@@ -218,6 +217,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/admin/comments'
     | '/certificates/my'
+    | '/certificates'
     | '/courses'
     | '/courses/$courseId/play'
     | '/courses/$courseId'
@@ -226,7 +226,6 @@ export interface FileRouteTypes {
     | '/'
     | '/attendance'
     | '/calendar'
-    | '/certificates'
     | '/champions'
     | '/dashboard'
     | '/exams'
@@ -238,6 +237,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/admin/comments'
     | '/certificates/my'
+    | '/certificates/'
     | '/courses/'
     | '/courses/$courseId/play'
     | '/courses/$courseId/'
@@ -247,7 +247,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AttendanceRoute: typeof AttendanceRoute
   CalendarRoute: typeof CalendarRoute
-  CertificatesRoute: typeof CertificatesRouteWithChildren
   ChampionsRoute: typeof ChampionsRoute
   DashboardRoute: typeof DashboardRoute
   ExamsRoute: typeof ExamsRoute
@@ -258,6 +257,7 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   UsersRoute: typeof UsersRoute
   AdminCommentsRoute: typeof AdminCommentsRoute
+  CertificatesIndexRoute: typeof CertificatesIndexRoute
   CoursesIndexRoute: typeof CoursesIndexRoute
   CoursesCourseIdPlayRoute: typeof CoursesCourseIdPlayRoute
   CoursesCourseIdIndexRoute: typeof CoursesCourseIdIndexRoute
@@ -328,13 +328,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChampionsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/certificates': {
-      id: '/certificates'
-      path: '/certificates'
-      fullPath: '/certificates'
-      preLoaderRoute: typeof CertificatesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/calendar': {
       id: '/calendar'
       path: '/calendar'
@@ -361,6 +354,13 @@ declare module '@tanstack/react-router' {
       path: '/courses'
       fullPath: '/courses/'
       preLoaderRoute: typeof CoursesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/certificates/': {
+      id: '/certificates/'
+      path: '/certificates'
+      fullPath: '/certificates/'
+      preLoaderRoute: typeof CertificatesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/certificates/my': {
@@ -394,23 +394,10 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface CertificatesRouteChildren {
-  CertificatesMyRoute: typeof CertificatesMyRoute
-}
-
-const CertificatesRouteChildren: CertificatesRouteChildren = {
-  CertificatesMyRoute: CertificatesMyRoute,
-}
-
-const CertificatesRouteWithChildren = CertificatesRoute._addFileChildren(
-  CertificatesRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AttendanceRoute: AttendanceRoute,
   CalendarRoute: CalendarRoute,
-  CertificatesRoute: CertificatesRouteWithChildren,
   ChampionsRoute: ChampionsRoute,
   DashboardRoute: DashboardRoute,
   ExamsRoute: ExamsRoute,
@@ -421,6 +408,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   UsersRoute: UsersRoute,
   AdminCommentsRoute: AdminCommentsRoute,
+  CertificatesIndexRoute: CertificatesIndexRoute,
   CoursesIndexRoute: CoursesIndexRoute,
   CoursesCourseIdPlayRoute: CoursesCourseIdPlayRoute,
   CoursesCourseIdIndexRoute: CoursesCourseIdIndexRoute,
