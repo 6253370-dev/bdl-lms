@@ -15,7 +15,6 @@ import {
   Library,
   BookMarked,
   CalendarCheck,
-  UserCircle,
   LogOut,
   Menu,
   PanelLeftClose,
@@ -45,7 +44,6 @@ const NAV: NavItem[] = [
   { to: "/calendar", label: "Təqvim", icon: CalendarDays },
   { to: "/champions", label: t.nav.champions, icon: Trophy },
   { to: "/certificates", label: t.nav.certificates, icon: Award },
-  { to: "/profile", label: "Profilim", icon: UserCircle },
   { to: "/admin/comments", label: t.nav.adminComments, icon: MessageSquare, adminOnly: true },
   { to: "/reports", label: t.nav.reports, icon: BarChart3, adminOnly: true },
   { to: "/users", label: t.nav.users, icon: Users, adminOnly: true },
@@ -129,15 +127,25 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <div className="p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 mb-3">
-            <div className="h-9 w-9 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-semibold">
-              {profile?.full_name?.[0]?.toUpperCase() ?? "?"}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate">{profile?.full_name}</div>
-              <div className="text-xs text-muted-foreground truncate">
-                ID {profile?.employee_id} · {roleLabel}
+            <Link
+              to="/profile"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 flex-1 min-w-0 rounded-lg -mx-1 px-1 py-1 hover:bg-muted transition-colors"
+            >
+              <div className="h-9 w-9 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-semibold overflow-hidden shrink-0">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Profil şəkli" className="h-full w-full object-cover" />
+                ) : (
+                  (profile?.full_name?.[0]?.toUpperCase() ?? "?")
+                )}
               </div>
-            </div>
+              <div className="flex-1 min-w-0 text-left">
+                <div className="text-sm font-medium truncate">{profile?.full_name}</div>
+                <div className="text-xs text-muted-foreground truncate">
+                  ID {profile?.employee_id} · {roleLabel}
+                </div>
+              </div>
+            </Link>
             <NotificationBell />
           </div>
           <Button
