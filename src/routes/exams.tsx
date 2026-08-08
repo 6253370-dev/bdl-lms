@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
+import { CertificateTemplateSelect } from "@/components/CertificateTemplateSelect";
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
 export const Route = createFileRoute("/exams")({
@@ -60,6 +61,7 @@ type Exam = {
   created_at: string;
   cover_image_url: string | null;
   shuffle_questions: boolean;
+  certificate_template_url: string | null;
 };
 
 
@@ -99,7 +101,7 @@ function ExamsPage() {
     setLoading(true);
     const { data } = await supabase
       .from("standalone_exams")
-      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at,cover_image_url,shuffle_questions")
+      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at,cover_image_url,shuffle_questions,certificate_template_url")
       .order("created_at", { ascending: false });
     setExams((data ?? []) as Exam[]);
     setLoading(false);
@@ -289,6 +291,7 @@ function ExamEditor({
   const [isPublished, setIsPublished] = useState(exam?.is_published ?? false);
   const [shuffleQuestions, setShuffleQuestions] = useState(exam?.shuffle_questions ?? false);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(exam?.cover_image_url ?? null);
+  const [certTemplateUrl, setCertTemplateUrl] = useState<string | null>(exam?.certificate_template_url ?? null);
   const [examId, setExamId] = useState<string | null>(exam?.id ?? null);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [saving, setSaving] = useState(false);
@@ -332,6 +335,7 @@ function ExamEditor({
       is_published: isPublished,
       shuffle_questions: shuffleQuestions,
       cover_image_url: coverImageUrl,
+      certificate_template_url: certTemplateUrl,
     };
 
     if (password.trim()) payload.password = password.trim();
@@ -537,6 +541,8 @@ function ExamEditor({
             <Switch checked={shuffleQuestions} onCheckedChange={setShuffleQuestions} id="shuf" />
             <Label htmlFor="shuf">Sualları qarışdır (hər istifadəçi üçün fərqli sıra)</Label>
           </div>
+
+          <CertificateTemplateSelect value={certTemplateUrl} onChange={setCertTemplateUrl} />
 
           <FileUpload
             label="Üz şəkli"
