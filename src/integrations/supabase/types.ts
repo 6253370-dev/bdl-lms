@@ -1477,6 +1477,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          has_password: boolean | null
           id: string
           is_published: boolean
           passing_score: number
@@ -1493,10 +1494,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          has_password?: boolean | null
           id?: string
           is_published?: boolean
           passing_score?: number
-          password: string
+          password?: string
           shuffle_questions?: boolean
           time_limit_seconds?: number | null
           title: string
@@ -1509,6 +1511,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          has_password?: boolean | null
           id?: string
           is_published?: boolean
           passing_score?: number
