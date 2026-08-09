@@ -342,29 +342,42 @@ export function BankPicker({
           <TabsContent value="auto">
             <div className="space-y-4">
               <div className="grid gap-2">
-                <Label>Mövzu</Label>
-                <Select value={activeFolder ?? ""} onValueChange={setActiveFolder}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Mövzu seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(() => {
-                      const flatten = (parentId: string | null, depth: number): Folder[] => {
-                        const kids = folders.filter((f) => (f.parent_id ?? null) === parentId);
-                        return kids.flatMap((k) => [
-                          { ...k, name: `${"— ".repeat(depth)}${k.name}` },
-                          ...flatten(k.id, depth + 1),
-                        ]);
-                      };
-                      return flatten(null, 0).map((f) => (
-                        <SelectItem key={f.id} value={f.id}>
-                          {f.name} ({folderCounts[f.id] ?? 0})
-                        </SelectItem>
-                      ));
-                    })()}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center justify-between">
+                  <Label>Mövzular (bir və ya bir neçə)</Label>
+                  <span className="text-xs text-muted-foreground">{autoFolders.size} seçilib</span>
+                </div>
+                <div className="max-h-[30vh] overflow-y-auto border rounded-md p-2 space-y-1">
+                  {folders.length === 0 && (
+                    <p className="text-xs text-muted-foreground p-2">Sual bankında mövzu yoxdur.</p>
+                  )}
+                  {(() => {
+                    const flatten = (parentId: string | null, depth: number): { f: Folder; depth: number }[] => {
+                      const kids = folders.filter((x) => (x.parent_id ?? null) === parentId);
+                      return kids.flatMap((k) => [{ f: k, depth }, ...flatten(k.id, depth + 1)]);
+                    };
+                    return flatten(null, 0).map(({ f, depth }) => (
+                      <label
+                        key={f.id}
+                        className="flex items-center gap-2 text-sm py-1 px-1 rounded hover:bg-muted cursor-pointer"
+                        style={{ paddingLeft: 4 + depth * 14 }}
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={autoFolders.has(f.id)}
+                          onChange={() => toggleAutoFolder(f.id)}
+                        />
+                        <FolderIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="flex-1 truncate">{f.name}</span>
+                        <span className="text-[10px] bg-muted rounded px-1.5 py-0.5">
+                          {folderCounts[f.id] ?? 0}
+                        </span>
+                      </label>
+                    ));
+                  })()}
+                </div>
               </div>
+
 
 
               <div className="grid gap-2">
