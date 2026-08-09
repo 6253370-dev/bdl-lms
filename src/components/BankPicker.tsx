@@ -11,13 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Folder as FolderIcon, Loader2, Sparkles, Search, ChevronRight, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
@@ -428,7 +421,7 @@ export function BankPicker({
               <Button variant="outline" onClick={onClose}>
                 Ləğv et
               </Button>
-              <Button onClick={generateAuto} disabled={generating || !activeFolder}>
+              <Button onClick={generateAuto} disabled={generating || autoFolders.size === 0}>
                 {generating && <Loader2 className="h-4 w-4 animate-spin" />}
                 <Sparkles className="h-4 w-4" /> Avtomatik yarat
               </Button>
