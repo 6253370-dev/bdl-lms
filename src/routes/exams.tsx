@@ -728,6 +728,12 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     setVerifying(false);
   };
 
+  // Şifrəsiz imtahanlar birbaşa başlayır
+  useEffect(() => {
+    if (!exam.has_password) void verifyAndStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exam.id]);
+
   const submit = async () => {
     if (!user) return;
     const total = questions.length;
