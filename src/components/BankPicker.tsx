@@ -73,6 +73,15 @@ export function BankPicker({
   };
 
   // Auto-generate state
+  const [autoFolders, setAutoFolders] = useState<Set<string>>(new Set());
+  const toggleAutoFolder = (id: string) => {
+    setAutoFolders((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
   const [autoCount, setAutoCount] = useState("10");
   const [autoEasy, setAutoEasy] = useState("");
   const [autoMedium, setAutoMedium] = useState("");
