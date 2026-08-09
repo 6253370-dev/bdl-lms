@@ -172,7 +172,8 @@ export function BankPicker({
   };
 
   const generateAuto = async () => {
-    if (!activeFolder) return toast.error("Mövzu seçin");
+    const folderIds = [...autoFolders];
+    if (folderIds.length === 0) return toast.error("Ən azı bir mövzu seçin");
     const total = Number(autoCount);
     const e = Number(autoEasy) || 0;
     const m = Number(autoMedium) || 0;
@@ -181,11 +182,11 @@ export function BankPicker({
     if (!useDiff && (!total || total < 1)) return toast.error("Sual sayını daxil edin");
 
     setGenerating(true);
-    // load full pool from this folder
+    // load full pool from the selected folders
     const { data: qs } = await supabase
       .from("bank_questions")
       .select("id,folder_id,text,question_type,difficulty,time_limit_seconds")
-      .eq("folder_id", activeFolder);
+      .in("folder_id", folderIds);
     const pool = (qs ?? []) as BankQ[];
 
     const pickN = (arr: BankQ[], n: number) => {
