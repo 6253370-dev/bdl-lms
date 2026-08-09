@@ -99,9 +99,9 @@ const CertificatesIndexRoute = CertificatesIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const CertificatesMyRoute = CertificatesMyRouteImport.update({
-  id: '/my',
-  path: '/my',
-  getParentRoute: () => CertificatesRoute,
+  id: '/certificates/my',
+  path: '/certificates/my',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminCommentsRoute = AdminCommentsRouteImport.update({
   id: '/admin/comments',
@@ -257,6 +257,7 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   UsersRoute: typeof UsersRoute
   AdminCommentsRoute: typeof AdminCommentsRoute
+  CertificatesMyRoute: typeof CertificatesMyRoute
   CertificatesIndexRoute: typeof CertificatesIndexRoute
   CoursesIndexRoute: typeof CoursesIndexRoute
   CoursesCourseIdPlayRoute: typeof CoursesCourseIdPlayRoute
@@ -365,10 +366,10 @@ declare module '@tanstack/react-router' {
     }
     '/certificates/my': {
       id: '/certificates/my'
-      path: '/my'
+      path: '/certificates/my'
       fullPath: '/certificates/my'
       preLoaderRoute: typeof CertificatesMyRouteImport
-      parentRoute: typeof CertificatesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/admin/comments': {
       id: '/admin/comments'
@@ -408,6 +409,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   UsersRoute: UsersRoute,
   AdminCommentsRoute: AdminCommentsRoute,
+  CertificatesMyRoute: CertificatesMyRoute,
   CertificatesIndexRoute: CertificatesIndexRoute,
   CoursesIndexRoute: CoursesIndexRoute,
   CoursesCourseIdPlayRoute: CoursesCourseIdPlayRoute,

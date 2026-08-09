@@ -62,6 +62,7 @@ type Exam = {
   cover_image_url: string | null;
   shuffle_questions: boolean;
   certificate_template_url: string | null;
+  has_password: boolean;
 };
 
 
@@ -101,7 +102,7 @@ function ExamsPage() {
     setLoading(true);
     const { data } = await supabase
       .from("standalone_exams")
-      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at,cover_image_url,shuffle_questions,certificate_template_url")
+      .select("id,title,description,time_limit_seconds,passing_score,is_published,created_at,cover_image_url,shuffle_questions,certificate_template_url,has_password")
       .order("created_at", { ascending: false });
     setExams((data ?? []) as Exam[]);
     setLoading(false);
@@ -283,6 +284,7 @@ function ExamEditor({
   const [title, setTitle] = useState(exam?.title ?? "");
   const [description, setDescription] = useState(exam?.description ?? "");
   const [password, setPassword] = useState("");
+  const [requirePassword, setRequirePassword] = useState(exam?.has_password ?? false);
   const [showPassword, setShowPassword] = useState(false);
   const [timeLimitMin, setTimeLimitMin] = useState(
     exam?.time_limit_seconds ? String(Math.round(exam.time_limit_seconds / 60)) : "",
@@ -325,7 +327,7 @@ function ExamEditor({
 
   const saveExam = async () => {
     if (!title.trim()) return toast.error("Başlıq tələb olunur");
-    if (!examId && !password.trim()) return toast.error("Şifrə tələb olunur");
+
     setSaving(true);
     const payload: any = {
       title: title.trim(),
@@ -338,7 +340,9 @@ function ExamEditor({
       certificate_template_url: certTemplateUrl,
     };
 
-    if (password.trim()) payload.password = password.trim();
+    if (!requirePassword) payload.password = "";
+    else if (password.trim()) payload.password = password.trim();
+    else if (!examId) payload.password = "";
 
     if (examId) {
       const { error } = await supabase
@@ -498,13 +502,17 @@ function ExamEditor({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="grid gap-2">
-              <Label>Şifrə {examId && <span className="text-xs text-muted-foreground">(boş buraxsanız dəyişməz)</span>}</Label>
+              <div className="flex items-center justify-between">
+                <Label>Şifrə <span className="text-xs text-muted-foreground">(opsional)</span></Label>
+                <Switch checked={requirePassword} onCheckedChange={setRequirePassword} />
+              </div>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
                   value={password}
+                  disabled={!requirePassword}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={examId ? "••••••" : "Tələb olunur"}
+                  placeholder={requirePassword ? (examId ? "••••••" : "Şifrə daxil edin") : "Şifrəsiz"}
                 />
                 <button
                   type="button"
@@ -719,6 +727,12 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     setStage("running");
     setVerifying(false);
   };
+
+  // Şifrəsiz imtahanlar birbaşa başlayır
+  useEffect(() => {
+    if (!exam.has_password) void verifyAndStart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exam.id]);
 
   const submit = async () => {
     if (!user) return;

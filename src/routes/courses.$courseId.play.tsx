@@ -104,7 +104,7 @@ function CoursePlayer() {
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-3.5rem)]">
       {/* Sidebar */}
-      <aside className="lg:w-80 lg:border-r bg-background/50 lg:flex lg:flex-col lg:h-[calc(100vh-3.5rem)] lg:sticky lg:top-0">
+      <aside className="order-2 lg:order-1 lg:w-80 lg:border-r bg-background/50 lg:flex lg:flex-col lg:h-[calc(100vh-3.5rem)] lg:sticky lg:top-0">
         <div className="p-5 border-b shrink-0">
           <button
             onClick={() => navigate({ to: "/courses" })}
@@ -151,7 +151,7 @@ function CoursePlayer() {
       </aside>
 
       {/* Content */}
-      <section className="flex-1 p-6 lg:p-10 max-w-5xl mx-auto w-full">
+      <section className="order-1 lg:order-2 flex-1 p-6 lg:p-10 max-w-5xl mx-auto w-full">
         {!active ? (
           <Card className="p-12 text-center border-dashed">
             <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
@@ -341,6 +341,7 @@ interface Question {
   id: string;
   text: string;
   position: number;
+  time_limit_seconds: number | null;
   answers: { id: string; text: string; is_correct: boolean; position: number }[];
 }
 
@@ -365,9 +366,12 @@ function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState<{ correct: number; total: number; percent: number; passed: boolean } | null>(null);
   const [certificate, setCertificate] = useState<{ serial: string; issued_at: string } | null>(null);
+  const [secsLeft, setSecsLeft] = useState<number | null>(null);
+  const [locked, setLocked] = useState(false);
 
   const passingScore = block.block_type === "final_exam" ? (block.passing_score ?? coursePassingScore) : 0;
   const timePer = block.time_limit_seconds ?? null;
+  const currentLimit = questions[idx]?.time_limit_seconds ?? timePer ?? null;
   const Icon = meta[block.block_type].icon;
 
   useEffect(() => {
@@ -375,7 +379,7 @@ function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block
     (async () => {
       setLoading(true);
       const { data: qs } = await supabase
-        .from("questions").select("id,text,position").eq("block_id", block.id).order("position");
+        .from("questions").select("id,text,position,time_limit_seconds").eq("block_id", block.id).order("position");
       const ids = (qs ?? []).map((q) => q.id);
       const { data: ans } = ids.length
         ? await supabase.from("answers").select("id,text,is_correct,position,question_id").in("question_id", ids).order("position")
@@ -499,12 +503,28 @@ function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block
     }
   };
 
-  // Per-question timer
+  // Per-question countdown (sual üzrə vaxt; bitəndə sual bloklanır və növbətiyə keçir)
+  const advanceRef = useRef(recordAndAdvance);
+  advanceRef.current = recordAndAdvance;
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+
   useEffect(() => {
-    if (stage !== "running" || !timePer) return;
-    const t = setTimeout(() => recordAndAdvance(selected), timePer * 1000);
-    return () => clearTimeout(t);
-  }, [stage, idx, timePer, recordAndAdvance, selected]);
+    if (stage !== "running") return;
+    setSecsLeft(currentLimit);
+    setLocked(false);
+  }, [stage, idx, currentLimit]);
+
+  useEffect(() => {
+    if (stage !== "running" || secsLeft === null) return;
+    if (secsLeft <= 0) {
+      setLocked(true);
+      const to = window.setTimeout(() => advanceRef.current(selectedRef.current), 900);
+      return () => window.clearTimeout(to);
+    }
+    const id = window.setTimeout(() => setSecsLeft((s) => (s === null ? s : s - 1)), 1000);
+    return () => window.clearTimeout(id);
+  }, [stage, secsLeft]);
 
   if (loading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -548,7 +568,15 @@ function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-4 text-sm">
           <span className="text-muted-foreground">{t.common.questionOf} {idx + 1} {t.common.of} {questions.length}</span>
-          {timePer && <span className="text-muted-foreground inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {timePer}s</span>}
+          {secsLeft !== null && (
+            <span className={cn(
+              "inline-flex items-center gap-1 font-semibold tabular-nums",
+              secsLeft <= 5 ? "text-destructive" : "text-muted-foreground",
+            )}>
+              <Clock className="h-3.5 w-3.5" />
+              {Math.floor(Math.max(0, secsLeft) / 60)}:{String(Math.max(0, secsLeft) % 60).padStart(2, "0")}
+            </span>
+          )}
         </div>
         <div className="h-1.5 w-full rounded-full bg-muted mb-6 overflow-hidden">
           <div className="h-full bg-primary transition-all" style={{ width: `${((idx) / questions.length) * 100}%` }} />
@@ -556,16 +584,21 @@ function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block
 
         <Card className="p-6 space-y-5">
           <h2 className="font-display text-xl font-semibold leading-snug">{q.text}</h2>
+          {locked && (
+            <p className="text-sm text-destructive">Vaxt bitdi — bu sual bağlandı, növbəti suala keçilir.</p>
+          )}
           <div className="space-y-2">
             {q.answers.map((a) => {
               const isSel = selected === a.id;
               return (
                 <button
                   key={a.id}
+                  disabled={locked}
                   onClick={() => setSelected(a.id)}
                   className={cn(
                     "w-full text-left px-4 py-3 rounded-lg border-2 transition-all",
                     isSel ? "border-primary bg-primary/5" : "border-border hover:border-primary/40",
+                    locked && "opacity-60 pointer-events-none",
                   )}
                 >
                   <span className={cn("inline-block h-4 w-4 rounded-full border-2 mr-3 align-middle",
@@ -578,7 +611,7 @@ function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block
           <Button
             size="lg"
             className="w-full"
-            disabled={!selected || submitting}
+            disabled={!selected || submitting || locked}
             onClick={() => recordAndAdvance(selected)}
           >
             {idx + 1 === questions.length ? t.common.finish : t.common.nextQuestion}

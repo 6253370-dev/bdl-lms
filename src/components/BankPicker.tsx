@@ -11,13 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Folder as FolderIcon, Loader2, Sparkles, Search, ChevronRight, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
@@ -73,6 +66,15 @@ export function BankPicker({
   };
 
   // Auto-generate state
+  const [autoFolders, setAutoFolders] = useState<Set<string>>(new Set());
+  const toggleAutoFolder = (id: string) => {
+    setAutoFolders((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
   const [autoCount, setAutoCount] = useState("10");
   const [autoEasy, setAutoEasy] = useState("");
   const [autoMedium, setAutoMedium] = useState("");
@@ -163,7 +165,8 @@ export function BankPicker({
   };
 
   const generateAuto = async () => {
-    if (!activeFolder) return toast.error("Mövzu seçin");
+    const folderIds = [...autoFolders];
+    if (folderIds.length === 0) return toast.error("Ən azı bir mövzu seçin");
     const total = Number(autoCount);
     const e = Number(autoEasy) || 0;
     const m = Number(autoMedium) || 0;
@@ -172,11 +175,11 @@ export function BankPicker({
     if (!useDiff && (!total || total < 1)) return toast.error("Sual sayını daxil edin");
 
     setGenerating(true);
-    // load full pool from this folder
+    // load full pool from the selected folders
     const { data: qs } = await supabase
       .from("bank_questions")
       .select("id,folder_id,text,question_type,difficulty,time_limit_seconds")
-      .eq("folder_id", activeFolder);
+      .in("folder_id", folderIds);
     const pool = (qs ?? []) as BankQ[];
 
     const pickN = (arr: BankQ[], n: number) => {
@@ -332,29 +335,42 @@ export function BankPicker({
           <TabsContent value="auto">
             <div className="space-y-4">
               <div className="grid gap-2">
-                <Label>Mövzu</Label>
-                <Select value={activeFolder ?? ""} onValueChange={setActiveFolder}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Mövzu seçin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(() => {
-                      const flatten = (parentId: string | null, depth: number): Folder[] => {
-                        const kids = folders.filter((f) => (f.parent_id ?? null) === parentId);
-                        return kids.flatMap((k) => [
-                          { ...k, name: `${"— ".repeat(depth)}${k.name}` },
-                          ...flatten(k.id, depth + 1),
-                        ]);
-                      };
-                      return flatten(null, 0).map((f) => (
-                        <SelectItem key={f.id} value={f.id}>
-                          {f.name} ({folderCounts[f.id] ?? 0})
-                        </SelectItem>
-                      ));
-                    })()}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center justify-between">
+                  <Label>Mövzular (bir və ya bir neçə)</Label>
+                  <span className="text-xs text-muted-foreground">{autoFolders.size} seçilib</span>
+                </div>
+                <div className="max-h-[30vh] overflow-y-auto border rounded-md p-2 space-y-1">
+                  {folders.length === 0 && (
+                    <p className="text-xs text-muted-foreground p-2">Sual bankında mövzu yoxdur.</p>
+                  )}
+                  {(() => {
+                    const flatten = (parentId: string | null, depth: number): { f: Folder; depth: number }[] => {
+                      const kids = folders.filter((x) => (x.parent_id ?? null) === parentId);
+                      return kids.flatMap((k) => [{ f: k, depth }, ...flatten(k.id, depth + 1)]);
+                    };
+                    return flatten(null, 0).map(({ f, depth }) => (
+                      <label
+                        key={f.id}
+                        className="flex items-center gap-2 text-sm py-1 px-1 rounded hover:bg-muted cursor-pointer"
+                        style={{ paddingLeft: 4 + depth * 14 }}
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={autoFolders.has(f.id)}
+                          onChange={() => toggleAutoFolder(f.id)}
+                        />
+                        <FolderIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="flex-1 truncate">{f.name}</span>
+                        <span className="text-[10px] bg-muted rounded px-1.5 py-0.5">
+                          {folderCounts[f.id] ?? 0}
+                        </span>
+                      </label>
+                    ));
+                  })()}
+                </div>
               </div>
+
 
 
               <div className="grid gap-2">
@@ -405,7 +421,7 @@ export function BankPicker({
               <Button variant="outline" onClick={onClose}>
                 Ləğv et
               </Button>
-              <Button onClick={generateAuto} disabled={generating || !activeFolder}>
+              <Button onClick={generateAuto} disabled={generating || autoFolders.size === 0}>
                 {generating && <Loader2 className="h-4 w-4 animate-spin" />}
                 <Sparkles className="h-4 w-4" /> Avtomatik yarat
               </Button>
