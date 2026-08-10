@@ -230,7 +230,7 @@ function CoursePlayer() {
   );
 }
 
-function LessonView({ block, nextBlockId, onGoNext }: { block: Block; nextBlockId: string | null; onGoNext: (id: string) => void }) {
+function LessonView({ block, nextBlockId, onGoNext, onComplete }: { block: Block; nextBlockId: string | null; onGoNext: (id: string) => void; onComplete: () => void }) {
   const navigate = useNavigate();
   const required = block.min_view_seconds ?? 0;
   const [elapsed, setElapsed] = useState(0);
@@ -243,7 +243,14 @@ function LessonView({ block, nextBlockId, onGoNext }: { block: Block; nextBlockI
     return () => window.clearInterval(id);
   }, [block.id, block.min_view_seconds]);
 
+  const completeRef = useRef(onComplete);
+  completeRef.current = onComplete;
+  useEffect(() => {
+    if (unlocked) completeRef.current();
+  }, [unlocked, block.id]);
+
   const remaining = Math.max(0, required - elapsed);
+
 
   return (
     <div className="space-y-6">
