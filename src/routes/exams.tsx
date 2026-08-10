@@ -695,7 +695,8 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     });
     if (error || !ok) {
       setVerifying(false);
-      toast.error("Şifrə yanlışdır");
+      toast.error(exam.has_password ? "Şifrə yanlışdır" : "İmtahan açıla bilmədi");
+      if (!exam.has_password) onClose();
       return;
     }
     const { data: qs } = await supabase
