@@ -66,6 +66,7 @@ function CoursePlayer() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [completed, setCompleted] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,11 +83,41 @@ function CoursePlayer() {
       ...filtered.filter((x) => x.block_type === "final_exam"),
     ];
     setBlocks(list);
-    setActiveId(list[0]?.id ?? null);
+
+    let done = new Set<string>();
+    if (user?.id) {
+      const { data: prog } = await supabase
+        .from("block_progress")
+        .select("block_id")
+        .eq("user_id", user.id)
+        .eq("course_id", courseId);
+      done = new Set((prog ?? []).map((p) => p.block_id));
+      setCompleted(done);
+    }
+    // Davam ediləcək ilk tamamlanmamış dərs
+    const firstOpen = list.find((x) => !done.has(x.id)) ?? list[list.length - 1];
+    setActiveId(firstOpen?.id ?? null);
     setLoading(false);
-  }, [courseId]);
+  }, [courseId, user?.id]);
 
   useEffect(() => { load(); }, [load]);
+
+  const markComplete = useCallback(async (blockId: string) => {
+    if (!user?.id) return;
+    setCompleted((prev) => {
+      if (prev.has(blockId)) return prev;
+      const next = new Set(prev);
+      next.add(blockId);
+      return next;
+    });
+    await supabase
+      .from("block_progress")
+      .upsert(
+        { user_id: user.id, course_id: courseId, block_id: blockId, completed: true },
+        { onConflict: "user_id,block_id" },
+      );
+  }, [user?.id, courseId]);
+
 
   // Record course view for "recently viewed" dashboard
   useEffect(() => {
