@@ -100,6 +100,30 @@ function CoursesPage() {
     }
     setCourses(list);
     setFolders((fRes.data ?? []) as FolderRow[]);
+
+    // Keçid progresi
+    if (user?.id && list.length) {
+      const ids = list.map((c) => c.id);
+      const [{ data: blocks }, { data: done }] = await Promise.all([
+        supabase.from("course_blocks").select("id,course_id,block_type").in("course_id", ids),
+        supabase.from("block_progress").select("block_id,course_id").eq("user_id", user.id).in("course_id", ids),
+      ]);
+      const totals = new Map<string, number>();
+      (blocks ?? []).forEach((b) => {
+        if (b.block_type === "quiz") return;
+        totals.set(b.course_id, (totals.get(b.course_id) ?? 0) + 1);
+      });
+      const doneCounts = new Map<string, number>();
+      (done ?? []).forEach((d) => doneCounts.set(d.course_id, (doneCounts.get(d.course_id) ?? 0) + 1));
+      const map: Record<string, number> = {};
+      ids.forEach((id) => {
+        const total = totals.get(id) ?? 0;
+        map[id] = total ? Math.min(100, Math.round(((doneCounts.get(id) ?? 0) / total) * 100)) : 0;
+      });
+      setProgress(map);
+    } else {
+      setProgress({});
+    }
     setLoading(false);
   };
 
