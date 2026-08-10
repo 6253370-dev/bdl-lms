@@ -370,7 +370,17 @@ function CoursesPage() {
                   </div>
                   <h3 className="font-display font-semibold text-lg leading-snug">{c.title}</h3>
                   {c.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2 flex-1">{c.description}</p>}
-                  <div className="flex gap-2 mt-4">
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                      <span>Keçid</span>
+                      <span>{progress[c.id] ?? 0}%</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress[c.id] ?? 0}%` }} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+
                     <Button asChild size="sm" className="flex-1">
                       <Link to="/courses/$courseId/play" params={{ courseId: c.id }}>{t.common.open}</Link>
                     </Button>
