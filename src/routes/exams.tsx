@@ -787,6 +787,17 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl">
+        {stage === "loading" && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{exam.title}</DialogTitle>
+            </DialogHeader>
+            <div className="py-10 flex justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          </>
+        )}
+
         {stage === "password" && (
           <>
             <DialogHeader>
