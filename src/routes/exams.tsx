@@ -719,6 +719,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     if (full.length === 0) {
       setVerifying(false);
       toast.error("Bu imtahanda sual yoxdur");
+      if (!exam.has_password) onClose();
       return;
     }
     if (exam.shuffle_questions) {
