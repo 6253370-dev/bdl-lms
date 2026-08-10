@@ -52,6 +52,7 @@ function CoursesPage() {
   const { isAdmin, user } = useAuth();
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
+  const [progress, setProgress] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   // Course create
@@ -99,6 +100,30 @@ function CoursesPage() {
     }
     setCourses(list);
     setFolders((fRes.data ?? []) as FolderRow[]);
+
+    // Keçid progresi
+    if (user?.id && list.length) {
+      const ids = list.map((c) => c.id);
+      const [{ data: blocks }, { data: done }] = await Promise.all([
+        supabase.from("course_blocks").select("id,course_id,block_type").in("course_id", ids),
+        supabase.from("block_progress").select("block_id,course_id").eq("user_id", user.id).in("course_id", ids),
+      ]);
+      const totals = new Map<string, number>();
+      (blocks ?? []).forEach((b) => {
+        if (b.block_type === "quiz") return;
+        totals.set(b.course_id, (totals.get(b.course_id) ?? 0) + 1);
+      });
+      const doneCounts = new Map<string, number>();
+      (done ?? []).forEach((d) => doneCounts.set(d.course_id, (doneCounts.get(d.course_id) ?? 0) + 1));
+      const map: Record<string, number> = {};
+      ids.forEach((id) => {
+        const total = totals.get(id) ?? 0;
+        map[id] = total ? Math.min(100, Math.round(((doneCounts.get(id) ?? 0) / total) * 100)) : 0;
+      });
+      setProgress(map);
+    } else {
+      setProgress({});
+    }
     setLoading(false);
   };
 
@@ -345,7 +370,17 @@ function CoursesPage() {
                   </div>
                   <h3 className="font-display font-semibold text-lg leading-snug">{c.title}</h3>
                   {c.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2 flex-1">{c.description}</p>}
-                  <div className="flex gap-2 mt-4">
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                      <span>Keçid</span>
+                      <span>{progress[c.id] ?? 0}%</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress[c.id] ?? 0}%` }} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+
                     <Button asChild size="sm" className="flex-1">
                       <Link to="/courses/$courseId/play" params={{ courseId: c.id }}>{t.common.open}</Link>
                     </Button>

@@ -178,7 +178,7 @@ function ExamsPage() {
               />
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-amber-600" />
+                  {exam.has_password && <Lock className="h-4 w-4 text-amber-600" />}
                   <Badge variant={exam.is_published ? "default" : "secondary"}>
                     {exam.is_published ? "Dərc olunub" : "Qaralama"}
                   </Badge>
@@ -657,7 +657,9 @@ function ExamEditor({
 
 function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
   const { user } = useAuth();
-  const [stage, setStage] = useState<"password" | "running" | "result">("password");
+  const [stage, setStage] = useState<"password" | "loading" | "running" | "result">(
+    exam.has_password ? "password" : "loading",
+  );
   const [password, setPassword] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
@@ -693,7 +695,8 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     });
     if (error || !ok) {
       setVerifying(false);
-      toast.error("Şifrə yanlışdır");
+      toast.error(exam.has_password ? "Şifrə yanlışdır" : "İmtahan açıla bilmədi");
+      if (!exam.has_password) onClose();
       return;
     }
     const { data: qs } = await supabase
@@ -716,6 +719,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     if (full.length === 0) {
       setVerifying(false);
       toast.error("Bu imtahanda sual yoxdur");
+      if (!exam.has_password) onClose();
       return;
     }
     if (exam.shuffle_questions) {
@@ -785,6 +789,17 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl">
+        {stage === "loading" && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{exam.title}</DialogTitle>
+            </DialogHeader>
+            <div className="py-10 flex justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          </>
+        )}
+
         {stage === "password" && (
           <>
             <DialogHeader>

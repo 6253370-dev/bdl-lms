@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, BookOpen, Dumbbell, FileQuestion, GraduationCap,
   Loader2, CheckCircle2, XCircle, Play, Trophy, Clock, FileText, Video, Award,
+  Circle, Lock as LockIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -66,6 +67,7 @@ function CoursePlayer() {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [completed, setCompleted] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,11 +84,41 @@ function CoursePlayer() {
       ...filtered.filter((x) => x.block_type === "final_exam"),
     ];
     setBlocks(list);
-    setActiveId(list[0]?.id ?? null);
+
+    let done = new Set<string>();
+    if (user?.id) {
+      const { data: prog } = await supabase
+        .from("block_progress")
+        .select("block_id")
+        .eq("user_id", user.id)
+        .eq("course_id", courseId);
+      done = new Set((prog ?? []).map((p) => p.block_id));
+      setCompleted(done);
+    }
+    // Davam ediləcək ilk tamamlanmamış dərs
+    const firstOpen = list.find((x) => !done.has(x.id)) ?? list[list.length - 1];
+    setActiveId(firstOpen?.id ?? null);
     setLoading(false);
-  }, [courseId]);
+  }, [courseId, user?.id]);
 
   useEffect(() => { load(); }, [load]);
+
+  const markComplete = useCallback(async (blockId: string) => {
+    if (!user?.id) return;
+    setCompleted((prev) => {
+      if (prev.has(blockId)) return prev;
+      const next = new Set(prev);
+      next.add(blockId);
+      return next;
+    });
+    await supabase
+      .from("block_progress")
+      .upsert(
+        { user_id: user.id, course_id: courseId, block_id: blockId, completed: true },
+        { onConflict: "user_id,block_id" },
+      );
+  }, [user?.id, courseId]);
+
 
   // Record course view for "recently viewed" dashboard
   useEffect(() => {
@@ -123,13 +155,17 @@ function CoursePlayer() {
             {blocks.map((b, i) => {
               const Icon = meta[b.block_type].icon;
               const isActive = b.id === activeId;
+              const isDone = completed.has(b.id);
+              const unlocked = i === 0 || isDone || completed.has(blocks[i - 1].id);
               return (
                 <button
                   key={b.id}
-                  onClick={() => setActiveId(b.id)}
+                  onClick={() => unlocked && setActiveId(b.id)}
+                  disabled={!unlocked}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors",
                     isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                    !unlocked && "opacity-50 cursor-not-allowed hover:bg-transparent",
                   )}
                 >
                   <div className={cn("h-7 w-7 rounded-md flex items-center justify-center shrink-0",
@@ -143,6 +179,13 @@ function CoursePlayer() {
                     </div>
                     <div className="font-medium truncate">{b.title}</div>
                   </div>
+                  {isDone ? (
+                    <CheckCircle2 className={cn("h-5 w-5 shrink-0", isActive ? "text-primary-foreground" : "text-success")} />
+                  ) : !unlocked ? (
+                    <LockIcon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary-foreground/70" : "text-muted-foreground")} />
+                  ) : (
+                    <Circle className={cn("h-5 w-5 shrink-0", isActive ? "text-primary-foreground/70" : "text-muted-foreground/50")} />
+                  )}
                 </button>
               );
             })}
@@ -161,6 +204,7 @@ function CoursePlayer() {
           <LessonView
             key={active.id}
             block={active}
+            onComplete={() => markComplete(active.id)}
             nextBlockId={(() => {
               const i = blocks.findIndex((b) => b.id === active.id);
               return i >= 0 && i < blocks.length - 1 ? blocks[i + 1].id : null;
@@ -172,6 +216,7 @@ function CoursePlayer() {
             key={active.id}
             block={active}
             course={course}
+            onComplete={() => markComplete(active.id)}
             nextBlockId={(() => {
               const i = blocks.findIndex((b) => b.id === active.id);
               return i >= 0 && i < blocks.length - 1 ? blocks[i + 1].id : null;
@@ -179,12 +224,13 @@ function CoursePlayer() {
             onGoNext={(id) => setActiveId(id)}
           />
         )}
+
       </section>
     </div>
   );
 }
 
-function LessonView({ block, nextBlockId, onGoNext }: { block: Block; nextBlockId: string | null; onGoNext: (id: string) => void }) {
+function LessonView({ block, nextBlockId, onGoNext, onComplete }: { block: Block; nextBlockId: string | null; onGoNext: (id: string) => void; onComplete: () => void }) {
   const navigate = useNavigate();
   const required = block.min_view_seconds ?? 0;
   const [elapsed, setElapsed] = useState(0);
@@ -197,7 +243,14 @@ function LessonView({ block, nextBlockId, onGoNext }: { block: Block; nextBlockI
     return () => window.clearInterval(id);
   }, [block.id, block.min_view_seconds]);
 
+  const completeRef = useRef(onComplete);
+  completeRef.current = onComplete;
+  useEffect(() => {
+    if (unlocked) completeRef.current();
+  }, [unlocked, block.id]);
+
   const remaining = Math.max(0, required - elapsed);
+
 
   return (
     <div className="space-y-6">
@@ -352,7 +405,7 @@ interface ResultRow {
   timeSpent: number;
 }
 
-function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block; course: Course; nextBlockId: string | null; onGoNext: (id: string) => void }) {
+function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { block: Block; course: Course; nextBlockId: string | null; onGoNext: (id: string) => void; onComplete: () => void }) {
   const { user, profile } = useAuth();
   const courseId = course.id;
   const coursePassingScore = course.passing_score;
@@ -468,6 +521,8 @@ function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block
     setScore({ correct, total, percent, passed });
     setStage("done");
     setSubmitting(false);
+    if (passed) onComplete();
+
 
     // Issue certificate when final exam is passed
     if (block.block_type === "final_exam" && passed && profile) {
