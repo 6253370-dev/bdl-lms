@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, BookOpen, Dumbbell, FileQuestion, GraduationCap,
   Loader2, CheckCircle2, XCircle, Play, Trophy, Clock, FileText, Video, Award,
+  Circle, Lock as LockIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
