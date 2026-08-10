@@ -521,6 +521,8 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
     setScore({ correct, total, percent, passed });
     setStage("done");
     setSubmitting(false);
+    if (passed) onComplete();
+
 
     // Issue certificate when final exam is passed
     if (block.block_type === "final_exam" && passed && profile) {
