@@ -182,7 +182,7 @@ function CoursePlayer() {
                   {isDone ? (
                     <CheckCircle2 className={cn("h-5 w-5 shrink-0", isActive ? "text-primary-foreground" : "text-success")} />
                   ) : !unlocked ? (
-                    <Lock className={cn("h-4 w-4 shrink-0", isActive ? "text-primary-foreground/70" : "text-muted-foreground")} />
+                    <LockIcon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary-foreground/70" : "text-muted-foreground")} />
                   ) : (
                     <Circle className={cn("h-5 w-5 shrink-0", isActive ? "text-primary-foreground/70" : "text-muted-foreground/50")} />
                   )}
