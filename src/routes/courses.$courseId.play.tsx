@@ -154,13 +154,17 @@ function CoursePlayer() {
             {blocks.map((b, i) => {
               const Icon = meta[b.block_type].icon;
               const isActive = b.id === activeId;
+              const isDone = completed.has(b.id);
+              const unlocked = i === 0 || isDone || completed.has(blocks[i - 1].id);
               return (
                 <button
                   key={b.id}
-                  onClick={() => setActiveId(b.id)}
+                  onClick={() => unlocked && setActiveId(b.id)}
+                  disabled={!unlocked}
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors",
                     isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                    !unlocked && "opacity-50 cursor-not-allowed hover:bg-transparent",
                   )}
                 >
                   <div className={cn("h-7 w-7 rounded-md flex items-center justify-center shrink-0",
@@ -174,6 +178,13 @@ function CoursePlayer() {
                     </div>
                     <div className="font-medium truncate">{b.title}</div>
                   </div>
+                  {isDone ? (
+                    <CheckCircle2 className={cn("h-5 w-5 shrink-0", isActive ? "text-primary-foreground" : "text-success")} />
+                  ) : !unlocked ? (
+                    <Lock className={cn("h-4 w-4 shrink-0", isActive ? "text-primary-foreground/70" : "text-muted-foreground")} />
+                  ) : (
+                    <Circle className={cn("h-5 w-5 shrink-0", isActive ? "text-primary-foreground/70" : "text-muted-foreground/50")} />
+                  )}
                 </button>
               );
             })}
@@ -192,6 +203,7 @@ function CoursePlayer() {
           <LessonView
             key={active.id}
             block={active}
+            onComplete={() => markComplete(active.id)}
             nextBlockId={(() => {
               const i = blocks.findIndex((b) => b.id === active.id);
               return i >= 0 && i < blocks.length - 1 ? blocks[i + 1].id : null;
@@ -203,6 +215,7 @@ function CoursePlayer() {
             key={active.id}
             block={active}
             course={course}
+            onComplete={() => markComplete(active.id)}
             nextBlockId={(() => {
               const i = blocks.findIndex((b) => b.id === active.id);
               return i >= 0 && i < blocks.length - 1 ? blocks[i + 1].id : null;
@@ -210,6 +223,7 @@ function CoursePlayer() {
             onGoNext={(id) => setActiveId(id)}
           />
         )}
+
       </section>
     </div>
   );
