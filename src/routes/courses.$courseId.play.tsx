@@ -405,7 +405,7 @@ interface ResultRow {
   timeSpent: number;
 }
 
-function AssessmentView({ block, course, nextBlockId, onGoNext }: { block: Block; course: Course; nextBlockId: string | null; onGoNext: (id: string) => void }) {
+function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { block: Block; course: Course; nextBlockId: string | null; onGoNext: (id: string) => void; onComplete: () => void }) {
   const { user, profile } = useAuth();
   const courseId = course.id;
   const coursePassingScore = course.passing_score;
