@@ -178,7 +178,7 @@ function ExamsPage() {
               />
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-amber-600" />
+                  {exam.has_password && <Lock className="h-4 w-4 text-amber-600" />}
                   <Badge variant={exam.is_published ? "default" : "secondary"}>
                     {exam.is_published ? "Dərc olunub" : "Qaralama"}
                   </Badge>
