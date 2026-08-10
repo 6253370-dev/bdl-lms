@@ -657,7 +657,9 @@ function ExamEditor({
 
 function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
   const { user } = useAuth();
-  const [stage, setStage] = useState<"password" | "running" | "result">("password");
+  const [stage, setStage] = useState<"password" | "loading" | "running" | "result">(
+    exam.has_password ? "password" : "loading",
+  );
   const [password, setPassword] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
