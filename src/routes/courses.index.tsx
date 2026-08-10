@@ -52,6 +52,7 @@ function CoursesPage() {
   const { isAdmin, user } = useAuth();
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
+  const [progress, setProgress] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   // Course create
