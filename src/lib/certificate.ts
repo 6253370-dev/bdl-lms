@@ -91,7 +91,7 @@ export function buildCertificatePdf(data: CertificateData): jsPDF {
   doc.text("İmza", W - 160, footerY + 14, { align: "center" });
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 30, 30);
-  doc.text("BE Academy", W - 160, footerY + 30, { align: "center" });
+  doc.text("Baku Digital Lab", W - 160, footerY + 30, { align: "center" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);

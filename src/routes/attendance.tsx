@@ -25,9 +25,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/attendance")({
   head: () => ({
     meta: [
-      { title: "Davamiyyət · BE Academy" },
+      { title: "Davamiyyət · Baku Digital Lab" },
       { name: "description", content: "Offline dərslər üçün davamiyyət qeydiyyatı və hesabatı." },
-      { property: "og:title", content: "Davamiyyət · BE Academy" },
+      { property: "og:title", content: "Davamiyyət · Baku Digital Lab" },
       { property: "og:description", content: "Offline dərslər üçün davamiyyət qeydiyyatı." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

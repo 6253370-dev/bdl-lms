@@ -23,9 +23,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/certificates/")({
   head: () => ({
     meta: [
-      { title: "Sertifikat Şablonları — BE Academy" },
+      { title: "Sertifikat Şablonları — Baku Digital Lab" },
       { name: "description", content: "Sertifikat şablonlarını yüklə, redaktə et və kurs/imtahanlarda istifadə et." },
-      { property: "og:title", content: "Sertifikat Şablonları — BE Academy" },
+      { property: "og:title", content: "Sertifikat Şablonları — Baku Digital Lab" },
       { property: "og:description", content: "Sertifikat şablonlarını yüklə, redaktə et və kurs/imtahanlarda istifadə et." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -200,7 +200,7 @@ function TemplatesPage() {
                 <Input
                   value={editor.name}
                   onChange={(e) => setEditor({ ...editor, name: e.target.value })}
-                  placeholder="məs. Rəsmi BE Academy"
+                  placeholder="məs. Rəsmi Baku Digital Lab"
                 />
               </div>
               <FileUpload

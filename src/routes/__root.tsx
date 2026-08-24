@@ -30,10 +30,10 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BE Academy — Daxili təlim platforması" },
+      { title: "Baku Digital Lab — Daxili təlim platforması" },
       { name: "description", content: "Daxili təlim, qiymətləndirmə və sertifikatlaşdırma platforması." },
-      { property: "og:title", content: "BE Academy — Daxili təlim platforması" },
-      { name: "twitter:title", content: "BE Academy — Daxili təlim platforması" },
+      { property: "og:title", content: "Baku Digital Lab — Daxili təlim platforması" },
+      { name: "twitter:title", content: "Baku Digital Lab — Daxili təlim platforması" },
       { property: "og:description", content: "Daxili təlim, qiymətləndirmə və sertifikatlaşdırma platforması." },
       { name: "twitter:description", content: "Daxili təlim, qiymətləndirmə və sertifikatlaşdırma platforması." },
       { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/FllCn0y1rOeebe9tYZ38jSBArrV2/social-images/social-1777018244336-BE_Academy_-_horizontal_logo.webp" },

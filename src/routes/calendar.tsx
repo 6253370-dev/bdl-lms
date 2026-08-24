@@ -139,7 +139,7 @@ function downloadIcs(ev: EventRow) {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//BE Academy LMS//AZ",
+    "PRODID:-//Baku Digital Lab LMS//AZ",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",

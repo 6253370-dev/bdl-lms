@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * BE Academy LMS — Design System
+ * Baku Digital Lab LMS — Design System
  * Corporate, trustworthy, deep navy + warm amber accents.
  * All colors in oklch.
  */
@@ -65,7 +65,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.03 260);
 
-  /* BE Academy red — bold, confident */
+  /* Baku Digital Lab red — bold, confident */
   --primary: oklch(0.6 0.22 27);
   --primary-foreground: oklch(0.99 0.003 250);
   --primary-glow: oklch(0.7 0.2 27);
