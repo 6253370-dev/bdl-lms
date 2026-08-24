@@ -195,7 +195,9 @@ function CourseBuilderPage() {
     );
   }
 
-  const lessonBlocks = blocks.filter((b) => b.block_type === "lesson" || b.block_type === "practice");
+  const lessonBlocks = blocks
+    .filter((b) => b.block_type === "lesson" || b.block_type === "practice")
+    .sort((a, b) => a.position - b.position);
   const examBlock = blocks.find((b) => b.block_type === "final_exam");
 
   return (
