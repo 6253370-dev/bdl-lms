@@ -44,6 +44,9 @@ import { CertificateTemplateSelect } from "@/components/CertificateTemplateSelec
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
 export const Route = createFileRoute("/exams")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    exam: typeof search['exam'] === "string" ? (search['exam'] as string) : undefined,
+  }),
   component: () => (
     <ProtectedRoute>
       <ExamsPage />
