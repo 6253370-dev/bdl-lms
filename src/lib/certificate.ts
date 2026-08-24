@@ -29,18 +29,9 @@ export function buildCertificatePdf(data: CertificateData): jsPDF {
 
   doc.setTextColor(20, 40, 65);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
-  doc.text("BE ACADEMY", W / 2, 90, { align: "center" });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(110, 110, 110);
-  doc.text("Daxili Təlim Platforması", W / 2, 108, { align: "center" });
-
-  doc.setFont("helvetica", "bold");
   doc.setFontSize(34);
-  doc.setTextColor(20, 40, 65);
   doc.text("TƏLİM SERTİFİKATI", W / 2, 170, { align: "center" });
+
 
   doc.setDrawColor(20, 40, 65);
   doc.setLineWidth(1);
@@ -89,9 +80,7 @@ export function buildCertificatePdf(data: CertificateData): jsPDF {
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80, 80, 80);
   doc.text("İmza", W - 160, footerY + 14, { align: "center" });
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 30, 30);
-  doc.text("Baku Digital Lab", W - 160, footerY + 30, { align: "center" });
+
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
@@ -238,7 +227,34 @@ export async function buildCertificateFromTemplate(
     SERIAL: { value: data.serial },
   };
 
+  // Image templates (PNG/JPG) — place image as full page background.
+  const head = new Uint8Array(tplBytes.slice(0, 4));
+  const isPng = head[0] === 0x89 && head[1] === 0x50;
+  const isJpg = head[0] === 0xff && head[1] === 0xd8;
+  if (isPng || isJpg) {
+    const imgPdf = await PDFDocument.create();
+    imgPdf.registerFontkit(fontkit);
+    const fReg = await imgPdf.embedFont(regular, { subset: true });
+    const fBold = await imgPdf.embedFont(bold, { subset: true });
+    const img = isPng ? await imgPdf.embedPng(tplBytes) : await imgPdf.embedJpg(tplBytes);
+    const p = imgPdf.addPage([img.width, img.height]);
+    p.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+    const IW = img.width, IH = img.height;
+    const put = (text: string, y: number, size: number, b = false) => {
+      const f = b ? fBold : fReg;
+      const w = f.widthOfTextAtSize(text, size);
+      p.drawText(text, { x: (IW - w) / 2, y, size, font: f, color: rgb(0.08, 0.16, 0.26) });
+    };
+    put(data.fullName, IH * 0.5, Math.min(38, IW * 0.05), true);
+    put(data.courseTitle, IH * 0.38, Math.min(22, IW * 0.028), true);
+    put(`Nəticə: ${Math.round(data.scorePercent)}%`, IH * 0.3, 14, true);
+    put(dateStr, IH * 0.12, 12);
+    put(`Seriya: ${data.serial}`, IH * 0.06, 9);
+    return await imgPdf.save();
+  }
+
   const pdf = await PDFDocument.load(tplBytes);
+
   pdf.registerFontkit(fontkit);
   const fontReg = await pdf.embedFont(regular, { subset: true });
   const fontBold = await pdf.embedFont(bold, { subset: true });
@@ -333,19 +349,28 @@ export async function buildCertificateFromTemplate(
 export async function downloadCertificateSmart(data: CertificateData, templateUrl?: string | null) {
   const safe = sanitize(data.fullName);
   const fileName = `Sertifikat_${safe}_${data.serial}.pdf`;
-  if (templateUrl && /\.pdf($|\?)/i.test(templateUrl)) {
-    const bytes = await buildCertificateFromTemplate(templateUrl, data);
-    triggerDownload(bytes, fileName);
-    return;
+  if (templateUrl) {
+    try {
+      const bytes = await buildCertificateFromTemplate(templateUrl, data);
+      triggerDownload(bytes, fileName);
+      return;
+    } catch (e) {
+      console.error("Sertifikat şablonu tətbiq edilmədi:", e);
+    }
   }
   downloadCertificate(data);
 }
 
 export async function previewCertificateSmart(data: CertificateData, templateUrl?: string | null): Promise<string> {
-  if (templateUrl && /\.pdf($|\?)/i.test(templateUrl)) {
-    const bytes = await buildCertificateFromTemplate(templateUrl, data);
-    return await renderPdfToImageDataUrl(bytes);
+  if (templateUrl) {
+    try {
+      const bytes = await buildCertificateFromTemplate(templateUrl, data);
+      return await renderPdfToImageDataUrl(bytes);
+    } catch (e) {
+      console.error("Sertifikat şablonu tətbiq edilmədi:", e);
+    }
   }
+
   const blob = buildCertificatePdf(data).output("blob");
   const ab = await blob.arrayBuffer();
   return await renderPdfToImageDataUrl(new Uint8Array(ab));
