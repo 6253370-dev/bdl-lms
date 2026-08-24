@@ -194,7 +194,7 @@ function CoursePlayer() {
       </aside>
 
       {/* Content */}
-      <section className="order-1 lg:order-2 flex-1 p-6 lg:p-10 max-w-5xl mx-auto w-full">
+      <section className="order-1 lg:order-2 flex-1 min-w-0 p-6 lg:p-10 max-w-5xl mx-auto w-full">
         {!active ? (
           <Card className="p-12 text-center border-dashed">
             <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
