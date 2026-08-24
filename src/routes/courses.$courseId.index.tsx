@@ -315,8 +315,34 @@ function CourseBuilderPage() {
               <p className="text-sm text-muted-foreground">{t.courses.noLessons}</p>
             </Card>
           )}
-          {lessonBlocks.map((b) => (
-            <BlockCard key={b.id} block={b} isAdmin={isAdmin} onChange={(p) => updateBlock(b.id, p)} onSave={() => saveBlock(b)} onDelete={() => deleteBlock(b.id)} />
+          {isAdmin && lessonBlocks.length > 1 && (
+            <p className="text-xs text-muted-foreground">Sıranı dəyişmək üçün kartı tutub sürüşdürün</p>
+          )}
+          {lessonBlocks.map((b, i) => (
+            <div
+              key={b.id}
+              draggable={isAdmin}
+              onDragStart={(e) => { dragId.current = b.id; e.dataTransfer.effectAllowed = "move"; }}
+              onDragOver={(e) => { if (isAdmin && dragId.current && dragId.current !== b.id) { e.preventDefault(); setDragOverId(b.id); } }}
+              onDragLeave={() => setDragOverId((v) => (v === b.id ? null : v))}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverId(null);
+                if (dragId.current) reorderLessons(dragId.current, b.id);
+                dragId.current = null;
+              }}
+              onDragEnd={() => { dragId.current = null; setDragOverId(null); }}
+              className={dragOverId === b.id ? "rounded-xl ring-2 ring-primary" : undefined}
+            >
+              <BlockCard
+                block={b}
+                index={i}
+                isAdmin={isAdmin}
+                onChange={(p) => updateBlock(b.id, p)}
+                onSave={() => saveBlock(b)}
+                onDelete={() => deleteBlock(b.id)}
+              />
+            </div>
           ))}
           {isAdmin && (
             <div className="flex gap-2 pt-2">
