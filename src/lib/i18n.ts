@@ -1,7 +1,7 @@
 // Azerbaijani translations for Baku Digital Lab
 export const t = {
   // Brand
-  brand: "Baku Digital Lab",
+  brand: "Learning Management System",
   brandTagline: "Daxili təlim",
 
   // Navigation

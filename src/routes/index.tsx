@@ -57,7 +57,7 @@ function LoginPage() {
           </p>
         </div>
         <div className="text-sm text-primary-foreground/70">
-          © {new Date().getFullYear()} {t.brand} — {t.login.footer}
+          © {new Date().getFullYear()} Baku Digital Lab — {t.login.footer}
         </div>
       </div>
 
