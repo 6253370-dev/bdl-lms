@@ -443,6 +443,12 @@ function BlockCard({
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center gap-3 p-4">
+        {isAdmin && index !== undefined && (
+          <div className="flex items-center gap-1 text-muted-foreground cursor-grab active:cursor-grabbing shrink-0">
+            <GripVertical className="h-4 w-4" />
+            <span className="text-xs tabular-nums">{index + 1}</span>
+          </div>
+        )}
         <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${meta.tone}`}>
           <Icon className="h-5 w-5" />
         </div>
