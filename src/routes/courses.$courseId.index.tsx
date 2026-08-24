@@ -157,6 +157,29 @@ function CourseBuilderPage() {
     else toast.success("Yadda saxlanıldı");
   };
 
+  const reorderLessons = async (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const ordered = blocks
+      .filter((b) => b.block_type === "lesson" || b.block_type === "practice")
+      .sort((a, b) => a.position - b.position);
+    const from = ordered.findIndex((b) => b.id === fromId);
+    const to = ordered.findIndex((b) => b.id === toId);
+    if (from < 0 || to < 0) return;
+    const next = [...ordered];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    const posMap = new Map(next.map((b, i) => [b.id, i]));
+    setBlocks((bs) =>
+      bs.map((b) => (posMap.has(b.id) ? { ...b, position: posMap.get(b.id)! } : b)),
+    );
+    const results = await Promise.all(
+      next.map((b, i) => supabase.from("course_blocks").update({ position: i }).eq("id", b.id)),
+    );
+    const err = results.find((r) => r.error)?.error;
+    if (err) toast.error(err.message);
+    else toast.success("Sıra yeniləndi");
+  };
+
   const deleteBlock = async (id: string) => {
     const { error } = await supabase.from("course_blocks").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
