@@ -136,7 +136,7 @@ function CoursePlayer() {
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-3.5rem)]">
       {/* Sidebar */}
-      <aside className="order-2 lg:order-1 lg:w-80 lg:border-r bg-background/50 lg:flex lg:flex-col lg:h-[calc(100vh-3.5rem)] lg:sticky lg:top-0">
+      <aside className="order-2 lg:order-1 lg:w-80 lg:shrink-0 lg:border-r bg-background/50 lg:flex lg:flex-col lg:h-[calc(100vh-3.5rem)] lg:sticky lg:top-0 overflow-hidden">
         <div className="p-5 border-b shrink-0">
           <button
             onClick={() => navigate({ to: "/courses" })}
