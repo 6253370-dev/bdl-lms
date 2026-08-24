@@ -1,1 +1,0 @@
-ALTER TABLE public.standalone_exams ADD COLUMN IF NOT EXISTS cover_image_url text;

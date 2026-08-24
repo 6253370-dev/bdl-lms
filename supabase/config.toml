@@ -1,16 +1,1 @@
-project_id = "acchyjznygzdztdihifj"
-
-[functions.bootstrap-super-admin]
-verify_jwt = false
-
-[functions.login-with-employee-id]
-verify_jwt = false
-
-[functions.admin-create-user]
-verify_jwt = false
-
-[functions.admin-update-user]
-verify_jwt = false
-
-[functions.admin-delete-user]
-verify_jwt = false
+project_id = "zgdifhluwetpaoudkxli"

@@ -1,2 +1,0 @@
-ALTER TABLE public.standalone_exams ADD COLUMN IF NOT EXISTS shuffle_questions boolean NOT NULL DEFAULT false;
-ALTER TABLE public.course_blocks ADD COLUMN IF NOT EXISTS shuffle_questions boolean NOT NULL DEFAULT false;
