@@ -349,19 +349,28 @@ export async function buildCertificateFromTemplate(
 export async function downloadCertificateSmart(data: CertificateData, templateUrl?: string | null) {
   const safe = sanitize(data.fullName);
   const fileName = `Sertifikat_${safe}_${data.serial}.pdf`;
-  if (templateUrl && /\.pdf($|\?)/i.test(templateUrl)) {
-    const bytes = await buildCertificateFromTemplate(templateUrl, data);
-    triggerDownload(bytes, fileName);
-    return;
+  if (templateUrl) {
+    try {
+      const bytes = await buildCertificateFromTemplate(templateUrl, data);
+      triggerDownload(bytes, fileName);
+      return;
+    } catch (e) {
+      console.error("Sertifikat şablonu tətbiq edilmədi:", e);
+    }
   }
   downloadCertificate(data);
 }
 
 export async function previewCertificateSmart(data: CertificateData, templateUrl?: string | null): Promise<string> {
-  if (templateUrl && /\.pdf($|\?)/i.test(templateUrl)) {
-    const bytes = await buildCertificateFromTemplate(templateUrl, data);
-    return await renderPdfToImageDataUrl(bytes);
+  if (templateUrl) {
+    try {
+      const bytes = await buildCertificateFromTemplate(templateUrl, data);
+      return await renderPdfToImageDataUrl(bytes);
+    } catch (e) {
+      console.error("Sertifikat şablonu tətbiq edilmədi:", e);
+    }
   }
+
   const blob = buildCertificatePdf(data).output("blob");
   const ab = await blob.arrayBuffer();
   return await renderPdfToImageDataUrl(new Uint8Array(ab));
