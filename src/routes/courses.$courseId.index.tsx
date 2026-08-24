@@ -77,6 +77,8 @@ function CourseBuilderPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("details");
   const [savingDetails, setSavingDetails] = useState(false);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const dragId = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -417,9 +419,10 @@ function CourseBuilderPage() {
 }
 
 function BlockCard({
-  block, isAdmin, onChange, onSave, onDelete,
+  block, isAdmin, onChange, onSave, onDelete, index,
 }: {
   block: Block;
+  index?: number;
   isAdmin: boolean;
   onChange: (p: Partial<Block>) => void;
   onSave: () => void;
