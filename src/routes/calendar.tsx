@@ -519,7 +519,7 @@ function CalendarPage() {
                 </div>
                 {eventStatus(details) !== "completed" && details.event_type === "exam" && details.exam_id && (
                   <Button asChild size="sm">
-                    <Link to="/exams">
+                    <Link to="/exams" search={{ exam: details.exam_id }}>
                       <Play className="h-4 w-4" /> İmtahana keç
                     </Link>
                   </Button>
