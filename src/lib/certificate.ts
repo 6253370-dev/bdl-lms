@@ -227,7 +227,34 @@ export async function buildCertificateFromTemplate(
     SERIAL: { value: data.serial },
   };
 
+  // Image templates (PNG/JPG) — place image as full page background.
+  const head = new Uint8Array(tplBytes.slice(0, 4));
+  const isPng = head[0] === 0x89 && head[1] === 0x50;
+  const isJpg = head[0] === 0xff && head[1] === 0xd8;
+  if (isPng || isJpg) {
+    const imgPdf = await PDFDocument.create();
+    imgPdf.registerFontkit(fontkit);
+    const fReg = await imgPdf.embedFont(regular, { subset: true });
+    const fBold = await imgPdf.embedFont(bold, { subset: true });
+    const img = isPng ? await imgPdf.embedPng(tplBytes) : await imgPdf.embedJpg(tplBytes);
+    const p = imgPdf.addPage([img.width, img.height]);
+    p.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+    const IW = img.width, IH = img.height;
+    const put = (text: string, y: number, size: number, b = false) => {
+      const f = b ? fBold : fReg;
+      const w = f.widthOfTextAtSize(text, size);
+      p.drawText(text, { x: (IW - w) / 2, y, size, font: f, color: rgb(0.08, 0.16, 0.26) });
+    };
+    put(data.fullName, IH * 0.5, Math.min(38, IW * 0.05), true);
+    put(data.courseTitle, IH * 0.38, Math.min(22, IW * 0.028), true);
+    put(`Nəticə: ${Math.round(data.scorePercent)}%`, IH * 0.3, 14, true);
+    put(dateStr, IH * 0.12, 12);
+    put(`Seriya: ${data.serial}`, IH * 0.06, 9);
+    return await imgPdf.save();
+  }
+
   const pdf = await PDFDocument.load(tplBytes);
+
   pdf.registerFontkit(fontkit);
   const fontReg = await pdf.embedFont(regular, { subset: true });
   const fontBold = await pdf.embedFont(bold, { subset: true });
