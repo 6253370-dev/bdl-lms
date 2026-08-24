@@ -147,7 +147,7 @@ function CoursePlayer() {
           <h2 className="font-display font-bold text-lg leading-tight">{course.title}</h2>
           {course.description && <p className="text-xs text-muted-foreground mt-1">{course.description}</p>}
         </div>
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 w-full min-w-0">
           <div className="p-3 space-y-1">
             {blocks.length === 0 && (
               <div className="text-sm text-muted-foreground p-4 text-center">{t.player.noContent}</div>
