@@ -80,9 +80,7 @@ export function buildCertificatePdf(data: CertificateData): jsPDF {
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80, 80, 80);
   doc.text("İmza", W - 160, footerY + 14, { align: "center" });
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 30, 30);
-  doc.text("Baku Digital Lab", W - 160, footerY + 30, { align: "center" });
+
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
