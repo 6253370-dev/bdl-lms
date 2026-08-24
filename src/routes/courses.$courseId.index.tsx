@@ -11,11 +11,11 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, Loader2, Trash2, BookOpen, Dumbbell, FileQuestion,
-  GraduationCap, Save, Video, FileText, FileType, Link as LinkIcon, Pencil, Play, Library,
+  GraduationCap, Save, Video, FileText, FileType, Link as LinkIcon, Pencil, Play, Library, GripVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
@@ -77,6 +77,8 @@ function CourseBuilderPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("details");
   const [savingDetails, setSavingDetails] = useState(false);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const dragId = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -157,6 +159,29 @@ function CourseBuilderPage() {
     else toast.success("Yadda saxlanıldı");
   };
 
+  const reorderLessons = async (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const ordered = blocks
+      .filter((b) => b.block_type === "lesson" || b.block_type === "practice")
+      .sort((a, b) => a.position - b.position);
+    const from = ordered.findIndex((b) => b.id === fromId);
+    const to = ordered.findIndex((b) => b.id === toId);
+    if (from < 0 || to < 0) return;
+    const next = [...ordered];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    const posMap = new Map(next.map((b, i) => [b.id, i]));
+    setBlocks((bs) =>
+      bs.map((b) => (posMap.has(b.id) ? { ...b, position: posMap.get(b.id)! } : b)),
+    );
+    const results = await Promise.all(
+      next.map((b, i) => supabase.from("course_blocks").update({ position: i }).eq("id", b.id)),
+    );
+    const err = results.find((r) => r.error)?.error;
+    if (err) toast.error(err.message);
+    else toast.success("Sıra yeniləndi");
+  };
+
   const deleteBlock = async (id: string) => {
     const { error } = await supabase.from("course_blocks").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
@@ -172,7 +197,9 @@ function CourseBuilderPage() {
     );
   }
 
-  const lessonBlocks = blocks.filter((b) => b.block_type === "lesson" || b.block_type === "practice");
+  const lessonBlocks = blocks
+    .filter((b) => b.block_type === "lesson" || b.block_type === "practice")
+    .sort((a, b) => a.position - b.position);
   const examBlock = blocks.find((b) => b.block_type === "final_exam");
 
   return (
@@ -290,8 +317,34 @@ function CourseBuilderPage() {
               <p className="text-sm text-muted-foreground">{t.courses.noLessons}</p>
             </Card>
           )}
-          {lessonBlocks.map((b) => (
-            <BlockCard key={b.id} block={b} isAdmin={isAdmin} onChange={(p) => updateBlock(b.id, p)} onSave={() => saveBlock(b)} onDelete={() => deleteBlock(b.id)} />
+          {isAdmin && lessonBlocks.length > 1 && (
+            <p className="text-xs text-muted-foreground">Sıranı dəyişmək üçün kartı tutub sürüşdürün</p>
+          )}
+          {lessonBlocks.map((b, i) => (
+            <div
+              key={b.id}
+              draggable={isAdmin}
+              onDragStart={(e) => { dragId.current = b.id; e.dataTransfer.effectAllowed = "move"; }}
+              onDragOver={(e) => { if (isAdmin && dragId.current && dragId.current !== b.id) { e.preventDefault(); setDragOverId(b.id); } }}
+              onDragLeave={() => setDragOverId((v) => (v === b.id ? null : v))}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverId(null);
+                if (dragId.current) reorderLessons(dragId.current, b.id);
+                dragId.current = null;
+              }}
+              onDragEnd={() => { dragId.current = null; setDragOverId(null); }}
+              className={dragOverId === b.id ? "rounded-xl ring-2 ring-primary" : undefined}
+            >
+              <BlockCard
+                block={b}
+                index={i}
+                isAdmin={isAdmin}
+                onChange={(p) => updateBlock(b.id, p)}
+                onSave={() => saveBlock(b)}
+                onDelete={() => deleteBlock(b.id)}
+              />
+            </div>
           ))}
           {isAdmin && (
             <div className="flex gap-2 pt-2">
@@ -366,9 +419,10 @@ function CourseBuilderPage() {
 }
 
 function BlockCard({
-  block, isAdmin, onChange, onSave, onDelete,
+  block, isAdmin, onChange, onSave, onDelete, index,
 }: {
   block: Block;
+  index?: number;
   isAdmin: boolean;
   onChange: (p: Partial<Block>) => void;
   onSave: () => void;
@@ -389,6 +443,12 @@ function BlockCard({
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center gap-3 p-4">
+        {isAdmin && index !== undefined && (
+          <div className="flex items-center gap-1 text-muted-foreground cursor-grab active:cursor-grabbing shrink-0">
+            <GripVertical className="h-4 w-4" />
+            <span className="text-xs tabular-nums">{index + 1}</span>
+          </div>
+        )}
         <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${meta.tone}`}>
           <Icon className="h-5 w-5" />
         </div>
