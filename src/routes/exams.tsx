@@ -44,6 +44,9 @@ import { CertificateTemplateSelect } from "@/components/CertificateTemplateSelec
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
 export const Route = createFileRoute("/exams")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    exam: typeof search['exam'] === "string" ? (search['exam'] as string) : undefined,
+  }),
   component: () => (
     <ProtectedRoute>
       <ExamsPage />
@@ -90,6 +93,8 @@ type Attempt = {
 
 function ExamsPage() {
   const { isAdmin } = useAuth();
+  const { exam: examParam } = Route.useSearch();
+  const [autoOpened, setAutoOpened] = useState(false);
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeExam, setActiveExam] = useState<Exam | null>(null);
@@ -111,6 +116,15 @@ function ExamsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (autoOpened || !examParam || exams.length === 0) return;
+    const target = exams.find((e) => e.id === examParam);
+    if (target) {
+      setRunnerExam(target);
+      setAutoOpened(true);
+    }
+  }, [examParam, exams, autoOpened]);
 
   const visibleExams = exams.filter((e) => {
     const q = search.trim().toLowerCase();

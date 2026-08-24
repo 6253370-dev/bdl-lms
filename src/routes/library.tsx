@@ -33,10 +33,10 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/library")({
   head: () => ({
     meta: [
-      { title: "Elektron Kitabxana · BE Academy" },
-      { name: "description", content: "BE Academy elektron kitabxanası — kitabları oxu, önizlə və yüklə." },
-      { property: "og:title", content: "Elektron Kitabxana · BE Academy" },
-      { property: "og:description", content: "BE Academy elektron kitabxanası." },
+      { title: "Elektron Kitabxana · Baku Digital Lab" },
+      { name: "description", content: "Baku Digital Lab elektron kitabxanası — kitabları oxu, önizlə və yüklə." },
+      { property: "og:title", content: "Elektron Kitabxana · Baku Digital Lab" },
+      { property: "og:description", content: "Baku Digital Lab elektron kitabxanası." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

@@ -139,7 +139,7 @@ function downloadIcs(ev: EventRow) {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//BE Academy LMS//AZ",
+    "PRODID:-//Baku Digital Lab LMS//AZ",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
@@ -519,7 +519,7 @@ function CalendarPage() {
                 </div>
                 {eventStatus(details) !== "completed" && details.event_type === "exam" && details.exam_id && (
                   <Button asChild size="sm">
-                    <Link to="/exams">
+                    <Link to="/exams" search={{ exam: details.exam_id }}>
                       <Play className="h-4 w-4" /> İmtahana keç
                     </Link>
                   </Button>

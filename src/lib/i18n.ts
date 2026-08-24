@@ -1,7 +1,7 @@
-// Azerbaijani translations for BE Academy
+// Azerbaijani translations for Baku Digital Lab
 export const t = {
   // Brand
-  brand: "BE Academy",
+  brand: "Learning Management System",
   brandTagline: "Daxili təlim",
 
   // Navigation
@@ -171,7 +171,7 @@ export const t = {
     forCompleting: "aşağıdakı kursu uğurla tamamladığı üçün:",
     score: "Nəticə",
     date: "Tarix",
-    signature: "BE Academy",
+    signature: "Baku Digital Lab",
     myCerts: "Mənim sertifikatlarım",
     noneYet: "Hələ sertifikat qazanmamısan.",
   },

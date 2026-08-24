@@ -24,9 +24,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
-      { title: "Profil — BE Academy" },
+      { title: "Profil — Baku Digital Lab" },
       { name: "description", content: "Şəxsi məlumatlar, kurs proqresi və iştirak etdiyin imtahanların tarixçəsi." },
-      { property: "og:title", content: "Profil — BE Academy" },
+      { property: "og:title", content: "Profil — Baku Digital Lab" },
       { property: "og:description", content: "Şəxsi məlumatlar, kurs proqresi və iştirak etdiyin imtahanların tarixçəsi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

@@ -805,7 +805,7 @@ async function buildAttemptPdf(
   doc.setFont("NotoSans", "bold");
   doc.setFontSize(16);
   doc.setTextColor(20, 40, 65);
-  doc.text("BE Academy — Cəhd hesabatı", margin, y);
+  doc.text("Baku Digital Lab — Cəhd hesabatı", margin, y);
   y += 24;
 
   doc.setFont("NotoSans", "bold");

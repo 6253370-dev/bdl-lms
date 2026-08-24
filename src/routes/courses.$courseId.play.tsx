@@ -136,7 +136,7 @@ function CoursePlayer() {
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-3.5rem)]">
       {/* Sidebar */}
-      <aside className="order-2 lg:order-1 lg:w-80 lg:border-r bg-background/50 lg:flex lg:flex-col lg:h-[calc(100vh-3.5rem)] lg:sticky lg:top-0">
+      <aside className="order-2 lg:order-1 lg:w-80 lg:shrink-0 lg:border-r bg-background/50 lg:flex lg:flex-col lg:h-[calc(100vh-3.5rem)] lg:sticky lg:top-0 overflow-hidden">
         <div className="p-5 border-b shrink-0">
           <button
             onClick={() => navigate({ to: "/courses" })}
@@ -147,7 +147,7 @@ function CoursePlayer() {
           <h2 className="font-display font-bold text-lg leading-tight">{course.title}</h2>
           {course.description && <p className="text-xs text-muted-foreground mt-1">{course.description}</p>}
         </div>
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 w-full min-w-0">
           <div className="p-3 space-y-1">
             {blocks.length === 0 && (
               <div className="text-sm text-muted-foreground p-4 text-center">{t.player.noContent}</div>
@@ -194,7 +194,7 @@ function CoursePlayer() {
       </aside>
 
       {/* Content */}
-      <section className="order-1 lg:order-2 flex-1 p-6 lg:p-10 max-w-5xl mx-auto w-full">
+      <section className="order-1 lg:order-2 flex-1 min-w-0 p-6 lg:p-10 max-w-5xl mx-auto w-full">
         {!active ? (
           <Card className="p-12 text-center border-dashed">
             <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
