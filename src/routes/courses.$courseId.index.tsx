@@ -15,7 +15,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Plus, Loader2, Trash2, BookOpen, Dumbbell, FileQuestion,
-  GraduationCap, Save, Video, FileText, FileType, Link as LinkIcon, Pencil, Play, Library,
+  GraduationCap, Save, Video, FileText, FileType, Link as LinkIcon, Pencil, Play, Library, GripVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
