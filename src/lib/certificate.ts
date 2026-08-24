@@ -29,18 +29,9 @@ export function buildCertificatePdf(data: CertificateData): jsPDF {
 
   doc.setTextColor(20, 40, 65);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
-  doc.text("BE ACADEMY", W / 2, 90, { align: "center" });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(110, 110, 110);
-  doc.text("Daxili Təlim Platforması", W / 2, 108, { align: "center" });
-
-  doc.setFont("helvetica", "bold");
   doc.setFontSize(34);
-  doc.setTextColor(20, 40, 65);
   doc.text("TƏLİM SERTİFİKATI", W / 2, 170, { align: "center" });
+
 
   doc.setDrawColor(20, 40, 65);
   doc.setLineWidth(1);
