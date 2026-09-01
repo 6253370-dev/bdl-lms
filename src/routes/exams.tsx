@@ -996,7 +996,7 @@ function ExamResults({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Nəticələr");
-    XLSX.writeFile(wb, `${exam.title.replace(/\s+/g, "_")}_neticeler.xlsx`);
+    XLSX.writeFile(wb, `Hesabat_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (

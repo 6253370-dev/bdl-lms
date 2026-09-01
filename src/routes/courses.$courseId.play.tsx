@@ -232,15 +232,22 @@ function CoursePlayer() {
 function LessonView({ block, nextBlockId, onGoNext, onComplete }: { block: Block; nextBlockId: string | null; onGoNext: (id: string) => void; onComplete: () => void }) {
   const navigate = useNavigate();
   const required = block.min_view_seconds ?? 0;
+  const hasVideo = !!(block.video_url || block.external_video_url);
   const [elapsed, setElapsed] = useState(0);
+  // Videolarda sayğac yalnız "play" basıldıqdan sonra işləyir; digər fayl tiplərində dərsə girən kimi.
+  const [counting, setCounting] = useState(!hasVideo);
   const unlocked = required <= 0 || elapsed >= required;
 
   useEffect(() => {
     setElapsed(0);
-    if (!block.min_view_seconds) return;
+    setCounting(!hasVideo);
+  }, [block.id, hasVideo]);
+
+  useEffect(() => {
+    if (!required || !counting) return;
     const id = window.setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => window.clearInterval(id);
-  }, [block.id, block.min_view_seconds]);
+  }, [block.id, required, counting]);
 
   const completeRef = useRef(onComplete);
   completeRef.current = onComplete;
@@ -250,10 +257,14 @@ function LessonView({ block, nextBlockId, onGoNext, onComplete }: { block: Block
 
   const remaining = Math.max(0, required - elapsed);
 
-
   return (
     <div className="space-y-6">
-      <LessonContent block={block} />
+      <LessonContent
+        block={block}
+        videoStarted={counting}
+        onVideoPlay={() => setCounting(true)}
+        onVideoPause={() => setCounting(false)}
+      />
 
       <Card className="p-5 space-y-3">
         {required > 0 && (
@@ -262,7 +273,9 @@ function LessonView({ block, nextBlockId, onGoNext, onComplete }: { block: Block
               <span className="text-muted-foreground">
                 {unlocked
                   ? "Minimum baxış vaxtı tamamlandı"
-                  : `Davam etmək üçün daha ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")} qalıb`}
+                  : !counting && hasVideo
+                    ? "Vaxt sayğacı videonu başlatdıqdan sonra işləyəcək"
+                    : `Davam etmək üçün daha ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")} qalıb`}
               </span>
               <span className="font-semibold">{Math.min(100, Math.round((elapsed / required) * 100))}%</span>
             </div>
@@ -289,6 +302,7 @@ function LessonView({ block, nextBlockId, onGoNext, onComplete }: { block: Block
     </div>
   );
 }
+
 
 
 function LessonContent({ block, onProgress }: { block: Block; onProgress?: (ratio: number) => void }) {

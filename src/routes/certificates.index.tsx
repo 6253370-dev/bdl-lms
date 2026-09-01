@@ -114,7 +114,7 @@ function TemplatesPage() {
           fullName: "Ad Soyad",
           courseTitle: "Nümunə Kurs",
           scorePercent: 95,
-          serial: "NUMUNE-0001",
+          serial: "000001",
           issuedAt: new Date().toISOString(),
         },
         tpl.file_url,

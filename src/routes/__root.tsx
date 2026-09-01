@@ -36,8 +36,6 @@ export const Route = createRootRoute({
       { name: "twitter:title", content: "Baku Digital Lab — Daxili təlim platforması" },
       { property: "og:description", content: "Daxili təlim, qiymətləndirmə və sertifikatlaşdırma platforması." },
       { name: "twitter:description", content: "Daxili təlim, qiymətləndirmə və sertifikatlaşdırma platforması." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/FllCn0y1rOeebe9tYZ38jSBArrV2/social-images/social-1777018244336-BE_Academy_-_horizontal_logo.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/FllCn0y1rOeebe9tYZ38jSBArrV2/social-images/social-1777018244336-BE_Academy_-_horizontal_logo.webp" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
     ],
