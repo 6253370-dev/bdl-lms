@@ -49,8 +49,12 @@ export type Database = {
       attempt_responses: {
         Row: {
           answer_id: string | null
+          answer_text: string | null
           attempt_id: string
           created_at: string
+          grade: number | null
+          graded_at: string | null
+          graded_by: string | null
           id: string
           is_correct: boolean
           question_id: string
@@ -58,8 +62,12 @@ export type Database = {
         }
         Insert: {
           answer_id?: string | null
+          answer_text?: string | null
           attempt_id: string
           created_at?: string
+          grade?: number | null
+          graded_at?: string | null
+          graded_by?: string | null
           id?: string
           is_correct?: boolean
           question_id: string
@@ -67,8 +75,12 @@ export type Database = {
         }
         Update: {
           answer_id?: string | null
+          answer_text?: string | null
           attempt_id?: string
           created_at?: string
+          grade?: number | null
+          graded_at?: string | null
+          graded_by?: string | null
           id?: string
           is_correct?: boolean
           question_id?: string
@@ -313,6 +325,7 @@ export type Database = {
           created_at: string
           duration_seconds: number
           id: string
+          needs_review: boolean
           passed: boolean
           score_percent: number
           total_questions: number
@@ -325,6 +338,7 @@ export type Database = {
           created_at?: string
           duration_seconds?: number
           id?: string
+          needs_review?: boolean
           passed?: boolean
           score_percent?: number
           total_questions?: number
@@ -337,6 +351,7 @@ export type Database = {
           created_at?: string
           duration_seconds?: number
           id?: string
+          needs_review?: boolean
           passed?: boolean
           score_percent?: number
           total_questions?: number
@@ -1014,6 +1029,7 @@ export type Database = {
           block_id: string
           created_at: string
           id: string
+          is_open_ended: boolean
           position: number
           text: string
           time_limit_seconds: number | null
@@ -1022,6 +1038,7 @@ export type Database = {
           block_id: string
           created_at?: string
           id?: string
+          is_open_ended?: boolean
           position?: number
           text: string
           time_limit_seconds?: number | null
@@ -1030,6 +1047,7 @@ export type Database = {
           block_id?: string
           created_at?: string
           id?: string
+          is_open_ended?: boolean
           position?: number
           text?: string
           time_limit_seconds?: number | null
@@ -1407,6 +1425,7 @@ export type Database = {
           duration_seconds: number
           exam_id: string
           id: string
+          needs_review: boolean
           passed: boolean
           score_percent: number
           total_questions: number
@@ -1418,6 +1437,7 @@ export type Database = {
           duration_seconds?: number
           exam_id: string
           id?: string
+          needs_review?: boolean
           passed?: boolean
           score_percent?: number
           total_questions?: number
@@ -1429,6 +1449,7 @@ export type Database = {
           duration_seconds?: number
           exam_id?: string
           id?: string
+          needs_review?: boolean
           passed?: boolean
           score_percent?: number
           total_questions?: number
@@ -1449,6 +1470,7 @@ export type Database = {
           created_at: string
           exam_id: string
           id: string
+          is_open_ended: boolean
           position: number
           text: string
           time_limit_seconds: number | null
@@ -1457,6 +1479,7 @@ export type Database = {
           created_at?: string
           exam_id: string
           id?: string
+          is_open_ended?: boolean
           position?: number
           text: string
           time_limit_seconds?: number | null
@@ -1465,6 +1488,7 @@ export type Database = {
           created_at?: string
           exam_id?: string
           id?: string
+          is_open_ended?: boolean
           position?: number
           text?: string
           time_limit_seconds?: number | null
@@ -1482,8 +1506,12 @@ export type Database = {
       standalone_exam_responses: {
         Row: {
           answer_id: string | null
+          answer_text: string | null
           attempt_id: string
           created_at: string
+          grade: number | null
+          graded_at: string | null
+          graded_by: string | null
           id: string
           is_correct: boolean
           question_id: string
@@ -1491,8 +1519,12 @@ export type Database = {
         }
         Insert: {
           answer_id?: string | null
+          answer_text?: string | null
           attempt_id: string
           created_at?: string
+          grade?: number | null
+          graded_at?: string | null
+          graded_by?: string | null
           id?: string
           is_correct?: boolean
           question_id: string
@@ -1500,8 +1532,12 @@ export type Database = {
         }
         Update: {
           answer_id?: string | null
+          answer_text?: string | null
           attempt_id?: string
           created_at?: string
+          grade?: number | null
+          graded_at?: string | null
+          graded_by?: string | null
           id?: string
           is_correct?: boolean
           question_id?: string
