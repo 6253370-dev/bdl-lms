@@ -702,26 +702,38 @@ function LiveRoom({ roomId, onLeave }: { roomId: string; onLeave: () => void }) 
     })();
   }, [roomId, user?.id, profile?.id, isAdmin, onLeave, user, profile]);
 
-  // realtime: room + participants
+  // realtime: room + participants (+ polling fallback so heç nə itmir)
   useEffect(() => {
+    let alive = true;
+    const refreshParticipants = async () => {
+      const { data } = await supabase
+        .from("room_participants")
+        .select("id,user_id,full_name,score,finished")
+        .eq("room_id", roomId)
+        .order("score", { ascending: false });
+      if (alive && data) setParticipants(data as Participant[]);
+    };
+    const refreshRoom = async () => {
+      const { data } = await supabase.from("quiz_rooms").select("*").eq("id", roomId).maybeSingle();
+      if (alive && data) setRoom(data as Room);
+    };
+
     const ch = supabase.channel(`room:${roomId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "quiz_rooms", filter: `id=eq.${roomId}` },
         (payload) => { if (payload.new) setRoom(payload.new as Room); })
       .on("postgres_changes", { event: "*", schema: "public", table: "room_participants", filter: `room_id=eq.${roomId}` },
-        async () => {
-          const { data } = await supabase.from("room_participants").select("id,user_id,full_name,score,finished")
-            .eq("room_id", roomId).order("score", { ascending: false });
-          setParticipants((data ?? []) as Participant[]);
-        })
+        () => { void refreshParticipants(); })
       .subscribe();
 
-    // initial participants load
-    supabase.from("room_participants").select("id,user_id,full_name,score,finished")
-      .eq("room_id", roomId).order("score", { ascending: false })
-      .then(({ data }) => setParticipants((data ?? []) as Participant[]));
+    void refreshParticipants();
+    const poll = window.setInterval(() => {
+      void refreshParticipants();
+      void refreshRoom();
+    }, 3000);
 
-    return () => { supabase.removeChannel(ch); };
+    return () => { alive = false; window.clearInterval(poll); supabase.removeChannel(ch); };
   }, [roomId]);
+
 
   if (loading || !room) {
     return <div className="p-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
