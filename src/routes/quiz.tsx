@@ -874,12 +874,16 @@ function ActiveView({
     });
     if (error) { toast.error(error.message); return; }
     if (award > 0) {
-      // increment score on participant row
-      const me = participants.find((p) => p.id === myParticipantId);
-      const newScore = (me?.score ?? 0) + award;
-      await supabase.from("room_participants").update({ score: newScore }).eq("id", myParticipantId);
+      // increment score on participant row (serverdən aktual bal oxunur)
+      const { data: fresh } = await supabase
+        .from("room_participants").select("score").eq("id", myParticipantId).maybeSingle();
+      const base = fresh?.score ?? participants.find((p) => p.id === myParticipantId)?.score ?? 0;
+      const { error: uErr } = await supabase
+        .from("room_participants").update({ score: base + award }).eq("id", myParticipantId);
+      if (uErr) toast.error(uErr.message);
     }
   };
+
 
   const next = async () => {
     const nextIdx = room.current_question_index + 1;
