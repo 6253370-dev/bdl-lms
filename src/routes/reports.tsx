@@ -209,7 +209,7 @@ function ReportsPage() {
     ws["!cols"] = [{ wch: 10 }, { wch: 30 }, { wch: 14 }, { wch: 22 }, { wch: 8 }, { wch: 12 }, { wch: 14 }, { wch: 20 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Hesabat");
-    XLSX.writeFile(wb, `be_academy_report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `Hesabat_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   if (loading) {
@@ -511,7 +511,7 @@ function AttemptsTable({
       const detail = await fetchAttemptDetail(row);
       const doc = await buildAttemptPdf(row, detail);
       doc.save(
-        `Hesabat_${(row.user?.full_name ?? "istifadeci").replace(/\s+/g, "_")}_${row.attemptId.slice(0, 8)}.pdf`,
+        `Hesabat_${new Date().toISOString().slice(0, 10)}.pdf`,
       );
     } catch (e: any) {
       toast.error(e.message ?? "PDF yaradıla bilmədi");
@@ -695,7 +695,7 @@ export function AttemptDetailDialog({
   const downloadPdf = async () => {
     const doc = await buildAttemptPdf(ref, questions);
     doc.save(
-      `Hesabat_${(ref.user?.full_name ?? "istifadeci").replace(/\s+/g, "_")}_${ref.attemptId.slice(0, 8)}.pdf`,
+      `Hesabat_${new Date().toISOString().slice(0, 10)}.pdf`,
     );
   };
 

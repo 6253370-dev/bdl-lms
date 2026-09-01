@@ -93,7 +93,7 @@ export function buildCertificatePdf(data: CertificateData): jsPDF {
 export function downloadCertificate(data: CertificateData) {
   const doc = buildCertificatePdf(data);
   const safe = sanitize(data.fullName);
-  doc.save(`Sertifikat_${safe}_${data.serial}.pdf`);
+  doc.save(`Sertifikat_${safe}.pdf`);
 }
 
 function sanitize(s: string) {
@@ -348,7 +348,7 @@ export async function buildCertificateFromTemplate(
 
 export async function downloadCertificateSmart(data: CertificateData, templateUrl?: string | null) {
   const safe = sanitize(data.fullName);
-  const fileName = `Sertifikat_${safe}_${data.serial}.pdf`;
+  const fileName = `Sertifikat_${safe}.pdf`;
   if (templateUrl) {
     try {
       const bytes = await buildCertificateFromTemplate(templateUrl, data);

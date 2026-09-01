@@ -143,7 +143,7 @@ function downloadIcs(ev: EventRow) {
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${ev.id}@beacademy`,
+    `UID:${ev.id}@lms`,
     `DTSTAMP:${icsDate(new Date())}`,
     `DTSTART:${icsDate(new Date(ev.starts_at))}`,
     `DTEND:${icsDate(new Date(ev.ends_at))}`,
