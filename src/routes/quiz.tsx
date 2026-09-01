@@ -700,7 +700,8 @@ function LiveRoom({ roomId, onLeave }: { roomId: string; onLeave: () => void }) 
 
       setLoading(false);
     })();
-  }, [roomId, user?.id, profile?.id, isAdmin, onLeave, user, profile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId, user?.id, profile?.id, isAdmin]);
 
   // realtime: room + participants (+ polling fallback so heç nə itmir)
   useEffect(() => {
