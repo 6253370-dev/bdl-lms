@@ -433,12 +433,15 @@ interface Question {
   text: string;
   position: number;
   time_limit_seconds: number | null;
+  is_open_ended: boolean;
   answers: { id: string; text: string; is_correct: boolean; position: number }[];
 }
 
 interface ResultRow {
   questionId: string;
   selectedAnswerId: string | null;
+  answerText: string | null;
+  isOpenEnded: boolean;
   isCorrect: boolean;
   timeSpent: number;
 }
@@ -453,9 +456,10 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
   const [idx, setIdx] = useState(0);
   const [results, setResults] = useState<ResultRow[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [openText, setOpenText] = useState("");
   const [questionStart, setQuestionStart] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
-  const [score, setScore] = useState<{ correct: number; total: number; percent: number; passed: boolean } | null>(null);
+  const [score, setScore] = useState<{ correct: number; total: number; percent: number; passed: boolean; pendingReview: boolean } | null>(null);
   const [certificate, setCertificate] = useState<{ serial: string; issued_at: string } | null>(null);
   const [secsLeft, setSecsLeft] = useState<number | null>(null);
   const [locked, setLocked] = useState(false);
@@ -470,7 +474,7 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
     (async () => {
       setLoading(true);
       const { data: qs } = await supabase
-        .from("questions").select("id,text,position,time_limit_seconds").eq("block_id", block.id).order("position");
+        .from("questions").select("id,text,position,time_limit_seconds,is_open_ended").eq("block_id", block.id).order("position");
       const ids = (qs ?? []).map((q) => q.id);
       const { data: ans } = ids.length
         ? await supabase.from("answers").select("id,text,is_correct,position,question_id").in("question_id", ids).order("position")
@@ -497,15 +501,23 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
     setStage("running");
   };
 
-  const recordAndAdvance = useCallback((answerId: string | null) => {
+  const recordAndAdvance = useCallback((answerId: string | null, text?: string) => {
     const q = questions[idx];
     if (!q) return;
     const correctAnswer = q.answers.find((a) => a.is_correct);
-    const isCorrect = !!answerId && answerId === correctAnswer?.id;
+    const isCorrect = !q.is_open_ended && !!answerId && answerId === correctAnswer?.id;
     const timeSpent = Math.round((Date.now() - questionStart) / 1000);
-    const next = [...results, { questionId: q.id, selectedAnswerId: answerId, isCorrect, timeSpent }];
+    const next = [...results, {
+      questionId: q.id,
+      selectedAnswerId: q.is_open_ended ? null : answerId,
+      answerText: q.is_open_ended ? ((text ?? "").trim() || null) : null,
+      isOpenEnded: q.is_open_ended,
+      isCorrect,
+      timeSpent,
+    }];
     setResults(next);
     setSelected(null);
+    setOpenText("");
     if (idx + 1 >= questions.length) {
       void finalize(next);
     } else {
@@ -519,8 +531,11 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
     setSubmitting(true);
     const correct = allResults.filter((r) => r.isCorrect).length;
     const total = allResults.length;
+    const pendingReview = allResults.some((r) => r.isOpenEnded);
     const percent = total ? Math.round((correct / total) * 1000) / 10 : 0;
-    const passed = block.block_type === "final_exam" ? percent >= passingScore : true;
+    const passed = pendingReview
+      ? false
+      : block.block_type === "final_exam" ? percent >= passingScore : true;
     const duration = allResults.reduce((s, r) => s + r.timeSpent, 0);
 
     const { data: attempt, error } = await supabase
@@ -534,6 +549,7 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
         score_percent: percent,
         passed,
         duration_seconds: duration,
+        needs_review: pendingReview,
       })
       .select().single();
 
@@ -549,6 +565,8 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
           attempt_id: attempt.id,
           question_id: r.questionId,
           answer_id: r.selectedAnswerId,
+          answer_text: r.answerText,
+          grade: r.isOpenEnded ? null : (r.isCorrect ? 1 : 0),
           is_correct: r.isCorrect,
           time_spent_seconds: r.timeSpent,
         })),
@@ -556,7 +574,7 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
       if (rErr) toast.error(rErr.message);
     }
 
-    setScore({ correct, total, percent, passed });
+    setScore({ correct, total, percent, passed, pendingReview });
     setStage("done");
     setSubmitting(false);
     if (passed) onComplete();
@@ -680,6 +698,15 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
           {locked && (
             <p className="text-sm text-destructive">Vaxt bitdi — bu sual bağlandı, növbəti suala keçilir.</p>
           )}
+          {q.is_open_ended ? (
+            <Textarea
+              rows={7}
+              disabled={locked}
+              placeholder="Cavabınızı buraya yazın…"
+              value={openText}
+              onChange={(e) => setOpenText(e.target.value)}
+            />
+          ) : (
           <div className="space-y-2">
             {q.answers.map((a) => {
               const isSel = selected === a.id;
@@ -701,11 +728,12 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
               );
             })}
           </div>
+          )}
           <Button
             size="lg"
             className="w-full"
-            disabled={!selected || submitting || locked}
-            onClick={() => recordAndAdvance(selected)}
+            disabled={(q.is_open_ended ? !openText.trim() : !selected) || submitting || locked}
+            onClick={() => recordAndAdvance(selected, openText)}
           >
             {idx + 1 === questions.length ? t.common.finish : t.common.nextQuestion}
           </Button>
