@@ -15,6 +15,7 @@ import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as QuestionBankRouteImport } from './routes/question-bank'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LibraryRouteImport } from './routes/library'
+import { Route as GradingRouteImport } from './routes/grading'
 import { Route as ExamsRouteImport } from './routes/exams'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ChampionsRouteImport } from './routes/champions'
@@ -56,6 +57,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const LibraryRoute = LibraryRouteImport.update({
   id: '/library',
   path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GradingRoute = GradingRouteImport.update({
+  id: '/grading',
+  path: '/grading',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExamsRoute = ExamsRouteImport.update({
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/champions': typeof ChampionsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
+  '/grading': typeof GradingRoute
   '/library': typeof LibraryRoute
   '/profile': typeof ProfileRoute
   '/question-bank': typeof QuestionBankRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/champions': typeof ChampionsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
+  '/grading': typeof GradingRoute
   '/library': typeof LibraryRoute
   '/profile': typeof ProfileRoute
   '/question-bank': typeof QuestionBankRoute
@@ -167,6 +175,7 @@ export interface FileRoutesById {
   '/champions': typeof ChampionsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
+  '/grading': typeof GradingRoute
   '/library': typeof LibraryRoute
   '/profile': typeof ProfileRoute
   '/question-bank': typeof QuestionBankRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/champions'
     | '/dashboard'
     | '/exams'
+    | '/grading'
     | '/library'
     | '/profile'
     | '/question-bank'
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/champions'
     | '/dashboard'
     | '/exams'
+    | '/grading'
     | '/library'
     | '/profile'
     | '/question-bank'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/champions'
     | '/dashboard'
     | '/exams'
+    | '/grading'
     | '/library'
     | '/profile'
     | '/question-bank'
@@ -250,6 +262,7 @@ export interface RootRouteChildren {
   ChampionsRoute: typeof ChampionsRoute
   DashboardRoute: typeof DashboardRoute
   ExamsRoute: typeof ExamsRoute
+  GradingRoute: typeof GradingRoute
   LibraryRoute: typeof LibraryRoute
   ProfileRoute: typeof ProfileRoute
   QuestionBankRoute: typeof QuestionBankRoute
@@ -306,6 +319,13 @@ declare module '@tanstack/react-router' {
       path: '/library'
       fullPath: '/library'
       preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/grading': {
+      id: '/grading'
+      path: '/grading'
+      fullPath: '/grading'
+      preLoaderRoute: typeof GradingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/exams': {
@@ -402,6 +422,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChampionsRoute: ChampionsRoute,
   DashboardRoute: DashboardRoute,
   ExamsRoute: ExamsRoute,
+  GradingRoute: GradingRoute,
   LibraryRoute: LibraryRoute,
   ProfileRoute: ProfileRoute,
   QuestionBankRoute: QuestionBankRoute,
