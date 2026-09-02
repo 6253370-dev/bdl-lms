@@ -618,6 +618,21 @@ function ExamEditor({
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
+                  <div className="flex items-center gap-2 pl-6">
+                    <Switch
+                      id={`open-${q.id}`}
+                      checked={q.is_open_ended}
+                      onCheckedChange={(v) => updateQuestion(q.id, { is_open_ended: v })}
+                    />
+                    <Label htmlFor={`open-${q.id}`} className="text-sm">
+                      Açıq tipli sual (istifadəçi cavabı yazır, admin qiymətləndirir)
+                    </Label>
+                  </div>
+                  {q.is_open_ended ? (
+                    <p className="pl-6 text-xs text-muted-foreground">
+                      Bu sual avtomatik hesablanmır — «İmtahan yoxlaması» bölməsində 0–1 aralığında qiymət verilir.
+                    </p>
+                  ) : (
                   <div className="space-y-2 pl-6">
                     {q.answers.map((a) => (
                       <div key={a.id} className="flex items-center gap-2">
@@ -646,6 +661,8 @@ function ExamEditor({
                       <Plus className="h-4 w-4" /> Variant əlavə et
                     </Button>
                   </div>
+                  )}
+
                 </Card>
               ))}
             </div>
