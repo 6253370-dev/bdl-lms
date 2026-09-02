@@ -408,6 +408,7 @@ function ExamEditor({
           text: item.text,
           position: pos++,
           time_limit_seconds: item.time_limit_seconds,
+          is_open_ended: item.is_open_ended,
         })
         .select()
         .single();

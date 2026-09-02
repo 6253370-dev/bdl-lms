@@ -631,7 +631,7 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
     for (const item of items) {
       const { data: q, error } = await supabase
         .from("questions")
-        .insert({ block_id: blockId, text: item.text, position: pos++ })
+        .insert({ block_id: blockId, text: item.text, position: pos++, is_open_ended: item.is_open_ended })
         .select().single();
       if (error || !q) { toast.error(error?.message ?? "Xəta"); continue; }
       if (item.answers.length) {
