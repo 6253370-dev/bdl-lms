@@ -580,6 +580,7 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
   const [open, setOpen] = useState(false);
   const [bankOpen, setBankOpen] = useState(false);
   const [text, setText] = useState("");
+  const [isOpenEnded, setIsOpenEnded] = useState(false);
   const [answers, setAnswers] = useState<{ text: string; is_correct: boolean }[]>([
     { text: "", is_correct: true },
     { text: "", is_correct: false },
@@ -603,23 +604,28 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
   useEffect(() => { load(); }, [load]);
 
   const addQuestion = async () => {
-    if (!text.trim() || answers.filter((a) => a.text.trim()).length < 2) {
-      toast.error("Sual mətni və ən az 2 cavab tələb olunur"); return;
-    }
-    if (!answers.some((a) => a.is_correct)) {
-      toast.error("Ən az bir doğru cavab seçin"); return;
+    if (!text.trim()) { toast.error("Sual mətni tələb olunur"); return; }
+    if (!isOpenEnded) {
+      if (answers.filter((a) => a.text.trim()).length < 2) {
+        toast.error("Ən az 2 cavab tələb olunur"); return;
+      }
+      if (!answers.some((a) => a.is_correct)) {
+        toast.error("Ən az bir doğru cavab seçin"); return;
+      }
     }
     const { data: q, error } = await supabase
-      .from("questions").insert({ block_id: blockId, text: text.trim(), position: questions.length })
+      .from("questions").insert({ block_id: blockId, text: text.trim(), position: questions.length, is_open_ended: isOpenEnded })
       .select().single();
     if (error || !q) { toast.error(error?.message ?? "Xəta"); return; }
-    const valid = answers.filter((a) => a.text.trim());
-    const { error: aErr } = await supabase.from("answers").insert(
-      valid.map((a, i) => ({ question_id: q.id, text: a.text.trim(), is_correct: a.is_correct, position: i })),
-    );
-    if (aErr) { toast.error(aErr.message); return; }
+    if (!isOpenEnded) {
+      const valid = answers.filter((a) => a.text.trim());
+      const { error: aErr } = await supabase.from("answers").insert(
+        valid.map((a, i) => ({ question_id: q.id, text: a.text.trim(), is_correct: a.is_correct, position: i })),
+      );
+      if (aErr) { toast.error(aErr.message); return; }
+    }
     toast.success("Sual əlavə olundu");
-    setText(""); setAnswers([
+    setText(""); setIsOpenEnded(false); setAnswers([
       { text: "", is_correct: true }, { text: "", is_correct: false }, { text: "", is_correct: false },
     ]);
     setOpen(false);
@@ -631,7 +637,7 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
     for (const item of items) {
       const { data: q, error } = await supabase
         .from("questions")
-        .insert({ block_id: blockId, text: item.text, position: pos++ })
+        .insert({ block_id: blockId, text: item.text, position: pos++, is_open_ended: item.is_open_ended })
         .select().single();
       if (error || !q) { toast.error(error?.message ?? "Xəta"); continue; }
       if (item.answers.length) {
@@ -673,6 +679,19 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
                   <Label>Sual mətni</Label>
                   <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={2} />
                 </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="open-ended-new"
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={isOpenEnded}
+                    onChange={(e) => setIsOpenEnded(e.target.checked)}
+                  />
+                  <Label htmlFor="open-ended-new" className="text-sm font-normal">
+                    Açıq tipli sual (admin qiymətləndirir)
+                  </Label>
+                </div>
+                {!isOpenEnded && (
                 <div className="space-y-2">
                   <Label>Cavablar (doğru olanları işarələyin)</Label>
                   {answers.map((a, idx) => (
@@ -703,6 +722,7 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
                     <Plus className="h-3.5 w-3.5 mr-1" /> Variant əlavə et
                   </Button>
                 </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Ləğv et</Button>

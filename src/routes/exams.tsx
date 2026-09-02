@@ -75,6 +75,7 @@ type ExamQuestion = {
   text: string;
   position: number;
   time_limit_seconds: number | null;
+  is_open_ended: boolean;
   answers: { id: string; text: string; position: number; is_correct: boolean }[];
 };
 
@@ -319,7 +320,7 @@ function ExamEditor({
     (async () => {
       const { data: qs } = await supabase
         .from("standalone_exam_questions")
-        .select("id,exam_id,text,position,time_limit_seconds")
+        .select("id,exam_id,text,position,time_limit_seconds,is_open_ended")
         .eq("exam_id", examId)
         .order("position");
       const ids = (qs ?? []).map((q) => q.id);
@@ -408,6 +409,7 @@ function ExamEditor({
           text: item.text,
           position: pos++,
           time_limit_seconds: item.time_limit_seconds,
+          is_open_ended: item.is_open_ended,
         })
         .select()
         .single();
@@ -616,6 +618,21 @@ function ExamEditor({
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
+                  <div className="flex items-center gap-2 pl-6">
+                    <Switch
+                      id={`open-${q.id}`}
+                      checked={q.is_open_ended}
+                      onCheckedChange={(v) => updateQuestion(q.id, { is_open_ended: v })}
+                    />
+                    <Label htmlFor={`open-${q.id}`} className="text-sm">
+                      Açıq tipli sual (istifadəçi cavabı yazır, admin qiymətləndirir)
+                    </Label>
+                  </div>
+                  {q.is_open_ended ? (
+                    <p className="pl-6 text-xs text-muted-foreground">
+                      Bu sual avtomatik hesablanmır — «İmtahan yoxlaması» bölməsində 0–1 aralığında qiymət verilir.
+                    </p>
+                  ) : (
                   <div className="space-y-2 pl-6">
                     {q.answers.map((a) => (
                       <div key={a.id} className="flex items-center gap-2">
@@ -644,6 +661,8 @@ function ExamEditor({
                       <Plus className="h-4 w-4" /> Variant əlavə et
                     </Button>
                   </div>
+                  )}
+
                 </Card>
               ))}
             </div>
@@ -679,6 +698,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<Record<string, string>>({});
+  const [openAnswers, setOpenAnswers] = useState<Record<string, string>>({});
   const [startedAt, setStartedAt] = useState(0);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [result, setResult] = useState<{
@@ -686,6 +706,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     total: number;
     percent: number;
     passed: boolean;
+    pendingReview: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -715,7 +736,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     }
     const { data: qs } = await supabase
       .from("standalone_exam_questions")
-      .select("id,exam_id,text,position,time_limit_seconds")
+      .select("id,exam_id,text,position,time_limit_seconds,is_open_ended")
       .eq("exam_id", exam.id)
       .order("position");
     const ids = (qs ?? []).map((q) => q.id);
@@ -756,7 +777,19 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     if (!user) return;
     const total = questions.length;
     let correct = 0;
+    let openCount = 0;
     const responses = questions.map((q) => {
+      if (q.is_open_ended) {
+        openCount++;
+        return {
+          question_id: q.id,
+          answer_id: null,
+          answer_text: (openAnswers[q.id] ?? "").trim() || null,
+          is_correct: false,
+          grade: null as number | null,
+          time_spent_seconds: 0,
+        };
+      }
       const chosen = selected[q.id];
       const ansObj = q.answers.find((a) => a.id === chosen);
       const isCorrect = !!ansObj?.is_correct;
@@ -764,12 +797,15 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
       return {
         question_id: q.id,
         answer_id: chosen ?? null,
+        answer_text: null,
         is_correct: isCorrect,
+        grade: isCorrect ? 1 : 0,
         time_spent_seconds: 0,
       };
     });
+    const pendingReview = openCount > 0;
     const percent = Math.round((correct / total) * 100);
-    const passed = percent >= exam.passing_score;
+    const passed = pendingReview ? false : percent >= exam.passing_score;
     const duration = Math.round((Date.now() - startedAt) / 1000);
 
     const { data: attempt, error } = await supabase
@@ -782,6 +818,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
         total_questions: total,
         duration_seconds: duration,
         passed,
+        needs_review: pendingReview,
       })
       .select()
       .single();
@@ -794,7 +831,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
         .from("standalone_exam_responses")
         .insert(responses.map((r) => ({ ...r, attempt_id: attempt!.id })));
     }
-    setResult({ correct, total, percent, passed });
+    setResult({ correct, total, percent, passed, pendingReview });
     setStage("result");
   };
 
@@ -875,6 +912,14 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
             </DialogHeader>
             <div className="space-y-4">
               <p className="font-medium">{q.text}</p>
+              {q.is_open_ended ? (
+                <Textarea
+                  rows={6}
+                  placeholder="Cavabınızı buraya yazın…"
+                  value={openAnswers[q.id] ?? ""}
+                  onChange={(e) => setOpenAnswers((s) => ({ ...s, [q.id]: e.target.value }))}
+                />
+              ) : (
               <div className="space-y-2">
                 {q.answers.map((a) => (
                   <button
@@ -890,6 +935,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                   </button>
                 ))}
               </div>
+              )}
             </div>
             <DialogFooter>
               <Button
@@ -914,16 +960,29 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
               <DialogTitle>Nəticə</DialogTitle>
             </DialogHeader>
             <div className="text-center py-6 space-y-3">
-              {result.passed ? (
+              {result.pendingReview ? (
+                <Clock className="h-14 w-14 mx-auto text-amber-500" />
+              ) : result.passed ? (
                 <CheckCircle2 className="h-14 w-14 mx-auto text-emerald-500" />
               ) : (
                 <XCircle className="h-14 w-14 mx-auto text-destructive" />
               )}
-              <div className="font-display text-4xl font-bold">{result.percent}%</div>
-              <p className="text-muted-foreground">
-                {result.correct} / {result.total} doğru ·{" "}
-                {result.passed ? "Keçib" : "Keçməyib"}
-              </p>
+              {result.pendingReview ? (
+                <>
+                  <div className="font-display text-2xl font-bold">Cavablar qəbul edildi</div>
+                  <p className="text-muted-foreground">
+                    Bu imtahanda açıq tipli suallar var. Yekun nəticə admin yoxlamasından sonra elan olunacaq.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="font-display text-4xl font-bold">{result.percent}%</div>
+                  <p className="text-muted-foreground">
+                    {result.correct} / {result.total} doğru ·{" "}
+                    {result.passed ? "Keçib" : "Keçməyib"}
+                  </p>
+                </>
+              )}
             </div>
             <DialogFooter>
               <Button onClick={onClose}>Bağla</Button>

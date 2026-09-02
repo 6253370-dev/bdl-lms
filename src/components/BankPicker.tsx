@@ -29,6 +29,7 @@ type BankQ = {
 export type ImportedQuestion = {
   text: string;
   time_limit_seconds: number | null;
+  is_open_ended: boolean;
   answers: { text: string; is_correct: boolean; position: number }[];
 };
 
@@ -149,6 +150,7 @@ export function BankPicker({
   const toSnapshot = (q: BankQ): ImportedQuestion => ({
     text: q.text,
     time_limit_seconds: q.time_limit_seconds,
+    is_open_ended: q.question_type === "open_ended",
     answers: q.answers.map((a, i) => ({
       text: a.text,
       is_correct: a.is_correct,

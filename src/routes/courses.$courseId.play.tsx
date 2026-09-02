@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
+import { Textarea } from "@/components/ui/textarea";
 import { LessonComments } from "@/components/LessonComments";
 import { downloadCertificateSmart } from "@/lib/certificate";
 
@@ -305,7 +306,19 @@ function LessonView({ block, nextBlockId, onGoNext, onComplete }: { block: Block
 
 
 
-function LessonContent({ block, onProgress }: { block: Block; onProgress?: (ratio: number) => void }) {
+function LessonContent({
+  block,
+  onProgress,
+  videoStarted = true,
+  onVideoPlay,
+  onVideoPause,
+}: {
+  block: Block;
+  onProgress?: (ratio: number) => void;
+  videoStarted?: boolean;
+  onVideoPlay?: () => void;
+  onVideoPause?: () => void;
+}) {
   const seen = useRef<Set<number>>(new Set());
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -325,7 +338,7 @@ function LessonContent({ block, onProgress }: { block: Block; onProgress?: (rati
       </div>
 
       {block.external_video_url && (
-        <Card className="overflow-hidden aspect-video">
+        <Card className="overflow-hidden aspect-video relative">
           <iframe
             src={toEmbedUrl(block.external_video_url)}
             className="w-full h-full"
@@ -333,6 +346,16 @@ function LessonContent({ block, onProgress }: { block: Block; onProgress?: (rati
             allowFullScreen
             title={block.title}
           />
+          {!videoStarted && onVideoPlay && (
+            <button
+              type="button"
+              onClick={onVideoPlay}
+              className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80 backdrop-blur-sm text-sm font-medium"
+            >
+              <span className="rounded-full bg-primary text-primary-foreground px-5 py-2.5">Videoya bax</span>
+              <span className="text-muted-foreground text-xs">Baxış vaxtı bu andan hesablanacaq</span>
+            </button>
+          )}
         </Card>
       )}
 
@@ -343,11 +366,14 @@ function LessonContent({ block, onProgress }: { block: Block; onProgress?: (rati
             src={block.video_url}
             controls
             className="w-full"
+            onPlay={onVideoPlay}
+            onPause={onVideoPause}
             onTimeUpdate={handleTimeUpdate}
-            onEnded={() => onProgress?.(1)}
+            onEnded={() => { onProgress?.(1); onVideoPause?.(); }}
           />
         </Card>
       )}
+
 
       {block.pdf_url && (
         <Card className="overflow-hidden h-[70vh]">
@@ -408,12 +434,15 @@ interface Question {
   text: string;
   position: number;
   time_limit_seconds: number | null;
+  is_open_ended: boolean;
   answers: { id: string; text: string; is_correct: boolean; position: number }[];
 }
 
 interface ResultRow {
   questionId: string;
   selectedAnswerId: string | null;
+  answerText: string | null;
+  isOpenEnded: boolean;
   isCorrect: boolean;
   timeSpent: number;
 }
@@ -428,9 +457,10 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
   const [idx, setIdx] = useState(0);
   const [results, setResults] = useState<ResultRow[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [openText, setOpenText] = useState("");
   const [questionStart, setQuestionStart] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
-  const [score, setScore] = useState<{ correct: number; total: number; percent: number; passed: boolean } | null>(null);
+  const [score, setScore] = useState<{ correct: number; total: number; percent: number; passed: boolean; pendingReview: boolean } | null>(null);
   const [certificate, setCertificate] = useState<{ serial: string; issued_at: string } | null>(null);
   const [secsLeft, setSecsLeft] = useState<number | null>(null);
   const [locked, setLocked] = useState(false);
@@ -445,7 +475,7 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
     (async () => {
       setLoading(true);
       const { data: qs } = await supabase
-        .from("questions").select("id,text,position,time_limit_seconds").eq("block_id", block.id).order("position");
+        .from("questions").select("id,text,position,time_limit_seconds,is_open_ended").eq("block_id", block.id).order("position");
       const ids = (qs ?? []).map((q) => q.id);
       const { data: ans } = ids.length
         ? await supabase.from("answers").select("id,text,is_correct,position,question_id").in("question_id", ids).order("position")
@@ -472,15 +502,23 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
     setStage("running");
   };
 
-  const recordAndAdvance = useCallback((answerId: string | null) => {
+  const recordAndAdvance = useCallback((answerId: string | null, text?: string) => {
     const q = questions[idx];
     if (!q) return;
     const correctAnswer = q.answers.find((a) => a.is_correct);
-    const isCorrect = !!answerId && answerId === correctAnswer?.id;
+    const isCorrect = !q.is_open_ended && !!answerId && answerId === correctAnswer?.id;
     const timeSpent = Math.round((Date.now() - questionStart) / 1000);
-    const next = [...results, { questionId: q.id, selectedAnswerId: answerId, isCorrect, timeSpent }];
+    const next = [...results, {
+      questionId: q.id,
+      selectedAnswerId: q.is_open_ended ? null : answerId,
+      answerText: q.is_open_ended ? ((text ?? "").trim() || null) : null,
+      isOpenEnded: q.is_open_ended,
+      isCorrect,
+      timeSpent,
+    }];
     setResults(next);
     setSelected(null);
+    setOpenText("");
     if (idx + 1 >= questions.length) {
       void finalize(next);
     } else {
@@ -494,8 +532,11 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
     setSubmitting(true);
     const correct = allResults.filter((r) => r.isCorrect).length;
     const total = allResults.length;
+    const pendingReview = allResults.some((r) => r.isOpenEnded);
     const percent = total ? Math.round((correct / total) * 1000) / 10 : 0;
-    const passed = block.block_type === "final_exam" ? percent >= passingScore : true;
+    const passed = pendingReview
+      ? false
+      : block.block_type === "final_exam" ? percent >= passingScore : true;
     const duration = allResults.reduce((s, r) => s + r.timeSpent, 0);
 
     const { data: attempt, error } = await supabase
@@ -509,6 +550,7 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
         score_percent: percent,
         passed,
         duration_seconds: duration,
+        needs_review: pendingReview,
       })
       .select().single();
 
@@ -524,6 +566,8 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
           attempt_id: attempt.id,
           question_id: r.questionId,
           answer_id: r.selectedAnswerId,
+          answer_text: r.answerText,
+          grade: r.isOpenEnded ? null : (r.isCorrect ? 1 : 0),
           is_correct: r.isCorrect,
           time_spent_seconds: r.timeSpent,
         })),
@@ -531,7 +575,7 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
       if (rErr) toast.error(rErr.message);
     }
 
-    setScore({ correct, total, percent, passed });
+    setScore({ correct, total, percent, passed, pendingReview });
     setStage("done");
     setSubmitting(false);
     if (passed) onComplete();
@@ -655,6 +699,15 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
           {locked && (
             <p className="text-sm text-destructive">Vaxt bitdi — bu sual bağlandı, növbəti suala keçilir.</p>
           )}
+          {q.is_open_ended ? (
+            <Textarea
+              rows={7}
+              disabled={locked}
+              placeholder="Cavabınızı buraya yazın…"
+              value={openText}
+              onChange={(e) => setOpenText(e.target.value)}
+            />
+          ) : (
           <div className="space-y-2">
             {q.answers.map((a) => {
               const isSel = selected === a.id;
@@ -676,11 +729,12 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
               );
             })}
           </div>
+          )}
           <Button
             size="lg"
             className="w-full"
-            disabled={!selected || submitting || locked}
-            onClick={() => recordAndAdvance(selected)}
+            disabled={(q.is_open_ended ? !openText.trim() : !selected) || submitting || locked}
+            onClick={() => recordAndAdvance(selected, openText)}
           >
             {idx + 1 === questions.length ? t.common.finish : t.common.nextQuestion}
           </Button>
@@ -694,14 +748,23 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
   return (
     <div className="max-w-xl mx-auto text-center">
       <div className={cn("h-20 w-20 rounded-full mx-auto mb-6 flex items-center justify-center",
-        score.passed ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive")}>
-        {score.passed ? <CheckCircle2 className="h-10 w-10" /> : <XCircle className="h-10 w-10" />}
+        score.pendingReview ? "bg-amber-500/15 text-amber-500"
+          : score.passed ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive")}>
+        {score.pendingReview ? <Clock className="h-10 w-10" />
+          : score.passed ? <CheckCircle2 className="h-10 w-10" /> : <XCircle className="h-10 w-10" />}
       </div>
       <h1 className="font-display text-3xl font-bold mb-2">
-        {block.block_type === "final_exam"
-          ? score.passed ? t.common.congrats : t.common.notQuiteThere
-          : t.common.attemptComplete}
+        {score.pendingReview
+          ? "Cavablarınız qəbul edildi"
+          : block.block_type === "final_exam"
+            ? score.passed ? t.common.congrats : t.common.notQuiteThere
+            : t.common.attemptComplete}
       </h1>
+      {score.pendingReview && (
+        <p className="text-muted-foreground mb-6">
+          Açıq tipli suallar admin tərəfindən yoxlanıldıqdan sonra yekun nəticə hesablanacaq.
+        </p>
+      )}
       <p className="text-muted-foreground mb-6">
         {score.correct} / {score.total} {t.common.correct}
       </p>
