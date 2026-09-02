@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
+import { Textarea } from "@/components/ui/textarea";
 import { LessonComments } from "@/components/LessonComments";
 import { downloadCertificateSmart } from "@/lib/certificate";
 
@@ -747,14 +748,23 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
   return (
     <div className="max-w-xl mx-auto text-center">
       <div className={cn("h-20 w-20 rounded-full mx-auto mb-6 flex items-center justify-center",
-        score.passed ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive")}>
-        {score.passed ? <CheckCircle2 className="h-10 w-10" /> : <XCircle className="h-10 w-10" />}
+        score.pendingReview ? "bg-amber-500/15 text-amber-500"
+          : score.passed ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive")}>
+        {score.pendingReview ? <Clock className="h-10 w-10" />
+          : score.passed ? <CheckCircle2 className="h-10 w-10" /> : <XCircle className="h-10 w-10" />}
       </div>
       <h1 className="font-display text-3xl font-bold mb-2">
-        {block.block_type === "final_exam"
-          ? score.passed ? t.common.congrats : t.common.notQuiteThere
-          : t.common.attemptComplete}
+        {score.pendingReview
+          ? "Cavablarınız qəbul edildi"
+          : block.block_type === "final_exam"
+            ? score.passed ? t.common.congrats : t.common.notQuiteThere
+            : t.common.attemptComplete}
       </h1>
+      {score.pendingReview && (
+        <p className="text-muted-foreground mb-6">
+          Açıq tipli suallar admin tərəfindən yoxlanıldıqdan sonra yekun nəticə hesablanacaq.
+        </p>
+      )}
       <p className="text-muted-foreground mb-6">
         {score.correct} / {score.total} {t.common.correct}
       </p>
