@@ -305,7 +305,19 @@ function LessonView({ block, nextBlockId, onGoNext, onComplete }: { block: Block
 
 
 
-function LessonContent({ block, onProgress }: { block: Block; onProgress?: (ratio: number) => void }) {
+function LessonContent({
+  block,
+  onProgress,
+  videoStarted = true,
+  onVideoPlay,
+  onVideoPause,
+}: {
+  block: Block;
+  onProgress?: (ratio: number) => void;
+  videoStarted?: boolean;
+  onVideoPlay?: () => void;
+  onVideoPause?: () => void;
+}) {
   const seen = useRef<Set<number>>(new Set());
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -325,7 +337,7 @@ function LessonContent({ block, onProgress }: { block: Block; onProgress?: (rati
       </div>
 
       {block.external_video_url && (
-        <Card className="overflow-hidden aspect-video">
+        <Card className="overflow-hidden aspect-video relative">
           <iframe
             src={toEmbedUrl(block.external_video_url)}
             className="w-full h-full"
@@ -333,6 +345,16 @@ function LessonContent({ block, onProgress }: { block: Block; onProgress?: (rati
             allowFullScreen
             title={block.title}
           />
+          {!videoStarted && onVideoPlay && (
+            <button
+              type="button"
+              onClick={onVideoPlay}
+              className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80 backdrop-blur-sm text-sm font-medium"
+            >
+              <span className="rounded-full bg-primary text-primary-foreground px-5 py-2.5">Videoya bax</span>
+              <span className="text-muted-foreground text-xs">Baxış vaxtı bu andan hesablanacaq</span>
+            </button>
+          )}
         </Card>
       )}
 
@@ -343,11 +365,14 @@ function LessonContent({ block, onProgress }: { block: Block; onProgress?: (rati
             src={block.video_url}
             controls
             className="w-full"
+            onPlay={onVideoPlay}
+            onPause={onVideoPause}
             onTimeUpdate={handleTimeUpdate}
-            onEnded={() => onProgress?.(1)}
+            onEnded={() => { onProgress?.(1); onVideoPause?.(); }}
           />
         </Card>
       )}
+
 
       {block.pdf_url && (
         <Card className="overflow-hidden h-[70vh]">
