@@ -75,6 +75,7 @@ type ExamQuestion = {
   text: string;
   position: number;
   time_limit_seconds: number | null;
+  is_open_ended: boolean;
   answers: { id: string; text: string; position: number; is_correct: boolean }[];
 };
 
@@ -319,7 +320,7 @@ function ExamEditor({
     (async () => {
       const { data: qs } = await supabase
         .from("standalone_exam_questions")
-        .select("id,exam_id,text,position,time_limit_seconds")
+        .select("id,exam_id,text,position,time_limit_seconds,is_open_ended")
         .eq("exam_id", examId)
         .order("position");
       const ids = (qs ?? []).map((q) => q.id);
@@ -716,7 +717,7 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     }
     const { data: qs } = await supabase
       .from("standalone_exam_questions")
-      .select("id,exam_id,text,position,time_limit_seconds")
+      .select("id,exam_id,text,position,time_limit_seconds,is_open_ended")
       .eq("exam_id", exam.id)
       .order("position");
     const ids = (qs ?? []).map((q) => q.id);
