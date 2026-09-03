@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
@@ -59,10 +58,8 @@ const GRADES = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1];
 
 function GradingPage() {
   return (
-    <ProtectedRoute adminOnly>
-      <AppShell>
-        <GradingInner />
-      </AppShell>
+    <ProtectedRoute requireAdmin>
+      <GradingInner />
     </ProtectedRoute>
   );
 }
