@@ -39,7 +39,18 @@ interface CourseRow {
   passing_score: number;
   folder_id: string | null;
   cover_image_url: string | null;
+  certificate_template_url: string | null;
 }
+
+interface CertRow {
+  course_id: string;
+  serial: string;
+  full_name: string;
+  course_title: string;
+  score_percent: number;
+  issued_at: string;
+}
+
 
 interface FolderRow {
   id: string;
