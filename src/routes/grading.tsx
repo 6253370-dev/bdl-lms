@@ -280,10 +280,49 @@ function GradeDialog({
         needs_review: false,
       })
       .eq("id", attempt.id);
+    if (aErr) { setSaving(false); toast.error(aErr.message); return; }
+
+    // Kurs imtahanı: proqresi yenilə və lazım gəldikdə sertifikat ver
+    if (attempt.source === "course" && passed && attempt.courseId && attempt.blockId) {
+      const { error: pErr } = await supabase
+        .from("block_progress")
+        .upsert(
+          {
+            user_id: attempt.userId,
+            course_id: attempt.courseId,
+            block_id: attempt.blockId,
+            completed: true,
+            completed_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,block_id" },
+        );
+      if (pErr) toast.error(pErr.message);
+
+      if (attempt.blockType === "final_exam") {
+        const { data: existing } = await supabase
+          .from("certificates")
+          .select("id")
+          .eq("user_id", attempt.userId)
+          .eq("course_id", attempt.courseId)
+          .maybeSingle();
+        if (!existing) {
+          const { error: cErr } = await supabase.from("certificates").insert({
+            user_id: attempt.userId,
+            course_id: attempt.courseId,
+            full_name: attempt.userName,
+            course_title: attempt.courseTitle ?? "Kurs",
+            score_percent: percent,
+          });
+          if (cErr) toast.error(cErr.message);
+          else toast.success("Sertifikat verildi");
+        }
+      }
+    }
+
     setSaving(false);
-    if (aErr) { toast.error(aErr.message); return; }
     toast.success("Nəticə hesablandı");
     onSaved();
+
   };
 
   return (
