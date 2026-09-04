@@ -852,25 +852,49 @@ async function buildAttemptPdf(
     doc.setFont("NotoSans", "normal");
     doc.setFontSize(10);
 
-    q.answers.forEach((a) => {
-      const selected = a.id === q.selectedAnswerId;
-      const correct = a.is_correct;
-      let prefix = "•";
-      if (correct && selected) prefix = "✓✓";
-      else if (correct) prefix = "✓";
-      else if (selected) prefix = "✗";
-
-      if (correct) doc.setTextColor(20, 120, 60);
-      else if (selected) doc.setTextColor(180, 35, 35);
-      else doc.setTextColor(70, 70, 70);
-
-      const aLines = doc.splitTextToSize(`   ${prefix}  ${a.text}`, W - margin * 2 - 12);
-      aLines.forEach((line: string) => {
+    if (q.isOpenEnded) {
+      doc.setTextColor(70, 70, 70);
+      const label = `   Cavab (açıq sual):`;
+      ensureSpace(14);
+      doc.text(label, margin + 12, y);
+      y += 14;
+      const body = q.answerText?.trim() || "(cavab yazılmayıb)";
+      const bLines = doc.splitTextToSize(body, W - margin * 2 - 24);
+      bLines.forEach((line: string) => {
         ensureSpace(14);
-        doc.text(line, margin + 12, y);
+        doc.text(line, margin + 24, y);
         y += 14;
       });
-    });
+      doc.setTextColor(20, 40, 65);
+      ensureSpace(14);
+      doc.text(
+        `   Qiymət: ${q.grade === null ? "yoxlanılmayıb" : q.grade.toFixed(1)}`,
+        margin + 12,
+        y,
+      );
+      y += 14;
+    } else {
+      q.answers.forEach((a) => {
+        const selected = a.id === q.selectedAnswerId;
+        const correct = a.is_correct;
+        let prefix = "•";
+        if (correct && selected) prefix = "✓✓";
+        else if (correct) prefix = "✓";
+        else if (selected) prefix = "✗";
+
+        if (correct) doc.setTextColor(20, 120, 60);
+        else if (selected) doc.setTextColor(180, 35, 35);
+        else doc.setTextColor(70, 70, 70);
+
+        const aLines = doc.splitTextToSize(`   ${prefix}  ${a.text}`, W - margin * 2 - 12);
+        aLines.forEach((line: string) => {
+          ensureSpace(14);
+          doc.text(line, margin + 12, y);
+          y += 14;
+        });
+      });
+    }
+
     y += 10;
   });
 
