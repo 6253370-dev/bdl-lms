@@ -712,39 +712,58 @@ export function AttemptDetailDialog({
                   <span className="text-xs font-mono text-muted-foreground mt-1">
                     {idx + 1}.
                   </span>
-                  <div className="flex-1 font-medium">{q.text}</div>
-                  {q.isCorrect ? (
+                  <div className="flex-1 font-medium">
+                    {q.text}
+                    {q.isOpenEnded && (
+                      <Badge variant="secondary" className="ml-2 align-middle">Açıq sual</Badge>
+                    )}
+                  </div>
+                  {q.isOpenEnded ? (
+                    <span className="text-xs font-medium shrink-0 mt-1">
+                      {q.grade === null ? "Yoxlanılmayıb" : `Qiymət: ${q.grade.toFixed(1)}`}
+                    </span>
+                  ) : q.isCorrect ? (
                     <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
                   ) : (
                     <XCircle className="h-5 w-5 text-destructive shrink-0" />
                   )}
                 </div>
                 <div className="space-y-1.5 pl-6">
-                  {q.answers.map((a) => {
-                    const selected = a.id === q.selectedAnswerId;
-                    const correct = a.is_correct;
-                    const cls = correct
-                      ? "border-emerald-500/60 bg-emerald-500/5"
-                      : selected
-                      ? "border-destructive/60 bg-destructive/5"
-                      : "border-input";
-                    return (
-                      <div
-                        key={a.id}
-                        className={`text-sm rounded-md border px-3 py-2 flex items-center justify-between gap-2 ${cls}`}
-                      >
-                        <span>{a.text}</span>
-                        <span className="text-xs text-muted-foreground flex gap-2">
-                          {selected && <span className="font-medium">Seçilib</span>}
-                          {correct && <span className="font-medium text-emerald-600">Doğru</span>}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {q.answers.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic">Cavab variantı yoxdur.</p>
+                  {q.isOpenEnded ? (
+                    <div className="text-sm rounded-md border border-input px-3 py-2 whitespace-pre-wrap">
+                      <div className="text-xs text-muted-foreground mb-1">İstifadəçinin cavabı</div>
+                      {q.answerText?.trim() ? q.answerText : <span className="italic text-muted-foreground">(cavab yazılmayıb)</span>}
+                    </div>
+                  ) : (
+                    <>
+                      {q.answers.map((a) => {
+                        const selected = a.id === q.selectedAnswerId;
+                        const correct = a.is_correct;
+                        const cls = correct
+                          ? "border-emerald-500/60 bg-emerald-500/5"
+                          : selected
+                          ? "border-destructive/60 bg-destructive/5"
+                          : "border-input";
+                        return (
+                          <div
+                            key={a.id}
+                            className={`text-sm rounded-md border px-3 py-2 flex items-center justify-between gap-2 ${cls}`}
+                          >
+                            <span>{a.text}</span>
+                            <span className="text-xs text-muted-foreground flex gap-2">
+                              {selected && <span className="font-medium">Seçilib</span>}
+                              {correct && <span className="font-medium text-emerald-600">Doğru</span>}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {q.answers.length === 0 && (
+                        <p className="text-xs text-muted-foreground italic">Cavab variantı yoxdur.</p>
+                      )}
+                    </>
                   )}
                 </div>
+
               </Card>
             ))}
           </div>
