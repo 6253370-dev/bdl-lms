@@ -88,7 +88,7 @@ function GradingInner() {
         .limit(300),
       supabase
         .from("block_attempts")
-        .select("id,user_id,total_questions,created_at,needs_review,score_percent,block_id,course_blocks(title,passing_score),courses(title,passing_score)")
+        .select("id,user_id,total_questions,created_at,needs_review,score_percent,block_id,course_id,course_blocks(title,passing_score,block_type),courses(title,passing_score)")
         .order("created_at", { ascending: false })
         .limit(300),
     ]);
@@ -102,6 +102,7 @@ function GradingInner() {
         source: "exam",
         title: a.standalone_exams?.title ?? "İmtahan",
         userName: nameMap.get(a.user_id) ?? "—",
+        userId: a.user_id,
         totalQuestions: a.total_questions,
         createdAt: a.created_at,
         needsReview: !!a.needs_review,
@@ -115,6 +116,11 @@ function GradingInner() {
         source: "course",
         title: `${a.courses?.title ?? "Kurs"} · ${a.course_blocks?.title ?? "Qiymətləndirmə"}`,
         userName: nameMap.get(a.user_id) ?? "—",
+        userId: a.user_id,
+        courseId: a.course_id,
+        blockId: a.block_id,
+        blockType: a.course_blocks?.block_type ?? null,
+        courseTitle: a.courses?.title ?? null,
         totalQuestions: a.total_questions,
         createdAt: a.created_at,
         needsReview: !!a.needs_review,
@@ -122,6 +128,7 @@ function GradingInner() {
         passingScore: a.course_blocks?.passing_score ?? a.courses?.passing_score ?? 60,
       });
     }
+
 
     setPending(rows.filter((r) => r.needsReview));
     setDone(rows.filter((r) => !r.needsReview).slice(0, 50));
