@@ -45,7 +45,13 @@ interface PendingAttempt {
   needsReview: boolean;
   scorePercent: number;
   passingScore: number;
+  userId: string;
+  courseId?: string | null;
+  blockId?: string | null;
+  blockType?: string | null;
+  courseTitle?: string | null;
 }
+
 
 interface OpenResponse {
   id: string;
@@ -82,7 +88,7 @@ function GradingInner() {
         .limit(300),
       supabase
         .from("block_attempts")
-        .select("id,user_id,total_questions,created_at,needs_review,score_percent,block_id,course_blocks(title,passing_score),courses(title,passing_score)")
+        .select("id,user_id,total_questions,created_at,needs_review,score_percent,block_id,course_id,course_blocks(title,passing_score,block_type),courses(title,passing_score)")
         .order("created_at", { ascending: false })
         .limit(300),
     ]);
@@ -96,6 +102,7 @@ function GradingInner() {
         source: "exam",
         title: a.standalone_exams?.title ?? "İmtahan",
         userName: nameMap.get(a.user_id) ?? "—",
+        userId: a.user_id,
         totalQuestions: a.total_questions,
         createdAt: a.created_at,
         needsReview: !!a.needs_review,
@@ -109,6 +116,11 @@ function GradingInner() {
         source: "course",
         title: `${a.courses?.title ?? "Kurs"} · ${a.course_blocks?.title ?? "Qiymətləndirmə"}`,
         userName: nameMap.get(a.user_id) ?? "—",
+        userId: a.user_id,
+        courseId: a.course_id,
+        blockId: a.block_id,
+        blockType: a.course_blocks?.block_type ?? null,
+        courseTitle: a.courses?.title ?? null,
         totalQuestions: a.total_questions,
         createdAt: a.created_at,
         needsReview: !!a.needs_review,
@@ -116,6 +128,7 @@ function GradingInner() {
         passingScore: a.course_blocks?.passing_score ?? a.courses?.passing_score ?? 60,
       });
     }
+
 
     setPending(rows.filter((r) => r.needsReview));
     setDone(rows.filter((r) => !r.needsReview).slice(0, 50));
@@ -267,10 +280,49 @@ function GradeDialog({
         needs_review: false,
       })
       .eq("id", attempt.id);
+    if (aErr) { setSaving(false); toast.error(aErr.message); return; }
+
+    // Kurs imtahanı: proqresi yenilə və lazım gəldikdə sertifikat ver
+    if (attempt.source === "course" && passed && attempt.courseId && attempt.blockId) {
+      const { error: pErr } = await supabase
+        .from("block_progress")
+        .upsert(
+          {
+            user_id: attempt.userId,
+            course_id: attempt.courseId,
+            block_id: attempt.blockId,
+            completed: true,
+            completed_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,block_id" },
+        );
+      if (pErr) toast.error(pErr.message);
+
+      if (attempt.blockType === "final_exam") {
+        const { data: existing } = await supabase
+          .from("certificates")
+          .select("id")
+          .eq("user_id", attempt.userId)
+          .eq("course_id", attempt.courseId)
+          .maybeSingle();
+        if (!existing) {
+          const { error: cErr } = await supabase.from("certificates").insert({
+            user_id: attempt.userId,
+            course_id: attempt.courseId,
+            full_name: attempt.userName,
+            course_title: attempt.courseTitle ?? "Kurs",
+            score_percent: percent,
+          });
+          if (cErr) toast.error(cErr.message);
+          else toast.success("Sertifikat verildi");
+        }
+      }
+    }
+
     setSaving(false);
-    if (aErr) { toast.error(aErr.message); return; }
     toast.success("Nəticə hesablandı");
     onSaved();
+
   };
 
   return (

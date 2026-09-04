@@ -16,10 +16,12 @@ import {
 } from "@/components/ui/select";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Plus, Loader2, Folder, Search, MoreVertical, Pencil, Trash2, FolderPlus, Move } from "lucide-react";
+import { BookOpen, Plus, Loader2, Folder, Search, MoreVertical, Pencil, Trash2, FolderPlus, Move, Award } from "lucide-react";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { downloadCertificateSmart } from "@/lib/certificate";
+
 
 export const Route = createFileRoute("/courses/")({
   component: () => (
@@ -37,7 +39,18 @@ interface CourseRow {
   passing_score: number;
   folder_id: string | null;
   cover_image_url: string | null;
+  certificate_template_url: string | null;
 }
+
+interface CertRow {
+  course_id: string;
+  serial: string;
+  full_name: string;
+  course_title: string;
+  score_percent: number;
+  issued_at: string;
+}
+
 
 interface FolderRow {
   id: string;
@@ -53,6 +66,9 @@ function CoursesPage() {
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
   const [progress, setProgress] = useState<Record<string, number>>({});
+  const [certs, setCerts] = useState<Record<string, CertRow>>({});
+  const [certBusy, setCertBusy] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
 
   // Course create

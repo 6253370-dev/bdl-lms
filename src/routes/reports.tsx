@@ -595,79 +595,58 @@ interface QuestionDetail {
   answers: AnswerRow[];
   selectedAnswerId: string | null;
   isCorrect: boolean;
+  isOpenEnded: boolean;
+  answerText: string | null;
+  grade: number | null;
 }
 
 async function fetchAttemptDetail(ref: AttemptDetailRef): Promise<QuestionDetail[]> {
-  if (ref.kind === "course") {
-    const [qRes, rRes] = await Promise.all([
-      supabase
-        .from("questions")
-        .select("id,text,position")
-        .eq("block_id", ref.parentId)
-        .order("position"),
-      supabase
-        .from("attempt_responses")
-        .select("question_id,answer_id,is_correct")
-        .eq("attempt_id", ref.attemptId),
-    ]);
-    const qs = (qRes.data ?? []) as { id: string; text: string }[];
-    const ids = qs.map((q) => q.id);
-    const aRes = ids.length
-      ? await supabase
-          .from("answers")
-          .select("id,question_id,text,is_correct,position")
-          .in("question_id", ids)
-          .order("position")
-      : { data: [] as any[] };
-    const responses = (rRes.data ?? []) as { question_id: string; answer_id: string | null; is_correct: boolean }[];
-    return qs.map((q) => {
-      const r = responses.find((x) => x.question_id === q.id);
-      return {
-        id: q.id,
-        text: q.text,
-        answers: ((aRes.data ?? []) as any[])
-          .filter((a) => a.question_id === q.id)
-          .map((a) => ({ id: a.id, text: a.text, is_correct: a.is_correct })),
-        selectedAnswerId: r?.answer_id ?? null,
-        isCorrect: r?.is_correct ?? false,
-      };
-    });
-  } else {
-    const [qRes, rRes] = await Promise.all([
-      supabase
-        .from("standalone_exam_questions")
-        .select("id,text,position")
-        .eq("exam_id", ref.parentId)
-        .order("position"),
-      supabase
-        .from("standalone_exam_responses")
-        .select("question_id,answer_id,is_correct")
-        .eq("attempt_id", ref.attemptId),
-    ]);
-    const qs = (qRes.data ?? []) as { id: string; text: string }[];
-    const ids = qs.map((q) => q.id);
-    const aRes = ids.length
-      ? await supabase
-          .from("standalone_exam_answers")
-          .select("id,question_id,text,is_correct,position")
-          .in("question_id", ids)
-          .order("position")
-      : { data: [] as any[] };
-    const responses = (rRes.data ?? []) as { question_id: string; answer_id: string | null; is_correct: boolean }[];
-    return qs.map((q) => {
-      const r = responses.find((x) => x.question_id === q.id);
-      return {
-        id: q.id,
-        text: q.text,
-        answers: ((aRes.data ?? []) as any[])
-          .filter((a) => a.question_id === q.id)
-          .map((a) => ({ id: a.id, text: a.text, is_correct: a.is_correct })),
-        selectedAnswerId: r?.answer_id ?? null,
-        isCorrect: r?.is_correct ?? false,
-      };
-    });
-  }
+  const isCourse = ref.kind === "course";
+  const qTable = isCourse ? "questions" : "standalone_exam_questions";
+  const rTable = isCourse ? "attempt_responses" : "standalone_exam_responses";
+  const aTable = isCourse ? "answers" : "standalone_exam_answers";
+  const parentCol = isCourse ? "block_id" : "exam_id";
+
+  const [qRes, rRes] = await Promise.all([
+    supabase
+      .from(qTable as any)
+      .select("id,text,position,is_open_ended")
+      .eq(parentCol, ref.parentId)
+      .order("position"),
+    supabase
+      .from(rTable as any)
+      .select("question_id,answer_id,is_correct,answer_text,grade")
+      .eq("attempt_id", ref.attemptId),
+  ]);
+
+  const qs = ((qRes.data ?? []) as any[]) as { id: string; text: string; is_open_ended: boolean }[];
+  const ids = qs.map((q) => q.id);
+  const aRes = ids.length
+    ? await supabase
+        .from(aTable as any)
+        .select("id,question_id,text,is_correct,position")
+        .in("question_id", ids)
+        .order("position")
+    : { data: [] as any[] };
+
+  const responses = (rRes.data ?? []) as any[];
+  return qs.map((q) => {
+    const r = responses.find((x) => x.question_id === q.id);
+    return {
+      id: q.id,
+      text: q.text,
+      answers: ((aRes.data ?? []) as any[])
+        .filter((a) => a.question_id === q.id)
+        .map((a) => ({ id: a.id, text: a.text, is_correct: a.is_correct })),
+      selectedAnswerId: r?.answer_id ?? null,
+      isCorrect: r?.is_correct ?? false,
+      isOpenEnded: !!q.is_open_ended,
+      answerText: r?.answer_text ?? null,
+      grade: r?.grade === null || r?.grade === undefined ? null : Number(r.grade),
+    };
+  });
 }
+
 
 export function AttemptDetailDialog({
   detailRef: ref,
@@ -733,39 +712,58 @@ export function AttemptDetailDialog({
                   <span className="text-xs font-mono text-muted-foreground mt-1">
                     {idx + 1}.
                   </span>
-                  <div className="flex-1 font-medium">{q.text}</div>
-                  {q.isCorrect ? (
+                  <div className="flex-1 font-medium">
+                    {q.text}
+                    {q.isOpenEnded && (
+                      <Badge variant="secondary" className="ml-2 align-middle">Açıq sual</Badge>
+                    )}
+                  </div>
+                  {q.isOpenEnded ? (
+                    <span className="text-xs font-medium shrink-0 mt-1">
+                      {q.grade === null ? "Yoxlanılmayıb" : `Qiymət: ${q.grade.toFixed(1)}`}
+                    </span>
+                  ) : q.isCorrect ? (
                     <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
                   ) : (
                     <XCircle className="h-5 w-5 text-destructive shrink-0" />
                   )}
                 </div>
                 <div className="space-y-1.5 pl-6">
-                  {q.answers.map((a) => {
-                    const selected = a.id === q.selectedAnswerId;
-                    const correct = a.is_correct;
-                    const cls = correct
-                      ? "border-emerald-500/60 bg-emerald-500/5"
-                      : selected
-                      ? "border-destructive/60 bg-destructive/5"
-                      : "border-input";
-                    return (
-                      <div
-                        key={a.id}
-                        className={`text-sm rounded-md border px-3 py-2 flex items-center justify-between gap-2 ${cls}`}
-                      >
-                        <span>{a.text}</span>
-                        <span className="text-xs text-muted-foreground flex gap-2">
-                          {selected && <span className="font-medium">Seçilib</span>}
-                          {correct && <span className="font-medium text-emerald-600">Doğru</span>}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  {q.answers.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic">Cavab variantı yoxdur.</p>
+                  {q.isOpenEnded ? (
+                    <div className="text-sm rounded-md border border-input px-3 py-2 whitespace-pre-wrap">
+                      <div className="text-xs text-muted-foreground mb-1">İstifadəçinin cavabı</div>
+                      {q.answerText?.trim() ? q.answerText : <span className="italic text-muted-foreground">(cavab yazılmayıb)</span>}
+                    </div>
+                  ) : (
+                    <>
+                      {q.answers.map((a) => {
+                        const selected = a.id === q.selectedAnswerId;
+                        const correct = a.is_correct;
+                        const cls = correct
+                          ? "border-emerald-500/60 bg-emerald-500/5"
+                          : selected
+                          ? "border-destructive/60 bg-destructive/5"
+                          : "border-input";
+                        return (
+                          <div
+                            key={a.id}
+                            className={`text-sm rounded-md border px-3 py-2 flex items-center justify-between gap-2 ${cls}`}
+                          >
+                            <span>{a.text}</span>
+                            <span className="text-xs text-muted-foreground flex gap-2">
+                              {selected && <span className="font-medium">Seçilib</span>}
+                              {correct && <span className="font-medium text-emerald-600">Doğru</span>}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {q.answers.length === 0 && (
+                        <p className="text-xs text-muted-foreground italic">Cavab variantı yoxdur.</p>
+                      )}
+                    </>
                   )}
                 </div>
+
               </Card>
             ))}
           </div>
@@ -854,25 +852,49 @@ async function buildAttemptPdf(
     doc.setFont("NotoSans", "normal");
     doc.setFontSize(10);
 
-    q.answers.forEach((a) => {
-      const selected = a.id === q.selectedAnswerId;
-      const correct = a.is_correct;
-      let prefix = "•";
-      if (correct && selected) prefix = "✓✓";
-      else if (correct) prefix = "✓";
-      else if (selected) prefix = "✗";
-
-      if (correct) doc.setTextColor(20, 120, 60);
-      else if (selected) doc.setTextColor(180, 35, 35);
-      else doc.setTextColor(70, 70, 70);
-
-      const aLines = doc.splitTextToSize(`   ${prefix}  ${a.text}`, W - margin * 2 - 12);
-      aLines.forEach((line: string) => {
+    if (q.isOpenEnded) {
+      doc.setTextColor(70, 70, 70);
+      const label = `   Cavab (açıq sual):`;
+      ensureSpace(14);
+      doc.text(label, margin + 12, y);
+      y += 14;
+      const body = q.answerText?.trim() || "(cavab yazılmayıb)";
+      const bLines = doc.splitTextToSize(body, W - margin * 2 - 24);
+      bLines.forEach((line: string) => {
         ensureSpace(14);
-        doc.text(line, margin + 12, y);
+        doc.text(line, margin + 24, y);
         y += 14;
       });
-    });
+      doc.setTextColor(20, 40, 65);
+      ensureSpace(14);
+      doc.text(
+        `   Qiymət: ${q.grade === null ? "yoxlanılmayıb" : q.grade.toFixed(1)}`,
+        margin + 12,
+        y,
+      );
+      y += 14;
+    } else {
+      q.answers.forEach((a) => {
+        const selected = a.id === q.selectedAnswerId;
+        const correct = a.is_correct;
+        let prefix = "•";
+        if (correct && selected) prefix = "✓✓";
+        else if (correct) prefix = "✓";
+        else if (selected) prefix = "✗";
+
+        if (correct) doc.setTextColor(20, 120, 60);
+        else if (selected) doc.setTextColor(180, 35, 35);
+        else doc.setTextColor(70, 70, 70);
+
+        const aLines = doc.splitTextToSize(`   ${prefix}  ${a.text}`, W - margin * 2 - 12);
+        aLines.forEach((line: string) => {
+          ensureSpace(14);
+          doc.text(line, margin + 12, y);
+          y += 14;
+        });
+      });
+    }
+
     y += 10;
   });
 

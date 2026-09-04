@@ -1,0 +1,1 @@
+CREATE POLICY "Admins manage block progress" ON public.block_progress FOR ALL TO authenticated USING (public.is_admin_or_super(auth.uid())) WITH CHECK (public.is_admin_or_super(auth.uid()));
