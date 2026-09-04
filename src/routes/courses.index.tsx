@@ -66,6 +66,9 @@ function CoursesPage() {
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [folders, setFolders] = useState<FolderRow[]>([]);
   const [progress, setProgress] = useState<Record<string, number>>({});
+  const [certs, setCerts] = useState<Record<string, CertRow>>({});
+  const [certBusy, setCertBusy] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
 
   // Course create
