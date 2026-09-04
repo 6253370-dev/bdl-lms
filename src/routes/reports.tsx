@@ -595,79 +595,58 @@ interface QuestionDetail {
   answers: AnswerRow[];
   selectedAnswerId: string | null;
   isCorrect: boolean;
+  isOpenEnded: boolean;
+  answerText: string | null;
+  grade: number | null;
 }
 
 async function fetchAttemptDetail(ref: AttemptDetailRef): Promise<QuestionDetail[]> {
-  if (ref.kind === "course") {
-    const [qRes, rRes] = await Promise.all([
-      supabase
-        .from("questions")
-        .select("id,text,position")
-        .eq("block_id", ref.parentId)
-        .order("position"),
-      supabase
-        .from("attempt_responses")
-        .select("question_id,answer_id,is_correct")
-        .eq("attempt_id", ref.attemptId),
-    ]);
-    const qs = (qRes.data ?? []) as { id: string; text: string }[];
-    const ids = qs.map((q) => q.id);
-    const aRes = ids.length
-      ? await supabase
-          .from("answers")
-          .select("id,question_id,text,is_correct,position")
-          .in("question_id", ids)
-          .order("position")
-      : { data: [] as any[] };
-    const responses = (rRes.data ?? []) as { question_id: string; answer_id: string | null; is_correct: boolean }[];
-    return qs.map((q) => {
-      const r = responses.find((x) => x.question_id === q.id);
-      return {
-        id: q.id,
-        text: q.text,
-        answers: ((aRes.data ?? []) as any[])
-          .filter((a) => a.question_id === q.id)
-          .map((a) => ({ id: a.id, text: a.text, is_correct: a.is_correct })),
-        selectedAnswerId: r?.answer_id ?? null,
-        isCorrect: r?.is_correct ?? false,
-      };
-    });
-  } else {
-    const [qRes, rRes] = await Promise.all([
-      supabase
-        .from("standalone_exam_questions")
-        .select("id,text,position")
-        .eq("exam_id", ref.parentId)
-        .order("position"),
-      supabase
-        .from("standalone_exam_responses")
-        .select("question_id,answer_id,is_correct")
-        .eq("attempt_id", ref.attemptId),
-    ]);
-    const qs = (qRes.data ?? []) as { id: string; text: string }[];
-    const ids = qs.map((q) => q.id);
-    const aRes = ids.length
-      ? await supabase
-          .from("standalone_exam_answers")
-          .select("id,question_id,text,is_correct,position")
-          .in("question_id", ids)
-          .order("position")
-      : { data: [] as any[] };
-    const responses = (rRes.data ?? []) as { question_id: string; answer_id: string | null; is_correct: boolean }[];
-    return qs.map((q) => {
-      const r = responses.find((x) => x.question_id === q.id);
-      return {
-        id: q.id,
-        text: q.text,
-        answers: ((aRes.data ?? []) as any[])
-          .filter((a) => a.question_id === q.id)
-          .map((a) => ({ id: a.id, text: a.text, is_correct: a.is_correct })),
-        selectedAnswerId: r?.answer_id ?? null,
-        isCorrect: r?.is_correct ?? false,
-      };
-    });
-  }
+  const isCourse = ref.kind === "course";
+  const qTable = isCourse ? "questions" : "standalone_exam_questions";
+  const rTable = isCourse ? "attempt_responses" : "standalone_exam_responses";
+  const aTable = isCourse ? "answers" : "standalone_exam_answers";
+  const parentCol = isCourse ? "block_id" : "exam_id";
+
+  const [qRes, rRes] = await Promise.all([
+    supabase
+      .from(qTable as any)
+      .select("id,text,position,is_open_ended")
+      .eq(parentCol, ref.parentId)
+      .order("position"),
+    supabase
+      .from(rTable as any)
+      .select("question_id,answer_id,is_correct,answer_text,grade")
+      .eq("attempt_id", ref.attemptId),
+  ]);
+
+  const qs = ((qRes.data ?? []) as any[]) as { id: string; text: string; is_open_ended: boolean }[];
+  const ids = qs.map((q) => q.id);
+  const aRes = ids.length
+    ? await supabase
+        .from(aTable as any)
+        .select("id,question_id,text,is_correct,position")
+        .in("question_id", ids)
+        .order("position")
+    : { data: [] as any[] };
+
+  const responses = (rRes.data ?? []) as any[];
+  return qs.map((q) => {
+    const r = responses.find((x) => x.question_id === q.id);
+    return {
+      id: q.id,
+      text: q.text,
+      answers: ((aRes.data ?? []) as any[])
+        .filter((a) => a.question_id === q.id)
+        .map((a) => ({ id: a.id, text: a.text, is_correct: a.is_correct })),
+      selectedAnswerId: r?.answer_id ?? null,
+      isCorrect: r?.is_correct ?? false,
+      isOpenEnded: !!q.is_open_ended,
+      answerText: r?.answer_text ?? null,
+      grade: r?.grade === null || r?.grade === undefined ? null : Number(r.grade),
+    };
+  });
 }
+
 
 export function AttemptDetailDialog({
   detailRef: ref,
