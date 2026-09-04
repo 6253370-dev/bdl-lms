@@ -45,7 +45,13 @@ interface PendingAttempt {
   needsReview: boolean;
   scorePercent: number;
   passingScore: number;
+  userId: string;
+  courseId?: string | null;
+  blockId?: string | null;
+  blockType?: string | null;
+  courseTitle?: string | null;
 }
+
 
 interface OpenResponse {
   id: string;
