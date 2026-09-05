@@ -93,7 +93,7 @@ function CoursesPage() {
   const load = async () => {
     setLoading(true);
     const [cRes, fRes] = await Promise.all([
-      supabase.from("courses").select("id,title,description,is_published,passing_score,folder_id,cover_image_url").order("created_at", { ascending: false }),
+      supabase.from("courses").select("id,title,description,is_published,passing_score,folder_id,cover_image_url,certificate_template_url").order("created_at", { ascending: false }),
       supabase.from("folders").select("id,name,parent_id").order("name"),
     ]);
     let list = (cRes.data ?? []) as CourseRow[];
@@ -137,11 +137,44 @@ function CoursesPage() {
         map[id] = total ? Math.min(100, Math.round(((doneCounts.get(id) ?? 0) / total) * 100)) : 0;
       });
       setProgress(map);
+
+      const { data: certRows } = await supabase
+        .from("certificates")
+        .select("course_id,serial,full_name,course_title,score_percent,issued_at")
+        .eq("user_id", user.id)
+        .in("course_id", ids);
+      const certMap: Record<string, CertRow> = {};
+      (certRows ?? []).forEach((c: any) => (certMap[c.course_id] = c as CertRow));
+      setCerts(certMap);
     } else {
       setProgress({});
+      setCerts({});
     }
     setLoading(false);
   };
+
+  const handleCertificate = async (c: CourseRow) => {
+    const cert = certs[c.id];
+    if (!cert) return;
+    setCertBusy(c.id);
+    try {
+      await downloadCertificateSmart(
+        {
+          fullName: cert.full_name,
+          courseTitle: cert.course_title,
+          scorePercent: Math.round(Number(cert.score_percent)),
+          serial: cert.serial,
+          issuedAt: cert.issued_at,
+        },
+        c.certificate_template_url,
+      );
+    } catch (e: any) {
+      toast.error(e.message ?? "Yükləmə alınmadı");
+    } finally {
+      setCertBusy(null);
+    }
+  };
+
 
   useEffect(() => { load(); }, [isAdmin, user?.id]);
 
@@ -395,10 +428,28 @@ function CoursesPage() {
                       <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress[c.id] ?? 0}%` }} />
                     </div>
                   </div>
+                  {certs[c.id] && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="mt-3 w-full"
+                      disabled={certBusy === c.id}
+                      onClick={() => handleCertificate(c)}
+                    >
+                      {certBusy === c.id ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Award className="h-4 w-4 mr-2" />
+                      )}
+                      Sertifikatı əldə et
+                    </Button>
+                  )}
                   <div className="flex gap-2 mt-3">
 
-                    <Button asChild size="sm" className="flex-1">
-                      <Link to="/courses/$courseId/play" params={{ courseId: c.id }}>{t.common.open}</Link>
+                    <Button asChild size="sm" className="flex-1" variant={certs[c.id] ? "outline" : "default"}>
+                      <Link to="/courses/$courseId/play" params={{ courseId: c.id }}>
+                        {certs[c.id] ? "Kursu təkrar keç" : t.common.open}
+                      </Link>
                     </Button>
                     {isAdmin && (
                       <Button asChild size="sm" variant="outline">
@@ -406,6 +457,7 @@ function CoursesPage() {
                       </Button>
                     )}
                   </div>
+
                 </Card>
               ))}
             </div>
