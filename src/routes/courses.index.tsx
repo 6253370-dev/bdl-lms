@@ -137,11 +137,44 @@ function CoursesPage() {
         map[id] = total ? Math.min(100, Math.round(((doneCounts.get(id) ?? 0) / total) * 100)) : 0;
       });
       setProgress(map);
+
+      const { data: certRows } = await supabase
+        .from("certificates")
+        .select("course_id,serial,full_name,course_title,score_percent,issued_at")
+        .eq("user_id", user.id)
+        .in("course_id", ids);
+      const certMap: Record<string, CertRow> = {};
+      (certRows ?? []).forEach((c: any) => (certMap[c.course_id] = c as CertRow));
+      setCerts(certMap);
     } else {
       setProgress({});
+      setCerts({});
     }
     setLoading(false);
   };
+
+  const handleCertificate = async (c: CourseRow) => {
+    const cert = certs[c.id];
+    if (!cert) return;
+    setCertBusy(c.id);
+    try {
+      await downloadCertificateSmart(
+        {
+          fullName: cert.full_name,
+          courseTitle: cert.course_title,
+          scorePercent: Math.round(Number(cert.score_percent)),
+          serial: cert.serial,
+          issuedAt: cert.issued_at,
+        },
+        c.certificate_template_url,
+      );
+    } catch (e: any) {
+      toast.error(e.message ?? "Yükləmə alınmadı");
+    } finally {
+      setCertBusy(null);
+    }
+  };
+
 
   useEffect(() => { load(); }, [isAdmin, user?.id]);
 
