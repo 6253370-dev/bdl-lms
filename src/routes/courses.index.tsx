@@ -93,7 +93,7 @@ function CoursesPage() {
   const load = async () => {
     setLoading(true);
     const [cRes, fRes] = await Promise.all([
-      supabase.from("courses").select("id,title,description,is_published,passing_score,folder_id,cover_image_url").order("created_at", { ascending: false }),
+      supabase.from("courses").select("id,title,description,is_published,passing_score,folder_id,cover_image_url,certificate_template_url").order("created_at", { ascending: false }),
       supabase.from("folders").select("id,name,parent_id").order("name"),
     ]);
     let list = (cRes.data ?? []) as CourseRow[];
