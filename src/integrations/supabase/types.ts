@@ -914,6 +914,280 @@ export type Database = {
         }
         Relationships: []
       }
+      live_room_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json | null
+          room_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json | null
+          room_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          room_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_room_events_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "live_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_room_hand_raises: {
+        Row: {
+          full_name: string | null
+          id: string
+          raised_at: string
+          resolved_at: string | null
+          room_id: string
+          status: Database["public"]["Enums"]["live_hand_status"]
+          user_id: string
+        }
+        Insert: {
+          full_name?: string | null
+          id?: string
+          raised_at?: string
+          resolved_at?: string | null
+          room_id: string
+          status?: Database["public"]["Enums"]["live_hand_status"]
+          user_id: string
+        }
+        Update: {
+          full_name?: string | null
+          id?: string
+          raised_at?: string
+          resolved_at?: string | null
+          room_id?: string
+          status?: Database["public"]["Enums"]["live_hand_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_room_hand_raises_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "live_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_room_invitees: {
+        Row: {
+          created_at: string
+          id: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_room_invitees_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "live_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_room_messages: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          full_name: string | null
+          id: string
+          message: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          full_name?: string | null
+          id?: string
+          message: string
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          full_name?: string | null
+          id?: string
+          message?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_room_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "live_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_room_participants: {
+        Row: {
+          cam_enabled: boolean
+          can_speak: boolean
+          created_at: string
+          force_muted: boolean
+          full_name: string | null
+          id: string
+          joined_at: string
+          left_at: string | null
+          mic_enabled: boolean
+          room_id: string
+          status: Database["public"]["Enums"]["live_participant_status"]
+          total_duration: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cam_enabled?: boolean
+          can_speak?: boolean
+          created_at?: string
+          force_muted?: boolean
+          full_name?: string | null
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          mic_enabled?: boolean
+          room_id: string
+          status?: Database["public"]["Enums"]["live_participant_status"]
+          total_duration?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cam_enabled?: boolean
+          can_speak?: boolean
+          created_at?: string
+          force_muted?: boolean
+          full_name?: string | null
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          mic_enabled?: boolean
+          room_id?: string
+          status?: Database["public"]["Enums"]["live_participant_status"]
+          total_duration?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_room_participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "live_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_rooms: {
+        Row: {
+          audience: Database["public"]["Enums"]["live_audience"]
+          audience_course_id: string | null
+          course_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ended_at: string | null
+          id: string
+          planned_duration: number
+          room_code: string
+          scheduled_date: string
+          scheduled_start_time: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["live_room_status"]
+          teacher_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: Database["public"]["Enums"]["live_audience"]
+          audience_course_id?: string | null
+          course_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          planned_duration?: number
+          room_code: string
+          scheduled_date: string
+          scheduled_start_time: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["live_room_status"]
+          teacher_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: Database["public"]["Enums"]["live_audience"]
+          audience_course_id?: string | null
+          course_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          planned_duration?: number
+          room_code?: string
+          scheduled_date?: string
+          scheduled_start_time?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["live_room_status"]
+          teacher_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_rooms_audience_course_id_fkey"
+            columns: ["audience_course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_rooms_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
@@ -1691,6 +1965,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_live_room: {
+        Args: { _room_id: string; _user_id: string }
+        Returns: boolean
+      }
+      find_live_room_by_code: {
+        Args: { _code: string }
+        Returns: {
+          allowed: boolean
+          id: string
+          status: Database["public"]["Enums"]["live_room_status"]
+          title: string
+        }[]
+      }
+      generate_live_room_code: { Args: never; Returns: string }
       get_email_by_employee_id: {
         Args: { _employee_id: string }
         Returns: string
@@ -1705,6 +1993,10 @@ export type Database = {
       is_admin_or_super: { Args: { _user_id: string }; Returns: boolean }
       is_event_invitee: {
         Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_live_room_host: {
+        Args: { _room_id: string; _user_id: string }
         Returns: boolean
       }
       is_room_participant: {
@@ -1725,6 +2017,10 @@ export type Database = {
       bank_difficulty: "easy" | "medium" | "hard"
       bank_question_type: "multiple_choice" | "open_ended" | "practice"
       block_type: "lesson" | "practice" | "quiz" | "final_exam"
+      live_audience: "all" | "course" | "selected"
+      live_hand_status: "pending" | "approved" | "rejected" | "resolved"
+      live_participant_status: "joined" | "left"
+      live_room_status: "scheduled" | "live" | "ended" | "cancelled"
       quiz_room_status: "lobby" | "active" | "finished"
     }
     CompositeTypes: {
@@ -1857,6 +2153,10 @@ export const Constants = {
       bank_difficulty: ["easy", "medium", "hard"],
       bank_question_type: ["multiple_choice", "open_ended", "practice"],
       block_type: ["lesson", "practice", "quiz", "final_exam"],
+      live_audience: ["all", "course", "selected"],
+      live_hand_status: ["pending", "approved", "rejected", "resolved"],
+      live_participant_status: ["joined", "left"],
+      live_room_status: ["scheduled", "live", "ended", "cancelled"],
       quiz_room_status: ["lobby", "active", "finished"],
     },
   },
