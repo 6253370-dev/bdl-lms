@@ -38,6 +38,7 @@ const NAV: NavItem[] = [
   { to: "/dashboard", label: t.nav.dashboard, icon: LayoutDashboard },
   { to: "/courses", label: t.nav.courses, icon: BookOpen },
   { to: "/exams", label: t.nav.exams, icon: ClipboardList },
+  { to: "/live-classes", label: t.live.title, icon: Video },
   { to: "/question-bank", label: "Sual Bankı", icon: Library, adminOnly: true },
   { to: "/quiz", label: t.nav.quiz, icon: FileQuestion },
   { to: "/grading", label: "İmtahan yoxlaması", icon: ClipboardCheck, adminOnly: true },
