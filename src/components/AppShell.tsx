@@ -16,6 +16,7 @@ import {
   Library,
   BookMarked,
   CalendarCheck,
+  Video,
   LogOut,
   Menu,
   PanelLeftClose,
