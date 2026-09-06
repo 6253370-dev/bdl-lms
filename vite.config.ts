@@ -14,7 +14,9 @@ export default defineConfig({
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tailwindcss(),
     tanstackStart(),
-    nitro({ preset: "vercel" }),
+    // Preset is auto-detected: Vercel CI builds use the vercel preset,
+    // local/Lovable builds emit the default dist/ output.
+    nitro(process.env['VERCEL'] ? { preset: "vercel" } : {}),
     viteReact(),
   ],
   resolve: {
