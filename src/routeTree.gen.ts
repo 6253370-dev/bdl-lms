@@ -27,6 +27,7 @@ import { Route as CoursesIndexRouteImport } from './routes/courses.index'
 import { Route as CertificatesIndexRouteImport } from './routes/certificates.index'
 import { Route as CertificatesMyRouteImport } from './routes/certificates.my'
 import { Route as AdminCommentsRouteImport } from './routes/admin.comments'
+import { Route as LiveClassesRoomIdIndexRouteImport } from './routes/live-classes.$roomId.index'
 import { Route as CoursesCourseIdIndexRouteImport } from './routes/courses.$courseId.index'
 import { Route as CoursesCourseIdPlayRouteImport } from './routes/courses.$courseId.play'
 
@@ -120,6 +121,11 @@ const AdminCommentsRoute = AdminCommentsRouteImport.update({
   path: '/admin/comments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LiveClassesRoomIdIndexRoute = LiveClassesRoomIdIndexRouteImport.update({
+  id: '/live-classes/$roomId/',
+  path: '/live-classes/$roomId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CoursesCourseIdIndexRoute = CoursesCourseIdIndexRouteImport.update({
   id: '/courses/$courseId/',
   path: '/courses/$courseId/',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/live-classes/': typeof LiveClassesIndexRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
   '/courses/$courseId/': typeof CoursesCourseIdIndexRoute
+  '/live-classes/$roomId/': typeof LiveClassesRoomIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/live-classes': typeof LiveClassesIndexRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
   '/courses/$courseId': typeof CoursesCourseIdIndexRoute
+  '/live-classes/$roomId': typeof LiveClassesRoomIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/live-classes/': typeof LiveClassesIndexRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
   '/courses/$courseId/': typeof CoursesCourseIdIndexRoute
+  '/live-classes/$roomId/': typeof LiveClassesRoomIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/live-classes/'
     | '/courses/$courseId/play'
     | '/courses/$courseId/'
+    | '/live-classes/$roomId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
     | '/live-classes'
     | '/courses/$courseId/play'
     | '/courses/$courseId'
+    | '/live-classes/$roomId'
   id:
     | '__root__'
     | '/'
@@ -265,6 +276,7 @@ export interface FileRouteTypes {
     | '/live-classes/'
     | '/courses/$courseId/play'
     | '/courses/$courseId/'
+    | '/live-classes/$roomId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -288,6 +300,7 @@ export interface RootRouteChildren {
   LiveClassesIndexRoute: typeof LiveClassesIndexRoute
   CoursesCourseIdPlayRoute: typeof CoursesCourseIdPlayRoute
   CoursesCourseIdIndexRoute: typeof CoursesCourseIdIndexRoute
+  LiveClassesRoomIdIndexRoute: typeof LiveClassesRoomIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -418,6 +431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCommentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/live-classes/$roomId/': {
+      id: '/live-classes/$roomId/'
+      path: '/live-classes/$roomId'
+      fullPath: '/live-classes/$roomId/'
+      preLoaderRoute: typeof LiveClassesRoomIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/courses/$courseId/': {
       id: '/courses/$courseId/'
       path: '/courses/$courseId'
@@ -456,6 +476,7 @@ const rootRouteChildren: RootRouteChildren = {
   LiveClassesIndexRoute: LiveClassesIndexRoute,
   CoursesCourseIdPlayRoute: CoursesCourseIdPlayRoute,
   CoursesCourseIdIndexRoute: CoursesCourseIdIndexRoute,
+  LiveClassesRoomIdIndexRoute: LiveClassesRoomIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
