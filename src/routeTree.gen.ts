@@ -29,6 +29,7 @@ import { Route as CertificatesMyRouteImport } from './routes/certificates.my'
 import { Route as AdminCommentsRouteImport } from './routes/admin.comments'
 import { Route as LiveClassesRoomIdIndexRouteImport } from './routes/live-classes.$roomId.index'
 import { Route as CoursesCourseIdIndexRouteImport } from './routes/courses.$courseId.index'
+import { Route as LiveClassesRoomIdRoomRouteImport } from './routes/live-classes.$roomId.room'
 import { Route as CoursesCourseIdPlayRouteImport } from './routes/courses.$courseId.play'
 
 const UsersRoute = UsersRouteImport.update({
@@ -131,6 +132,11 @@ const CoursesCourseIdIndexRoute = CoursesCourseIdIndexRouteImport.update({
   path: '/courses/$courseId/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LiveClassesRoomIdRoomRoute = LiveClassesRoomIdRoomRouteImport.update({
+  id: '/live-classes/$roomId/room',
+  path: '/live-classes/$roomId/room',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CoursesCourseIdPlayRoute = CoursesCourseIdPlayRouteImport.update({
   id: '/courses/$courseId/play',
   path: '/courses/$courseId/play',
@@ -157,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/courses/': typeof CoursesIndexRoute
   '/live-classes/': typeof LiveClassesIndexRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
+  '/live-classes/$roomId/room': typeof LiveClassesRoomIdRoomRoute
   '/courses/$courseId/': typeof CoursesCourseIdIndexRoute
   '/live-classes/$roomId/': typeof LiveClassesRoomIdIndexRoute
 }
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/courses': typeof CoursesIndexRoute
   '/live-classes': typeof LiveClassesIndexRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
+  '/live-classes/$roomId/room': typeof LiveClassesRoomIdRoomRoute
   '/courses/$courseId': typeof CoursesCourseIdIndexRoute
   '/live-classes/$roomId': typeof LiveClassesRoomIdIndexRoute
 }
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/courses/': typeof CoursesIndexRoute
   '/live-classes/': typeof LiveClassesIndexRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
+  '/live-classes/$roomId/room': typeof LiveClassesRoomIdRoomRoute
   '/courses/$courseId/': typeof CoursesCourseIdIndexRoute
   '/live-classes/$roomId/': typeof LiveClassesRoomIdIndexRoute
 }
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/courses/'
     | '/live-classes/'
     | '/courses/$courseId/play'
+    | '/live-classes/$roomId/room'
     | '/courses/$courseId/'
     | '/live-classes/$roomId/'
   fileRoutesByTo: FileRoutesByTo
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/courses'
     | '/live-classes'
     | '/courses/$courseId/play'
+    | '/live-classes/$roomId/room'
     | '/courses/$courseId'
     | '/live-classes/$roomId'
   id:
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/courses/'
     | '/live-classes/'
     | '/courses/$courseId/play'
+    | '/live-classes/$roomId/room'
     | '/courses/$courseId/'
     | '/live-classes/$roomId/'
   fileRoutesById: FileRoutesById
@@ -299,6 +311,7 @@ export interface RootRouteChildren {
   CoursesIndexRoute: typeof CoursesIndexRoute
   LiveClassesIndexRoute: typeof LiveClassesIndexRoute
   CoursesCourseIdPlayRoute: typeof CoursesCourseIdPlayRoute
+  LiveClassesRoomIdRoomRoute: typeof LiveClassesRoomIdRoomRoute
   CoursesCourseIdIndexRoute: typeof CoursesCourseIdIndexRoute
   LiveClassesRoomIdIndexRoute: typeof LiveClassesRoomIdIndexRoute
 }
@@ -445,6 +458,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesCourseIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/live-classes/$roomId/room': {
+      id: '/live-classes/$roomId/room'
+      path: '/live-classes/$roomId/room'
+      fullPath: '/live-classes/$roomId/room'
+      preLoaderRoute: typeof LiveClassesRoomIdRoomRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/courses/$courseId/play': {
       id: '/courses/$courseId/play'
       path: '/courses/$courseId/play'
@@ -475,6 +495,7 @@ const rootRouteChildren: RootRouteChildren = {
   CoursesIndexRoute: CoursesIndexRoute,
   LiveClassesIndexRoute: LiveClassesIndexRoute,
   CoursesCourseIdPlayRoute: CoursesCourseIdPlayRoute,
+  LiveClassesRoomIdRoomRoute: LiveClassesRoomIdRoomRoute,
   CoursesCourseIdIndexRoute: CoursesCourseIdIndexRoute,
   LiveClassesRoomIdIndexRoute: LiveClassesRoomIdIndexRoute,
 }
