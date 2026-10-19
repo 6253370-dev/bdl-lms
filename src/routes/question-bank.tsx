@@ -261,6 +261,16 @@ function QuestionBankPage() {
                       className="pl-9"
                     />
                   </div>
+                  <Select value={gamifFilter} onValueChange={(v) => setGamifFilter(v as any)}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Hamısı</SelectItem>
+                      <SelectItem value="on">🟢 Gamification</SelectItem>
+                      <SelectItem value="off">⚪ Gamification deaktiv</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button onClick={() => setQuestionDialog({ open: true, question: null })}>
                     <Plus className="h-4 w-4" /> Yeni sual
                   </Button>
@@ -482,6 +492,7 @@ function QuestionEditor({
   const [difficulty, setDifficulty] = useState<BankQuestion["difficulty"]>(
     question?.difficulty ?? "medium",
   );
+  const [gamifEnabled, setGamifEnabled] = useState(question?.is_gamification_enabled ?? false);
   const [timeLimit, setTimeLimit] = useState(
     question?.time_limit_seconds ? String(question.time_limit_seconds) : "",
   );
@@ -537,6 +548,7 @@ function QuestionEditor({
       question_type: type,
       difficulty,
       time_limit_seconds: timeLimit ? Number(timeLimit) : null,
+      is_gamification_enabled: gamifEnabled,
     };
     let qId = question?.id;
     if (question) {
