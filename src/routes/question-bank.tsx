@@ -301,6 +301,9 @@ function QuestionBankPage() {
                               >
                                 {DIFF_LABEL[q.difficulty]}
                               </Badge>
+                              <Badge variant="outline" title="Gamification">
+                                {q.is_gamification_enabled ? "🟢 Aktiv" : "⚪ Aktiv deyil"}
+                              </Badge>
                               {q.time_limit_seconds && (
                                 <span className="text-xs text-muted-foreground">
                                   {q.time_limit_seconds}s
@@ -643,6 +646,16 @@ function QuestionEditor({
               />
             </div>
           </div>
+
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={gamifEnabled}
+              onChange={(e) => setGamifEnabled(e.target.checked)}
+              className="h-4 w-4"
+            />
+            Gamification üçün aktiv — bu sual Gamification Center-də istifadə oluna bilər
+          </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-2">
