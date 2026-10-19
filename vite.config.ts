@@ -14,9 +14,14 @@ export default defineConfig({
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tailwindcss(),
     tanstackStart(),
-    // Preset is auto-detected: Vercel CI builds use the vercel preset,
-    // local/Lovable builds emit the default dist/ output.
-    nitro(process.env['VERCEL'] ? { preset: "vercel" } : {}),
+    // Preserve Vercel's deployment layout; Lovable requires dist/ explicitly.
+    nitro(process.env['VERCEL'] ? { preset: "vercel" } : {
+      output: {
+        dir: "dist",
+        serverDir: "dist/server",
+        publicDir: "dist/client",
+      },
+    }),
     viteReact(),
   ],
   resolve: {
