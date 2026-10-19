@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AttemptDetailDialog, type AttemptDetailRef } from "./reports";
 import { useAuth } from "@/lib/auth";
+import { useExamProctor, getExamBlock, enterFullscreen, exitFullscreen, EXAM_BLOCKED_MSG } from "@/hooks/use-exam-proctor";
 import {
   ClipboardList,
   Plus,
@@ -689,10 +690,15 @@ function ExamEditor({
 /* -------------------- Runner -------------------- */
 
 function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
-  const { user } = useAuth();
-  const [stage, setStage] = useState<"password" | "loading" | "running" | "result">(
+  const { user, isAdmin } = useAuth();
+  const [stage, setStage] = useState<"password" | "loading" | "running" | "result" | "blocked">(
     exam.has_password ? "password" : "loading",
   );
+  const [blockReason, setBlockReason] = useState("");
+  useExamProctor(stage === "running", !isAdmin, (reason) => {
+    setBlockReason(reason);
+    setStage("blocked");
+  });
   const [password, setPassword] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
@@ -723,7 +729,18 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
   }, [remaining]);
 
   const verifyAndStart = async () => {
+    if (!isAdmin) void enterFullscreen();
     setVerifying(true);
+    if (user && !isAdmin) {
+      const reason = await getExamBlock(user.id);
+      if (reason) {
+        setVerifying(false);
+        void exitFullscreen();
+        setBlockReason(reason);
+        setStage("blocked");
+        return;
+      }
+    }
     const { data: ok, error } = await supabase.rpc("verify_exam_password", {
       _exam_id: exam.id,
       _password: password,
@@ -833,13 +850,28 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
     }
     setResult({ correct, total, percent, passed, pendingReview });
     setStage("result");
+    void exitFullscreen();
   };
 
   const q = questions[current];
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
+    <Dialog open onOpenChange={(o) => { if (!o && stage !== "running") { void exitFullscreen(); onClose(); } }}>
       <DialogContent className="max-w-2xl">
+        {stage === "blocked" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <Lock className="h-4 w-4" /> İmtahan bloklandı
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 text-sm">
+              <p className="font-medium">Səbəb: {blockReason}</p>
+              <p className="text-muted-foreground">{EXAM_BLOCKED_MSG}</p>
+              <Button className="w-full" variant="outline" onClick={onClose}>Bağla</Button>
+            </div>
+          </>
+        )}
         {stage === "loading" && (
           <>
             <DialogHeader>
