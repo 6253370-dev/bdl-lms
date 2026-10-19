@@ -78,7 +78,7 @@ async function awardXp(userId: string, type: string, xp: number, refId?: string)
 
 // ---------- badge engine ----------
 async function awardBadge(userId: string, code: string) {
-  const { data: b } = await supabase.from("gamification_badges").select("id,name").eq("code", code).maybeSingle();
+  const { data: b } = await supabase.from("gamification_badges").select("id,name").eq("key", code).maybeSingle();
   if (!b) return;
   const { data: existing } = await supabase.from("gamification_user_badges").select("id").eq("user_id", userId).eq("badge_id", (b as any).id).maybeSingle();
   if (existing) return;
