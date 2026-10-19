@@ -228,7 +228,6 @@ function ProfilePage() {
         last_name: lastName.trim() || null,
         full_name: fullName,
         phone: phone.trim() || null,
-        team: team.trim() || null,
         email: email.trim(),
       })
       .eq("id", user.id);
@@ -332,7 +331,8 @@ function ProfilePage() {
             </div>
             <div className="space-y-2">
               <Label>Komanda (Team Battle)</Label>
-              <Input value={team} onChange={(e) => setTeam(e.target.value)} placeholder="Məs: Satış, IT ..." />
+              <Input value={team || "—"} disabled readOnly />
+              <p className="text-xs text-muted-foreground">Komandanı yalnız admin dəyişə bilər.</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 border-t pt-4">
               <div className="space-y-2">

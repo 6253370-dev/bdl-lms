@@ -34,6 +34,7 @@ interface UserRow {
   full_name: string;
   email: string;
   phone: string | null;
+  team: string | null;
   roles: string[];
 }
 
@@ -49,7 +50,7 @@ function UsersPage() {
   const load = async () => {
     setLoading(true);
     const { data: profs } = await supabase
-      .from("profiles").select("id,employee_id,full_name,email,phone").order("created_at", { ascending: false });
+      .from("profiles").select("id,employee_id,full_name,email,phone,team").order("created_at", { ascending: false });
     const { data: roles } = await supabase.from("user_roles").select("user_id,role");
     const map = new Map<string, string[]>();
     (roles ?? []).forEach((r: { user_id: string; role: string }) => {
@@ -177,7 +178,7 @@ function UsersPage() {
 }
 
 function CreateUserDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; onCreated: () => void }) {
-  const [form, setForm] = useState({ employee_id: "", full_name: "", email: "", phone: "", password: "", password2: "", role: "user" });
+  const [form, setForm] = useState({ employee_id: "", full_name: "", email: "", phone: "", password: "", password2: "", role: "user", team: "" });
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
@@ -188,15 +189,18 @@ function CreateUserDialog({ open, onOpenChange, onCreated }: { open: boolean; on
       toast.error(t.users.passwordMismatch); return;
     }
     setSubmitting(true);
-    const { password2, ...payload } = form;
+    const { password2, team, ...payload } = form;
     void password2;
     const { error } = await supabase.functions.invoke("admin-create-user", {
       body: { ...payload, roles: [form.role] },
     });
+    if (!error && team) {
+      await supabase.from("profiles").update({ team }).eq("employee_id", form.employee_id);
+    }
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
     toast.success("İstifadəçi yaradıldı");
-    setForm({ employee_id: "", full_name: "", email: "", phone: "", password: "", password2: "", role: "user" });
+    setForm({ employee_id: "", full_name: "", email: "", phone: "", password: "", password2: "", role: "user", team: "" });
     onOpenChange(false);
     onCreated();
   };
@@ -217,6 +221,7 @@ function CreateUserDialog({ open, onOpenChange, onCreated }: { open: boolean; on
           <Field label="E-mail *" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
           <Field label="Şifrə *" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} />
           <Field label={`${t.users.confirmPassword} *`} type="password" value={form.password2} onChange={(v) => setForm({ ...form, password2: v })} />
+          <TeamSelect value={form.team} onChange={(v) => setForm({ ...form, team: v })} />
           <div className="space-y-2">
             <Label>Rol</Label>
             <select
@@ -247,6 +252,7 @@ function EditUserDialog({ user, isSuperAdmin, onClose, onSaved }: { user: UserRo
   const [email, setEmail] = useState(user.email);
   const [phone, setPhone] = useState(user.phone ?? "");
   const [fullName, setFullName] = useState(user.full_name);
+  const [team, setTeam] = useState(user.team ?? "");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [roles, setRoles] = useState<string[]>(user.roles);
@@ -292,6 +298,10 @@ function EditUserDialog({ user, isSuperAdmin, onClose, onSaved }: { user: UserRo
     }
     const { error } = await supabase.functions.invoke("admin-update-user", { body });
     if (error) { setSaving(false); toast.error(error.message); return; }
+    if ((team || null) !== (user.team || null)) {
+      const { error: tErr } = await supabase.from("profiles").update({ team: team || null }).eq("id", user.id);
+      if (tErr) { setSaving(false); toast.error(tErr.message); return; }
+    }
     await saveCourseAccess(user.id, Array.from(folderIds), Array.from(courseIds));
     setSaving(false);
     toast.success("İstifadəçi yeniləndi");
@@ -315,6 +325,7 @@ function EditUserDialog({ user, isSuperAdmin, onClose, onSaved }: { user: UserRo
               <Field label="Telefon" value={phone} onChange={setPhone} />
             </div>
             <Field label="Ad Soyad" value={fullName} onChange={setFullName} />
+            <TeamSelect value={team} onChange={setTeam} />
             <Field label="E-mail" type="email" value={email} onChange={setEmail} disabled={!isSuperAdmin} />
             <Field label="Yeni şifrə (dəyişməyəcəksinizsə boş buraxın)" type="password" value={password} onChange={setPassword} />
             {password && (
@@ -425,6 +436,7 @@ function ViewUserDialog({ user, onClose }: { user: UserRow; onClose: () => void 
           <Row label="Ad Soyad" value={user.full_name} />
           <Row label="E-mail" value={user.email} />
           <Row label="Telefon" value={user.phone ?? "—"} />
+          <Row label="Komanda" value={user.team ?? "—"} />
           <Row label="Rollar" value={user.roles.map((r) => r === "super_admin" ? "Super admin" : r === "admin" ? "Admin" : "İstifadəçi").join(", ") || "—"} />
           <div className="border-t pt-3 mt-3">
             {stats ? (
@@ -468,6 +480,53 @@ function Field({ label, value, onChange, type = "text", disabled }: { label: str
     <div className="space-y-2">
       <Label>{label}</Label>
       <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} />
+    </div>
+  );
+}
+
+function TeamSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [teams, setTeams] = useState<string[]>([]);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+  const loadTeams = async () => {
+    const { data } = await supabase.from("teams").select("name").order("name");
+    setTeams((data ?? []).map((r: { name: string }) => r.name));
+  };
+  useEffect(() => { loadTeams(); }, []);
+  const add = async () => {
+    const n = name.trim();
+    if (!n) return;
+    if (!teams.includes(n)) {
+      const { error } = await supabase.from("teams").insert({ name: n });
+      if (error) { toast.error(error.message); return; }
+      await loadTeams();
+    }
+    onChange(n); setName(""); setAdding(false);
+    toast.success("Komanda əlavə edildi");
+  };
+  return (
+    <div className="space-y-2">
+      <Label>Komanda (Team Battle)</Label>
+      <div className="flex gap-2">
+        <select
+          className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          <option value="">— Komanda yoxdur —</option>
+          {value && !teams.includes(value) && <option value={value}>{value}</option>}
+          {teams.map((n) => <option key={n} value={n}>{n}</option>)}
+        </select>
+        <Button type="button" variant="outline" onClick={() => setAdding((a) => !a)}>
+          <Plus className="h-4 w-4 mr-1" /> Komanda əlavə et
+        </Button>
+      </div>
+      {adding && (
+        <div className="flex gap-2">
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Yeni komanda adı" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
+          <Button type="button" onClick={add}>Əlavə et</Button>
+        </div>
+      )}
     </div>
   );
 }
