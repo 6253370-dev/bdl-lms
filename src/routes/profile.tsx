@@ -87,6 +87,7 @@ function ProfilePage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [team, setTeam] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
@@ -103,6 +104,7 @@ function ProfilePage() {
     setLastName(profile.last_name ?? parts.slice(1).join(" ") ?? "");
     setEmail(profile.email ?? "");
     setPhone(profile.phone ?? "");
+    setTeam(profile.team ?? "");
     setAvatarUrl(profile.avatar_url ?? null);
   }, [profile]);
 
@@ -226,6 +228,7 @@ function ProfilePage() {
         last_name: lastName.trim() || null,
         full_name: fullName,
         phone: phone.trim() || null,
+        team: team.trim() || null,
         email: email.trim(),
       })
       .eq("id", user.id);
@@ -326,6 +329,10 @@ function ProfilePage() {
             <div className="space-y-2">
               <Label>Telefon</Label>
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+994 ..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Komanda (Team Battle)</Label>
+              <Input value={team} onChange={(e) => setTeam(e.target.value)} placeholder="Məs: Satış, IT ..." />
             </div>
             <div className="grid gap-4 sm:grid-cols-2 border-t pt-4">
               <div className="space-y-2">

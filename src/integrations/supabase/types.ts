@@ -809,6 +809,89 @@ export type Database = {
         }
         Relationships: []
       }
+      gamification_boss_attempts: {
+        Row: {
+          battle_id: string
+          completed_at: string
+          correct_count: number
+          duration_seconds: number
+          id: string
+          score_percent: number
+          total_questions: number
+          user_id: string
+          xp_earned: number
+        }
+        Insert: {
+          battle_id: string
+          completed_at?: string
+          correct_count?: number
+          duration_seconds?: number
+          id?: string
+          score_percent?: number
+          total_questions?: number
+          user_id: string
+          xp_earned?: number
+        }
+        Update: {
+          battle_id?: string
+          completed_at?: string
+          correct_count?: number
+          duration_seconds?: number
+          id?: string
+          score_percent?: number
+          total_questions?: number
+          user_id?: string
+          xp_earned?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gamification_boss_attempts_battle_id_fkey"
+            columns: ["battle_id"]
+            isOneToOne: false
+            referencedRelation: "gamification_boss_battles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gamification_boss_battles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duration_seconds: number
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          question_count: number
+          question_ids: Json
+          starts_at: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          question_count?: number
+          question_ids?: Json
+          starts_at?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          question_count?: number
+          question_ids?: Json
+          starts_at?: string
+          title?: string
+        }
+        Relationships: []
+      }
       gamification_challenge_attempts: {
         Row: {
           challenge_id: string
@@ -1510,6 +1593,7 @@ export type Database = {
           id: string
           last_name: string | null
           phone: string | null
+          team: string | null
           updated_at: string
         }
         Insert: {
@@ -1522,6 +1606,7 @@ export type Database = {
           id: string
           last_name?: string | null
           phone?: string | null
+          team?: string | null
           updated_at?: string
         }
         Update: {
@@ -1534,6 +1619,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          team?: string | null
           updated_at?: string
         }
         Relationships: []
