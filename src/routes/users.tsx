@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Loader2, Trash2, Pencil, ShieldCheck, Search, Eye, Folder, BookOpen } from "lucide-react";
+import { Plus, Loader2, Trash2, Pencil, ShieldCheck, Search, Eye, Folder, BookOpen, Unlock } from "lucide-react";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { saveCourseAccess } from "@/components/CourseAccessEditor";
@@ -35,6 +35,8 @@ interface UserRow {
   email: string;
   phone: string | null;
   team: string | null;
+  is_exam_blocked: boolean;
+  exam_blocked_reason: string | null;
   roles: string[];
 }
 
@@ -50,7 +52,7 @@ function UsersPage() {
   const load = async () => {
     setLoading(true);
     const { data: profs } = await supabase
-      .from("profiles").select("id,employee_id,full_name,email,phone,team").order("created_at", { ascending: false });
+      .from("profiles").select("id,employee_id,full_name,email,phone,team,is_exam_blocked,exam_blocked_reason").order("created_at", { ascending: false });
     const { data: roles } = await supabase.from("user_roles").select("user_id,role");
     const map = new Map<string, string[]>();
     (roles ?? []).forEach((r: { user_id: string; role: string }) => {
@@ -61,6 +63,15 @@ function UsersPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleUnblock = async (u: UserRow) => {
+    const { error } = await supabase.from("profiles")
+      .update({ is_exam_blocked: false, exam_blocked_reason: null, exam_blocked_at: null })
+      .eq("id", u.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${u.full_name} blokdan çıxarıldı`);
+    load();
+  };
 
   const handleDelete = async (id: string) => {
     if (id === currentUser?.id) { toast.error("Özünüzü silə bilməzsiniz"); return; }
@@ -126,7 +137,14 @@ function UsersPage() {
               {filtered.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell className="font-mono">{u.employee_id}</TableCell>
-                  <TableCell className="font-medium">{u.full_name}</TableCell>
+                  <TableCell className="font-medium">
+                    {u.full_name}
+                    {u.is_exam_blocked && (
+                      <div className="text-xs font-normal text-destructive mt-0.5">
+                        İmtahandan bloklanıb: {u.exam_blocked_reason ?? "—"}
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{u.email}</TableCell>
                   <TableCell className="text-muted-foreground">{u.phone ?? "—"}</TableCell>
                   <TableCell>
@@ -142,7 +160,12 @@ function UsersPage() {
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
+                    {u.is_exam_blocked && (
+                      <Button variant="destructive" size="sm" className="mr-1" onClick={() => handleUnblock(u)} title={u.exam_blocked_reason ?? ""}>
+                        <Unlock className="h-4 w-4 mr-1" /> Blokdan çıxar
+                      </Button>
+                    )}
                     {isSuperAdmin && (
                       <Button variant="ghost" size="icon" onClick={() => setViewing(u)} title={t.users.view}>
                         <Eye className="h-4 w-4" />
