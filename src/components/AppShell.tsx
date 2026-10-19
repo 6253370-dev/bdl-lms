@@ -46,7 +46,7 @@ const NAV: NavItem[] = [
   { to: "/library", label: "Kitabxana", icon: BookMarked },
   { to: "/attendance", label: "Davamiyyət", icon: CalendarCheck, adminOnly: true },
   { to: "/calendar", label: "Təqvim", icon: CalendarDays },
-  { to: "/champions", label: t.nav.champions, icon: Trophy },
+  { to: "/champions", label: "Gamification Center", icon: Trophy },
   { to: "/certificates", label: t.nav.certificates, icon: Award },
   { to: "/admin/comments", label: t.nav.adminComments, icon: MessageSquare, adminOnly: true },
   { to: "/reports", label: t.nav.reports, icon: BarChart3, adminOnly: true },
