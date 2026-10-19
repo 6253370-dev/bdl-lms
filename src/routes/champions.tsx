@@ -943,3 +943,257 @@ function DailyChallengeCard({ challenge, attempt, onDone }: { challenge: any; at
     </Card>
   );
 }
+
+// ---------- boss battle ----------
+interface BossBattle {
+  id: string;
+  title: string;
+  question_ids: string[];
+  question_count: number;
+  duration_seconds: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+function BossBattleCard({ onChanged }: { onChanged: () => void }) {
+  const { user, isAdmin } = useAuth();
+  const [battles, setBattles] = useState<BossBattle[] | null>(null);
+  const [attempts, setAttempts] = useState<any[]>([]);
+  const [names, setNames] = useState<Map<string, string>>(new Map());
+  const [createOpen, setCreateOpen] = useState(false);
+  const [playing, setPlaying] = useState<BossBattle | null>(null);
+  const [title, setTitle] = useState("");
+  const [count, setCount] = useState("20");
+  const [duration, setDuration] = useState("300");
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    const [{ data: bs }, { data: atts }, { data: profs }] = await Promise.all([
+      supabase.from("gamification_boss_battles" as any).select("*").eq("is_active", true).order("created_at", { ascending: false }),
+      supabase.from("gamification_boss_attempts" as any).select("*"),
+      supabase.from("profiles").select("id,full_name"),
+    ]);
+    setBattles((bs ?? []) as unknown as BossBattle[]);
+    setAttempts(atts ?? []);
+    setNames(new Map(((profs ?? []) as any[]).map((p) => [p.id, p.full_name])));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const create = async () => {
+    if (!title.trim()) return toast.error("Başlıq boş ola bilməz");
+    const n = parseInt(count);
+    const { data: pool } = await supabase.from("bank_questions").select("id").eq("is_gamification_enabled", true);
+    const ids = ((pool ?? []) as { id: string }[]).map((q) => q.id);
+    if (ids.length < n) return toast.error(`Kifayət qədər aktiv sual yoxdur (${ids.length}/${n})`);
+    const sample = [...ids].sort(() => Math.random() - 0.5).slice(0, n);
+    setSaving(true);
+    const { error } = await supabase.from("gamification_boss_battles" as any).insert({
+      title: title.trim(), question_ids: sample, question_count: n,
+      duration_seconds: parseInt(duration), created_by: user!.id,
+    } as any);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Boss Battle yaradıldı");
+    setCreateOpen(false);
+    setTitle("");
+    load();
+    onChanged();
+  };
+
+  const closeBattle = async (id: string) => {
+    const { error } = await supabase.from("gamification_boss_battles" as any).update({ is_active: false } as any).eq("id", id);
+    if (error) return toast.error(error.message);
+    load();
+  };
+
+  if (playing) {
+    return <BossPlay battle={playing} onDone={() => { setPlaying(null); load(); onChanged(); }} />;
+  }
+
+  if (!battles) return <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Boss Battle — hamı eyni sual dəstini cavablandırır, ən yaxşı nəticə qazanır. Hər battle üçün bir cəhd.</p>
+        {isAdmin && (
+          <Button size="sm" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4 mr-1" /> Yeni Boss Battle</Button>
+        )}
+      </div>
+      {battles.length === 0 && (
+        <Card className="p-10 text-center border-dashed">
+          <Skull className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+          <p className="text-muted-foreground">Aktiv Boss Battle yoxdur</p>
+        </Card>
+      )}
+      {battles.map((b) => {
+        const bAtts = attempts.filter((a) => a.battle_id === b.id).sort((x, y) => y.correct_count - x.correct_count || x.duration_seconds - y.duration_seconds);
+        const mine = bAtts.find((a) => a.user_id === user?.id);
+        return (
+          <Card key={b.id} className="p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="font-display font-semibold flex items-center gap-2"><Skull className="h-4 w-4 text-destructive" /> {b.title}</div>
+                <div className="text-xs text-muted-foreground">{b.question_count} sual · {Math.round(b.duration_seconds / 60)} dəqiqə · {bAtts.length} iştirakçı</div>
+              </div>
+              <div className="flex gap-2">
+                {mine ? (
+                  <Badge variant="secondary">{mine.correct_count}/{mine.total_questions} · +{mine.xp_earned} XP</Badge>
+                ) : (
+                  <Button size="sm" onClick={() => setPlaying(b)}>Başla</Button>
+                )}
+                {isAdmin && <Button size="sm" variant="outline" onClick={() => closeBattle(b.id)}>Bitir</Button>}
+              </div>
+            </div>
+            {bAtts.length > 0 && (
+              <div className="border-t pt-2 space-y-1">
+                {bAtts.slice(0, 5).map((a, i) => (
+                  <div key={a.id} className={cn("flex items-center gap-2 text-sm", a.user_id === user?.id && "font-semibold text-primary")}>
+                    <span className="w-6">{["🥇", "🥈", "🥉"][i] ?? `#${i + 1}`}</span>
+                    <span className="flex-1 truncate">{names.get(a.user_id) ?? "—"}</span>
+                    <span>{a.correct_count}/{a.total_questions}</span>
+                    <span className="text-muted-foreground">{fmtMs(a.duration_seconds * 1000)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        );
+      })}
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Yeni Boss Battle</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Input placeholder="Başlıq (məs: Həftənin Boss-u)" value={title} onChange={(e) => setTitle(e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <Select value={count} onValueChange={setCount}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["10", "15", "20"].map((v) => <SelectItem key={v} value={v}>{v} sual</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={duration} onValueChange={setDuration}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[["180", "3 dəqiqə"], ["300", "5 dəqiqə"], ["600", "10 dəqiqə"]].map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">Suallar gamification üçün aktiv suallardan təsadüfi seçilir.</p>
+            <Button className="w-full" onClick={create} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Yarat
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function BossPlay({ battle, onDone }: { battle: BossBattle; onDone: () => void }) {
+  const { user } = useAuth();
+  const [questions, setQuestions] = useState<BankQ[] | null>(null);
+  const [idx, setIdx] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(battle.duration_seconds);
+  const [done, setDone] = useState(false);
+  const [result, setResult] = useState<{ correct: number; xp: number } | null>(null);
+  const answersRef = useRef<{ question_id: string; is_correct: boolean }[]>([]);
+  const startRef = useRef(Date.now());
+
+  useEffect(() => {
+    (async () => {
+      const ids = battle.question_ids;
+      const [{ data: qs }, { data: ans }] = await Promise.all([
+        supabase.from("bank_questions").select("id,text,question_type").in("id", ids).eq("is_gamification_enabled", true),
+        supabase.from("bank_answers").select("id,question_id,text,is_correct").in("question_id", ids),
+      ]);
+      const ordered = ids.map((id) => (qs ?? []).find((q: any) => q.id === id)).filter(Boolean)
+        .map((q: any) => ({ ...q, answers: (ans ?? []).filter((a: any) => a.question_id === q.id) }));
+      if (!ordered.length) { toast.error("Suallar tapılmadı"); onDone(); return; }
+      setQuestions(ordered as BankQ[]);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!questions || done) return;
+    const t = setInterval(() => {
+      setTimeLeft((s) => {
+        if (s <= 1) { clearInterval(t); finish(); return 0; }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [questions, done]);
+
+  const answer = (isCorrect: boolean) => {
+    answersRef.current.push({ question_id: questions![idx].id, is_correct: isCorrect });
+    if (idx + 1 < questions!.length) setIdx(idx + 1);
+    else finish();
+  };
+
+  const finish = async () => {
+    if (done) return;
+    setDone(true);
+    const totalSec = Math.round((Date.now() - startRef.current) / 1000);
+    const total = questions!.length;
+    const correct = answersRef.current.filter((a) => a.is_correct).length;
+    const xp = correct * 50;
+    const { error } = await supabase.from("gamification_boss_attempts" as any).insert({
+      battle_id: battle.id, user_id: user!.id,
+      correct_count: correct, total_questions: total,
+      duration_seconds: totalSec, score_percent: total ? (correct / total) * 100 : 0,
+      xp_earned: xp,
+    } as any);
+    if (error) {
+      toast.error("Bu Boss Battle-i artıq tamamlamısan");
+      return onDone();
+    }
+    if (xp > 0) await awardXp(user!.id, "boss_battle", xp, battle.id);
+    if (correct === total) await awardBadge(user!.id, "perfect_score");
+    await checkBadges(user!.id);
+    setResult({ correct, xp });
+  };
+
+  if (!questions) return <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+
+  if (result) {
+    return (
+      <Card className="p-8 text-center space-y-4 max-w-xl mx-auto">
+        <Skull className="h-12 w-12 mx-auto text-destructive" />
+        <h2 className="font-display text-2xl font-bold">Boss Battle tamamlandı!</h2>
+        <p className="text-lg">{result.correct} / {questions.length} düzgün cavab</p>
+        <p className="text-primary font-semibold">+{result.xp} XP</p>
+        <Button onClick={onDone}>Geri qayıt</Button>
+      </Card>
+    );
+  }
+
+  const q = questions[idx];
+  const mm = Math.floor(timeLeft / 60), ss = timeLeft % 60;
+  return (
+    <div className="space-y-4 max-w-2xl mx-auto">
+      <div className="flex items-center justify-between">
+        <Badge variant="outline">Sual {idx + 1} / {questions.length}</Badge>
+        <Badge variant={timeLeft < 30 ? "destructive" : "secondary"} className="flex items-center gap-1">
+          <Clock className="h-3.5 w-3.5" /> {mm}:{String(ss).padStart(2, "0")}
+        </Badge>
+      </div>
+      <div className="h-2 rounded-full bg-muted overflow-hidden">
+        <div className="h-full bg-destructive transition-all" style={{ width: `${(idx / questions.length) * 100}%` }} />
+      </div>
+      <Card className="p-6">
+        <p className="font-medium mb-4">{q.text}</p>
+        <div className="space-y-2">
+          {q.answers.map((a) => (
+            <Button key={a.id} variant="outline" className="w-full justify-start text-left h-auto py-3"
+              onClick={() => answer(a.is_correct)}>
+              {a.text}
+            </Button>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
