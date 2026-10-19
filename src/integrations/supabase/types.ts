@@ -280,6 +280,7 @@ export type Database = {
           difficulty: Database["public"]["Enums"]["bank_difficulty"]
           folder_id: string
           id: string
+          is_gamification_enabled: boolean
           question_type: Database["public"]["Enums"]["bank_question_type"]
           text: string
           time_limit_seconds: number | null
@@ -291,6 +292,7 @@ export type Database = {
           difficulty?: Database["public"]["Enums"]["bank_difficulty"]
           folder_id: string
           id?: string
+          is_gamification_enabled?: boolean
           question_type?: Database["public"]["Enums"]["bank_question_type"]
           text: string
           time_limit_seconds?: number | null
@@ -302,6 +304,7 @@ export type Database = {
           difficulty?: Database["public"]["Enums"]["bank_difficulty"]
           folder_id?: string
           id?: string
+          is_gamification_enabled?: boolean
           question_type?: Database["public"]["Enums"]["bank_question_type"]
           text?: string
           time_limit_seconds?: number | null
@@ -778,6 +781,281 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      gamification_badges: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          key: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      gamification_challenge_attempts: {
+        Row: {
+          challenge_id: string
+          completed_at: string
+          correct_count: number
+          id: string
+          total_questions: number
+          user_id: string
+          xp_earned: number
+        }
+        Insert: {
+          challenge_id: string
+          completed_at?: string
+          correct_count?: number
+          id?: string
+          total_questions?: number
+          user_id: string
+          xp_earned?: number
+        }
+        Update: {
+          challenge_id?: string
+          completed_at?: string
+          correct_count?: number
+          id?: string
+          total_questions?: number
+          user_id?: string
+          xp_earned?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gamification_challenge_attempts_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "gamification_daily_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gamification_daily_challenges: {
+        Row: {
+          challenge_date: string
+          created_at: string
+          id: string
+          question_ids: Json
+          xp_reward: number
+        }
+        Insert: {
+          challenge_date: string
+          created_at?: string
+          id?: string
+          question_ids?: Json
+          xp_reward?: number
+        }
+        Update: {
+          challenge_date?: string
+          created_at?: string
+          id?: string
+          question_ids?: Json
+          xp_reward?: number
+        }
+        Relationships: []
+      }
+      gamification_duel_answers: {
+        Row: {
+          answer_id: string | null
+          created_at: string
+          duel_id: string
+          id: string
+          is_correct: boolean
+          question_id: string
+          response_ms: number
+          user_id: string
+        }
+        Insert: {
+          answer_id?: string | null
+          created_at?: string
+          duel_id: string
+          id?: string
+          is_correct?: boolean
+          question_id: string
+          response_ms?: number
+          user_id: string
+        }
+        Update: {
+          answer_id?: string | null
+          created_at?: string
+          duel_id?: string
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          response_ms?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gamification_duel_answers_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "bank_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gamification_duel_answers_duel_id_fkey"
+            columns: ["duel_id"]
+            isOneToOne: false
+            referencedRelation: "gamification_duels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gamification_duel_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "bank_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gamification_duels: {
+        Row: {
+          challenger_finished_at: string | null
+          challenger_id: string
+          challenger_score: number | null
+          challenger_time_ms: number | null
+          created_at: string
+          duration_seconds: number
+          id: string
+          opponent_finished_at: string | null
+          opponent_id: string
+          opponent_score: number | null
+          opponent_time_ms: number | null
+          question_count: number
+          question_ids: Json
+          status: string
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          challenger_finished_at?: string | null
+          challenger_id: string
+          challenger_score?: number | null
+          challenger_time_ms?: number | null
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          opponent_finished_at?: string | null
+          opponent_id: string
+          opponent_score?: number | null
+          opponent_time_ms?: number | null
+          question_count?: number
+          question_ids?: Json
+          status?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          challenger_finished_at?: string | null
+          challenger_id?: string
+          challenger_score?: number | null
+          challenger_time_ms?: number | null
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          opponent_finished_at?: string | null
+          opponent_id?: string
+          opponent_score?: number | null
+          opponent_time_ms?: number | null
+          question_count?: number
+          question_ids?: Json
+          status?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
+      gamification_user_badges: {
+        Row: {
+          awarded_at: string
+          badge_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          badge_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          badge_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gamification_user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "gamification_badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gamification_xp_config: {
+        Row: {
+          key: string
+          label: string | null
+          xp: number
+        }
+        Insert: {
+          key: string
+          label?: string | null
+          xp: number
+        }
+        Update: {
+          key?: string
+          label?: string | null
+          xp?: number
+        }
+        Relationships: []
+      }
+      gamification_xp_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ref_id: string | null
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ref_id?: string | null
+          user_id: string
+          xp: number
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ref_id?: string | null
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
       }
       lesson_comments: {
         Row: {

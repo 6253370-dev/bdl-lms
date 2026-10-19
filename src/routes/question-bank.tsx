@@ -60,6 +60,7 @@ type BankQuestion = {
   question_type: "multiple_choice" | "open_ended" | "practice";
   difficulty: "easy" | "medium" | "hard";
   time_limit_seconds: number | null;
+  is_gamification_enabled: boolean;
   answers?: { id: string; text: string; is_correct: boolean; position: number }[];
 };
 
@@ -89,6 +90,7 @@ function QuestionBankPage() {
     question: null,
   });
   const [search, setSearch] = useState("");
+  const [gamifFilter, setGamifFilter] = useState<"all" | "on" | "off">("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) => {
     setExpanded((s) => {
@@ -126,7 +128,7 @@ function QuestionBankPage() {
     }
     const { data: qs } = await supabase
       .from("bank_questions")
-      .select("id,folder_id,text,question_type,difficulty,time_limit_seconds")
+      .select("id,folder_id,text,question_type,difficulty,time_limit_seconds,is_gamification_enabled")
       .eq("folder_id", folderId)
       .order("created_at", { ascending: false });
     const ids = (qs ?? []).map((q) => q.id);
@@ -159,9 +161,12 @@ function QuestionBankPage() {
 
   const filteredQs = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return questions;
-    return questions.filter((x) => x.text.toLowerCase().includes(q));
-  }, [questions, search]);
+    return questions.filter((x) => {
+      if (gamifFilter === "on" && !x.is_gamification_enabled) return false;
+      if (gamifFilter === "off" && x.is_gamification_enabled) return false;
+      return !q || x.text.toLowerCase().includes(q);
+    });
+  }, [questions, search, gamifFilter]);
 
   const deleteFolder = async (id: string) => {
     if (!confirm("Mövzu və içindəki bütün suallar silinsin?")) return;
@@ -256,6 +261,16 @@ function QuestionBankPage() {
                       className="pl-9"
                     />
                   </div>
+                  <Select value={gamifFilter} onValueChange={(v) => setGamifFilter(v as any)}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Hamısı</SelectItem>
+                      <SelectItem value="on">🟢 Gamification</SelectItem>
+                      <SelectItem value="off">⚪ Gamification deaktiv</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button onClick={() => setQuestionDialog({ open: true, question: null })}>
                     <Plus className="h-4 w-4" /> Yeni sual
                   </Button>
@@ -285,6 +300,9 @@ function QuestionBankPage() {
                                 }
                               >
                                 {DIFF_LABEL[q.difficulty]}
+                              </Badge>
+                              <Badge variant="outline" title="Gamification">
+                                {q.is_gamification_enabled ? "🟢 Aktiv" : "⚪ Aktiv deyil"}
                               </Badge>
                               {q.time_limit_seconds && (
                                 <span className="text-xs text-muted-foreground">
@@ -477,6 +495,7 @@ function QuestionEditor({
   const [difficulty, setDifficulty] = useState<BankQuestion["difficulty"]>(
     question?.difficulty ?? "medium",
   );
+  const [gamifEnabled, setGamifEnabled] = useState(question?.is_gamification_enabled ?? false);
   const [timeLimit, setTimeLimit] = useState(
     question?.time_limit_seconds ? String(question.time_limit_seconds) : "",
   );
@@ -532,6 +551,7 @@ function QuestionEditor({
       question_type: type,
       difficulty,
       time_limit_seconds: timeLimit ? Number(timeLimit) : null,
+      is_gamification_enabled: gamifEnabled,
     };
     let qId = question?.id;
     if (question) {
@@ -626,6 +646,16 @@ function QuestionEditor({
               />
             </div>
           </div>
+
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={gamifEnabled}
+              onChange={(e) => setGamifEnabled(e.target.checked)}
+              className="h-4 w-4"
+            />
+            Gamification üçün aktiv — bu sual Gamification Center-də istifadə oluna bilər
+          </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-2">
