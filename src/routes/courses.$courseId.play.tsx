@@ -16,6 +16,7 @@ import { t } from "@/lib/i18n";
 import { Textarea } from "@/components/ui/textarea";
 import { LessonComments } from "@/components/LessonComments";
 import { downloadCertificateSmart } from "@/lib/certificate";
+import { useExamProctor, getExamBlock, enterFullscreen, exitFullscreen, EXAM_BLOCKED_MSG } from "@/hooks/use-exam-proctor";
 
 export const Route = createFileRoute("/courses/$courseId/play")({
   component: () => (
@@ -448,7 +449,7 @@ interface ResultRow {
 }
 
 function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { block: Block; course: Course; nextBlockId: string | null; onGoNext: (id: string) => void; onComplete: () => void }) {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const courseId = course.id;
   const coursePassingScore = course.passing_score;
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -464,6 +465,12 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
   const [certificate, setCertificate] = useState<{ serial: string; issued_at: string } | null>(null);
   const [secsLeft, setSecsLeft] = useState<number | null>(null);
   const [locked, setLocked] = useState(false);
+  const [blockReason, setBlockReason] = useState<string | null>(null);
+  const proctored = block.block_type === "final_exam" && !isAdmin;
+  useExamProctor(stage === "running", proctored, (reason) => {
+    setBlockReason(reason);
+    setStage("intro");
+  });
 
   const passingScore = block.block_type === "final_exam" ? (block.passing_score ?? coursePassingScore) : 0;
   const timePer = block.time_limit_seconds ?? null;
@@ -490,10 +497,15 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
     return () => { canceled = true; };
   }, [block.id]);
 
-  const startAttempt = () => {
+  const startAttempt = async () => {
     if (questions.length === 0) {
       toast.error("Bu qiymətləndirmədə hələ sual yoxdur");
       return;
+    }
+    if (proctored) {
+      void enterFullscreen();
+      const reason = user ? await getExamBlock(user.id) : null;
+      if (reason) { void exitFullscreen(); setBlockReason(reason); return; }
     }
     setIdx(0);
     setResults([]);
@@ -577,6 +589,7 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
 
     setScore({ correct, total, percent, passed, pendingReview });
     setStage("done");
+    void exitFullscreen();
     setSubmitting(false);
     if (passed) onComplete();
 
@@ -640,6 +653,18 @@ function AssessmentView({ block, course, nextBlockId, onGoNext, onComplete }: { 
 
   if (loading) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  if (blockReason) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <Card className="p-6 space-y-3 border-destructive">
+          <h2 className="font-display text-xl font-bold text-destructive">İmtahan bloklandı</h2>
+          <p className="text-sm font-medium">Səbəb: {blockReason}</p>
+          <p className="text-sm text-muted-foreground">{EXAM_BLOCKED_MSG}</p>
+        </Card>
+      </div>
+    );
   }
 
   if (stage === "intro") {
