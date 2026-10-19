@@ -231,6 +231,24 @@ function GamificationPage() {
       .slice(0, 5);
   }, [allXp]);
 
+  const myTeam = (profile as any)?.team?.trim() ?? null;
+  const teamLb = useMemo(() => {
+    const teamOf = new Map(profiles.filter((p) => p.team?.trim()).map((p) => [p.id, p.team!.trim()]));
+    if (!teamOf.size) return [] as { team: string; xp: number; members: number }[];
+    const map = new Map<string, { xp: number; members: Set<string> }>();
+    allXp.forEach((e) => {
+      const t = teamOf.get(e.user_id);
+      if (!t) return;
+      const cur = map.get(t) ?? { xp: 0, members: new Set<string>() };
+      cur.xp += e.xp;
+      cur.members.add(e.user_id);
+      map.set(t, cur);
+    });
+    return Array.from(map.entries())
+      .map(([team, v]) => ({ team, xp: v.xp, members: v.members.size }))
+      .sort((a, b) => b.xp - a.xp);
+  }, [allXp, profiles]);
+
   // duel actions
   const respondDuel = async (duel: Duel, accept: boolean) => {
     const { error } = await supabase.from("gamification_duels")
@@ -409,6 +427,32 @@ function GamificationPage() {
               );
             })}
           </div>
+        </TabsContent>
+
+        <TabsContent value="teams" className="mt-4 space-y-4">
+          <Card className="p-4">
+            <h3 className="font-semibold flex items-center gap-2 mb-3"><Users className="h-4 w-4" /> Komanda reytinqi (ümumi XP)</h3>
+            {teamLb.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Hələ komanda yoxdur. Profil səhifəndə "Komanda" sahəsini doldur — eyni adlı komandada olanların XP-ləri toplanır.</p>
+            ) : (
+              <div className="space-y-2">
+                {teamLb.map((t, i) => (
+                  <div key={t.team} className={cn("flex items-center gap-3 rounded-lg p-2.5", t.team === myTeam && "border-2 border-primary bg-primary/5")}>
+                    <span className="w-6 text-center">{["🥇", "🥈", "🥉"][i] ?? `#${i + 1}`}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{t.team}{t.team === myTeam && <span className="ml-2 text-xs text-primary">(sənin komandan)</span>}</div>
+                      <div className="text-xs text-muted-foreground">{t.members} üzv</div>
+                    </div>
+                    <span className="font-semibold">{t.xp} XP</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="boss" className="mt-4">
+          <BossBattleCard onChanged={() => load()} />
         </TabsContent>
       </Tabs>
 
@@ -699,6 +743,9 @@ function DuelPlay({ duel, onDone }: { duel: Duel; onDone: () => void }) {
       await supabase.from("gamification_duels").update({ status: "completed", winner_id: winner } as any).eq("id", duel.id);
       if (winner) await awardXp(winner, "duel_win", XP.duelWin, duel.id);
     }
+    if (correct >= 10 && correct === duel.question_count) await awardBadge(user!.id, "sniper");
+    if (correct > 0 && totalMs <= duel.duration_seconds * 500) await awardBadge(user!.id, "speedster");
+    await checkBadges(user!.id);
     setResult({ correct, xp });
   };
 
@@ -834,6 +881,8 @@ function DailyChallengeCard({ challenge, attempt, onDone }: { challenge: any; at
         correct_count: newCorrect, total_questions: questions!.length, xp_earned: xp,
       } as any);
       await awardXp(user!.id, "daily_challenge", xp, challenge.id);
+      if (perfect) await awardBadge(user!.id, "perfect_score");
+      await checkBadges(user!.id);
       setFinished(newCorrect);
     }
   };
