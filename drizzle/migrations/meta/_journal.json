@@ -15,6 +15,13 @@
       "when": 1792410327212,
       "tag": "0001_gamification_team_boss",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792411965085,
+      "tag": "0002_live_rooms_owner_select",
+      "breakpoints": true
     }
   ]
 }
