@@ -144,6 +144,7 @@ function GamificationPage() {
   const [detailDuel, setDetailDuel] = useState<Duel | null>(null);
   const [lbPeriod, setLbPeriod] = useState<"week" | "month" | "all">("week");
   const [challenge, setChallenge] = useState<any | null>(null);
+  const [xpOpen, setXpOpen] = useState(false);
   const [myAttempt, setMyAttempt] = useState<any | null>(null);
 
   const nameOf = (id: string) => profiles.find((p) => p.id === id)?.full_name ?? "—";
@@ -483,6 +484,7 @@ function GamificationPage() {
           onCreated={() => { setCreateOpen(false); load(); }}
         />
       )}
+      {xpOpen && <XpConfigDialog onClose={() => setXpOpen(false)} />}
       {detailDuel && (
         <DuelDetailDialog duel={detailDuel} nameOf={nameOf} onClose={() => setDetailDuel(null)} />
       )}
