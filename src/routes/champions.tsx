@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Loader2, Swords, Flame, Medal, Crown, Target, Star, Check, X, Clock } from "lucide-react";
+import { Trophy, Loader2, Swords, Flame, Medal, Crown, Target, Star, Check, X, Clock, Users, Skull, Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/champions")({
 });
 
 // ---------- types ----------
-interface Profile { id: string; full_name: string }
+interface Profile { id: string; full_name: string; team?: string | null }
 interface Duel {
   id: string;
   challenger_id: string;
@@ -76,6 +76,42 @@ async function awardXp(userId: string, type: string, xp: number, refId?: string)
   await supabase.from("gamification_xp_events").insert({ user_id: userId, event_type: type, xp, ref_id: refId ?? null } as any);
 }
 
+// ---------- badge engine ----------
+async function awardBadge(userId: string, code: string) {
+  const { data: b } = await supabase.from("gamification_badges").select("id,name").eq("code", code).maybeSingle();
+  if (!b) return;
+  const { data: existing } = await supabase.from("gamification_user_badges").select("id").eq("user_id", userId).eq("badge_id", (b as any).id).maybeSingle();
+  if (existing) return;
+  const { error } = await supabase.from("gamification_user_badges").insert({ user_id: userId, badge_id: (b as any).id } as any);
+  if (!error) {
+    toast.success(`Yeni badge qazandın: ${(b as any).name}!`);
+    await awardXp(userId, "badge", XP.badge, (b as any).id);
+  }
+}
+
+async function checkBadges(userId: string) {
+  const [{ data: ds }, { data: xps }] = await Promise.all([
+    supabase.from("gamification_duels").select("*").eq("status", "completed").or(`challenger_id.eq.${userId},opponent_id.eq.${userId}`),
+    supabase.from("gamification_xp_events").select("created_at").eq("user_id", userId),
+  ]);
+  const duels = (ds ?? []) as any[];
+  const wins = duels.filter((d) => d.winner_id === userId).length;
+  if (wins >= 1) await awardBadge(userId, "first_victory");
+  if (duels.length >= 10) await awardBadge(userId, "duelist");
+  const sorted = [...duels].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+  let maxStreak = 0, cur = 0;
+  for (const d of sorted) {
+    if (d.winner_id === userId) { cur++; maxStreak = Math.max(maxStreak, cur); } else cur = 0;
+  }
+  if (maxStreak >= 5) await awardBadge(userId, "champion");
+  const days = new Set((xps ?? []).map((e: any) => String(e.created_at).slice(0, 10)));
+  let s = 0;
+  const dd = new Date();
+  if (!days.has(dd.toISOString().slice(0, 10))) dd.setDate(dd.getDate() - 1);
+  while (days.has(dd.toISOString().slice(0, 10))) { s++; dd.setDate(dd.getDate() - 1); }
+  if (s >= 7) await awardBadge(userId, "streak_7");
+}
+
 // ---------- main page ----------
 function GamificationPage() {
   const { user, profile } = useAuth();
@@ -100,7 +136,7 @@ function GamificationPage() {
     if (!user) return;
     setLoading(true);
     const [{ data: profs }, { data: ds }, { data: xps }, { data: axp }, { data: bs }, { data: mb }] = await Promise.all([
-      supabase.from("profiles").select("id,full_name"),
+      supabase.from("profiles").select("id,full_name,team"),
       supabase.from("gamification_duels").select("*").order("created_at", { ascending: false }),
       supabase.from("gamification_xp_events").select("user_id,xp,event_type,created_at").eq("user_id", user.id),
       supabase.from("gamification_xp_events").select("user_id,xp,event_type,created_at"),
@@ -286,6 +322,8 @@ function GamificationPage() {
           <TabsTrigger value="leaderboard">Liderlik</TabsTrigger>
           <TabsTrigger value="challenge">Daily Challenge</TabsTrigger>
           <TabsTrigger value="badges">Badge-lər</TabsTrigger>
+          <TabsTrigger value="teams">Team Battle</TabsTrigger>
+          <TabsTrigger value="boss">Boss Battle</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
