@@ -1588,9 +1588,12 @@ export type Database = {
           created_at: string
           email: string
           employee_id: string
+          exam_blocked_at: string | null
+          exam_blocked_reason: string | null
           first_name: string | null
           full_name: string
           id: string
+          is_exam_blocked: boolean
           last_name: string | null
           phone: string | null
           team: string | null
@@ -1601,9 +1604,12 @@ export type Database = {
           created_at?: string
           email: string
           employee_id: string
+          exam_blocked_at?: string | null
+          exam_blocked_reason?: string | null
           first_name?: string | null
           full_name: string
           id: string
+          is_exam_blocked?: boolean
           last_name?: string | null
           phone?: string | null
           team?: string | null
@@ -1614,9 +1620,12 @@ export type Database = {
           created_at?: string
           email?: string
           employee_id?: string
+          exam_blocked_at?: string | null
+          exam_blocked_reason?: string | null
           first_name?: string | null
           full_name?: string
           id?: string
+          is_exam_blocked?: boolean
           last_name?: string | null
           phone?: string | null
           team?: string | null
@@ -2347,6 +2356,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      block_me_from_exam: { Args: { _reason: string }; Returns: undefined }
       can_access_live_room: {
         Args: { _room_id: string; _user_id: string }
         Returns: boolean
