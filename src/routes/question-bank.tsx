@@ -60,6 +60,7 @@ type BankQuestion = {
   question_type: "multiple_choice" | "open_ended" | "practice";
   difficulty: "easy" | "medium" | "hard";
   time_limit_seconds: number | null;
+  is_gamification_enabled: boolean;
   answers?: { id: string; text: string; is_correct: boolean; position: number }[];
 };
 
@@ -89,6 +90,7 @@ function QuestionBankPage() {
     question: null,
   });
   const [search, setSearch] = useState("");
+  const [gamifFilter, setGamifFilter] = useState<"all" | "on" | "off">("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const toggleExpanded = (id: string) => {
     setExpanded((s) => {
@@ -126,7 +128,7 @@ function QuestionBankPage() {
     }
     const { data: qs } = await supabase
       .from("bank_questions")
-      .select("id,folder_id,text,question_type,difficulty,time_limit_seconds")
+      .select("id,folder_id,text,question_type,difficulty,time_limit_seconds,is_gamification_enabled")
       .eq("folder_id", folderId)
       .order("created_at", { ascending: false });
     const ids = (qs ?? []).map((q) => q.id);
@@ -159,9 +161,12 @@ function QuestionBankPage() {
 
   const filteredQs = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return questions;
-    return questions.filter((x) => x.text.toLowerCase().includes(q));
-  }, [questions, search]);
+    return questions.filter((x) => {
+      if (gamifFilter === "on" && !x.is_gamification_enabled) return false;
+      if (gamifFilter === "off" && x.is_gamification_enabled) return false;
+      return !q || x.text.toLowerCase().includes(q);
+    });
+  }, [questions, search, gamifFilter]);
 
   const deleteFolder = async (id: string) => {
     if (!confirm("Mövzu və içindəki bütün suallar silinsin?")) return;
