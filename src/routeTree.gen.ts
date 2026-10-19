@@ -9,82 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UsersRouteImport } from './routes/users'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as QuizRouteImport } from './routes/quiz'
-import { Route as QuestionBankRouteImport } from './routes/question-bank'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as LibraryRouteImport } from './routes/library'
-import { Route as GradingRouteImport } from './routes/grading'
-import { Route as ExamsRouteImport } from './routes/exams'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as ChampionsRouteImport } from './routes/champions'
-import { Route as CalendarRouteImport } from './routes/calendar'
-import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as LiveClassesIndexRouteImport } from './routes/live-classes.index'
-import { Route as CoursesIndexRouteImport } from './routes/courses.index'
+import { Route as AttendanceRouteImport } from './routes/attendance'
+import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as ChampionsRouteImport } from './routes/champions'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ExamsRouteImport } from './routes/exams'
+import { Route as GradingRouteImport } from './routes/grading'
+import { Route as LibraryRouteImport } from './routes/library'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as QuestionBankRouteImport } from './routes/question-bank'
+import { Route as QuizRouteImport } from './routes/quiz'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as UsersRouteImport } from './routes/users'
+import { Route as AdminCommentsRouteImport } from './routes/admin.comments'
 import { Route as CertificatesIndexRouteImport } from './routes/certificates.index'
 import { Route as CertificatesMyRouteImport } from './routes/certificates.my'
-import { Route as AdminCommentsRouteImport } from './routes/admin.comments'
-import { Route as LiveClassesRoomIdIndexRouteImport } from './routes/live-classes.$roomId.index'
+import { Route as CoursesIndexRouteImport } from './routes/courses.index'
+import { Route as LiveClassesIndexRouteImport } from './routes/live-classes.index'
 import { Route as CoursesCourseIdIndexRouteImport } from './routes/courses.$courseId.index'
-import { Route as LiveClassesRoomIdRoomRouteImport } from './routes/live-classes.$roomId.room'
 import { Route as CoursesCourseIdPlayRouteImport } from './routes/courses.$courseId.play'
+import { Route as LiveClassesRoomIdIndexRouteImport } from './routes/live-classes.$roomId.index'
+import { Route as LiveClassesRoomIdRoomRouteImport } from './routes/live-classes.$roomId.room'
 
-const UsersRoute = UsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuizRoute = QuizRouteImport.update({
-  id: '/quiz',
-  path: '/quiz',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuestionBankRoute = QuestionBankRouteImport.update({
-  id: '/question-bank',
-  path: '/question-bank',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LibraryRoute = LibraryRouteImport.update({
-  id: '/library',
-  path: '/library',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GradingRoute = GradingRouteImport.update({
-  id: '/grading',
-  path: '/grading',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExamsRoute = ExamsRouteImport.update({
-  id: '/exams',
-  path: '/exams',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChampionsRoute = ChampionsRouteImport.update({
-  id: '/champions',
-  path: '/champions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CalendarRoute = CalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AttendanceRoute = AttendanceRouteImport.update({
@@ -92,19 +42,64 @@ const AttendanceRoute = AttendanceRouteImport.update({
   path: '/attendance',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const CalendarRoute = CalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LiveClassesIndexRoute = LiveClassesIndexRouteImport.update({
-  id: '/live-classes/',
-  path: '/live-classes/',
+const ChampionsRoute = ChampionsRouteImport.update({
+  id: '/champions',
+  path: '/champions',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CoursesIndexRoute = CoursesIndexRouteImport.update({
-  id: '/courses/',
-  path: '/courses/',
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExamsRoute = ExamsRouteImport.update({
+  id: '/exams',
+  path: '/exams',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GradingRoute = GradingRouteImport.update({
+  id: '/grading',
+  path: '/grading',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuestionBankRoute = QuestionBankRouteImport.update({
+  id: '/question-bank',
+  path: '/question-bank',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuizRoute = QuizRouteImport.update({
+  id: '/quiz',
+  path: '/quiz',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsersRoute = UsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCommentsRoute = AdminCommentsRouteImport.update({
+  id: '/admin/comments',
+  path: '/admin/comments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CertificatesIndexRoute = CertificatesIndexRouteImport.update({
@@ -117,14 +112,14 @@ const CertificatesMyRoute = CertificatesMyRouteImport.update({
   path: '/certificates/my',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminCommentsRoute = AdminCommentsRouteImport.update({
-  id: '/admin/comments',
-  path: '/admin/comments',
+const CoursesIndexRoute = CoursesIndexRouteImport.update({
+  id: '/courses/',
+  path: '/courses/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LiveClassesRoomIdIndexRoute = LiveClassesRoomIdIndexRouteImport.update({
-  id: '/live-classes/$roomId/',
-  path: '/live-classes/$roomId/',
+const LiveClassesIndexRoute = LiveClassesIndexRouteImport.update({
+  id: '/live-classes/',
+  path: '/live-classes/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CoursesCourseIdIndexRoute = CoursesCourseIdIndexRouteImport.update({
@@ -132,14 +127,19 @@ const CoursesCourseIdIndexRoute = CoursesCourseIdIndexRouteImport.update({
   path: '/courses/$courseId/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LiveClassesRoomIdRoomRoute = LiveClassesRoomIdRoomRouteImport.update({
-  id: '/live-classes/$roomId/room',
-  path: '/live-classes/$roomId/room',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CoursesCourseIdPlayRoute = CoursesCourseIdPlayRouteImport.update({
   id: '/courses/$courseId/play',
   path: '/courses/$courseId/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveClassesRoomIdIndexRoute = LiveClassesRoomIdIndexRouteImport.update({
+  id: '/live-classes/$roomId/',
+  path: '/live-classes/$roomId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LiveClassesRoomIdRoomRoute = LiveClassesRoomIdRoomRouteImport.update({
+  id: '/live-classes/$roomId/room',
+  path: '/live-classes/$roomId/room',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -318,81 +318,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/users': {
-      id: '/users'
-      path: '/users'
-      fullPath: '/users'
-      preLoaderRoute: typeof UsersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/quiz': {
-      id: '/quiz'
-      path: '/quiz'
-      fullPath: '/quiz'
-      preLoaderRoute: typeof QuizRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/question-bank': {
-      id: '/question-bank'
-      path: '/question-bank'
-      fullPath: '/question-bank'
-      preLoaderRoute: typeof QuestionBankRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/library': {
-      id: '/library'
-      path: '/library'
-      fullPath: '/library'
-      preLoaderRoute: typeof LibraryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/grading': {
-      id: '/grading'
-      path: '/grading'
-      fullPath: '/grading'
-      preLoaderRoute: typeof GradingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/exams': {
-      id: '/exams'
-      path: '/exams'
-      fullPath: '/exams'
-      preLoaderRoute: typeof ExamsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/champions': {
-      id: '/champions'
-      path: '/champions'
-      fullPath: '/champions'
-      preLoaderRoute: typeof ChampionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/calendar': {
-      id: '/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof CalendarRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/attendance': {
@@ -402,25 +332,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AttendanceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/calendar': {
+      id: '/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/live-classes/': {
-      id: '/live-classes/'
-      path: '/live-classes'
-      fullPath: '/live-classes/'
-      preLoaderRoute: typeof LiveClassesIndexRouteImport
+    '/champions': {
+      id: '/champions'
+      path: '/champions'
+      fullPath: '/champions'
+      preLoaderRoute: typeof ChampionsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/courses/': {
-      id: '/courses/'
-      path: '/courses'
-      fullPath: '/courses/'
-      preLoaderRoute: typeof CoursesIndexRouteImport
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exams': {
+      id: '/exams'
+      path: '/exams'
+      fullPath: '/exams'
+      preLoaderRoute: typeof ExamsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/grading': {
+      id: '/grading'
+      path: '/grading'
+      fullPath: '/grading'
+      preLoaderRoute: typeof GradingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/question-bank': {
+      id: '/question-bank'
+      path: '/question-bank'
+      fullPath: '/question-bank'
+      preLoaderRoute: typeof QuestionBankRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quiz': {
+      id: '/quiz'
+      path: '/quiz'
+      fullPath: '/quiz'
+      preLoaderRoute: typeof QuizRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/users': {
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/comments': {
+      id: '/admin/comments'
+      path: '/admin/comments'
+      fullPath: '/admin/comments'
+      preLoaderRoute: typeof AdminCommentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/certificates/': {
@@ -437,18 +430,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CertificatesMyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/comments': {
-      id: '/admin/comments'
-      path: '/admin/comments'
-      fullPath: '/admin/comments'
-      preLoaderRoute: typeof AdminCommentsRouteImport
+    '/courses/': {
+      id: '/courses/'
+      path: '/courses'
+      fullPath: '/courses/'
+      preLoaderRoute: typeof CoursesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/live-classes/$roomId/': {
-      id: '/live-classes/$roomId/'
-      path: '/live-classes/$roomId'
-      fullPath: '/live-classes/$roomId/'
-      preLoaderRoute: typeof LiveClassesRoomIdIndexRouteImport
+    '/live-classes/': {
+      id: '/live-classes/'
+      path: '/live-classes'
+      fullPath: '/live-classes/'
+      preLoaderRoute: typeof LiveClassesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/courses/$courseId/': {
@@ -458,18 +451,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesCourseIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/live-classes/$roomId/room': {
-      id: '/live-classes/$roomId/room'
-      path: '/live-classes/$roomId/room'
-      fullPath: '/live-classes/$roomId/room'
-      preLoaderRoute: typeof LiveClassesRoomIdRoomRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/courses/$courseId/play': {
       id: '/courses/$courseId/play'
       path: '/courses/$courseId/play'
       fullPath: '/courses/$courseId/play'
       preLoaderRoute: typeof CoursesCourseIdPlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live-classes/$roomId/': {
+      id: '/live-classes/$roomId/'
+      path: '/live-classes/$roomId'
+      fullPath: '/live-classes/$roomId/'
+      preLoaderRoute: typeof LiveClassesRoomIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/live-classes/$roomId/room': {
+      id: '/live-classes/$roomId/room'
+      path: '/live-classes/$roomId/room'
+      fullPath: '/live-classes/$roomId/room'
+      preLoaderRoute: typeof LiveClassesRoomIdRoomRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
