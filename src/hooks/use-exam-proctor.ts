@@ -52,7 +52,10 @@ export function useExamProctor(active: boolean, enabled: boolean, onBlocked: (re
       if (firedRef.current) return;
       if (Date.now() - startedAt < 1500) return; // grace for fullscreen transition
       firedRef.current = true;
-      void supabase.rpc("block_me_from_exam", { _reason: reason });
+      // Query builders are lazy — must be awaited/then'd to actually send the request.
+      supabase.rpc("block_me_from_exam", { _reason: reason }).then(({ error }) => {
+        if (error) console.error("block_me_from_exam failed", error);
+      });
       void exitFullscreen();
       cbRef.current(reason);
     };
