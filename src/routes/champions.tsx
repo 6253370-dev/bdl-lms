@@ -1219,3 +1219,56 @@ function BossPlay({ battle, onDone }: { battle: BossBattle; onDone: () => void }
     </div>
   );
 }
+
+// ---------- XP config (admin) ----------
+function XpConfigDialog({ onClose }: { onClose: () => void }) {
+  const [rows, setRows] = useState<{ key: string; label: string; xp: number }[] | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("gamification_xp_config").select("key,label,xp").order("key");
+      setRows((data ?? []) as any);
+    })();
+  }, []);
+
+  const save = async () => {
+    if (!rows) return;
+    setSaving(true);
+    for (const r of rows) {
+      const { error } = await supabase.from("gamification_xp_config").update({ xp: Math.max(0, Math.round(r.xp)) } as any).eq("key", r.key);
+      if (error) { setSaving(false); return toast.error(error.message); }
+    }
+    await loadXpConfig();
+    setSaving(false);
+    toast.success("XP dəyərləri yeniləndi");
+    onClose();
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>XP tənzimləmələri</DialogTitle></DialogHeader>
+        {!rows ? (
+          <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : (
+          <div className="space-y-3">
+            {rows.map((r, i) => (
+              <div key={r.key} className="flex items-center gap-3">
+                <span className="flex-1 text-sm">{r.label}</span>
+                <Input
+                  type="number" min={0} className="w-24"
+                  value={r.xp}
+                  onChange={(e) => setRows(rows.map((x, j) => j === i ? { ...x, xp: Number(e.target.value) } : x))}
+                />
+              </div>
+            ))}
+            <Button className="w-full" onClick={save} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Yadda saxla
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
