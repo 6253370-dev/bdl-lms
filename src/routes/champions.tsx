@@ -59,6 +59,22 @@ const XP = {
   badge: 50,
 };
 
+async function loadXpConfig() {
+  const { data } = await supabase.from("gamification_xp_config").select("key,xp");
+  const map: Record<string, keyof typeof XP> = {
+    correct_answer: "correct",
+    duel_participation: "duelParticipation",
+    duel_win: "duelWin",
+    daily_challenge: "dailyChallenge",
+    challenge_perfect: "challengePerfect",
+    badge: "badge",
+  };
+  (data ?? []).forEach((r: any) => {
+    const k = map[r.key];
+    if (k && typeof r.xp === "number" && r.xp >= 0) XP[k] = r.xp;
+  });
+}
+
 const levelFor = (xp: number) => {
   // level N requires N*500 cumulative xp per level (L1:0, L2:500, L3:1500, ...)
   let lvl = 1, need = 500, total = 0;
@@ -114,7 +130,7 @@ async function checkBadges(userId: string) {
 
 // ---------- main page ----------
 function GamificationPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const [tab, setTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -135,6 +151,7 @@ function GamificationPage() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
+    await loadXpConfig();
     const [{ data: profs }, { data: ds }, { data: xps }, { data: axp }, { data: bs }, { data: mb }] = await Promise.all([
       supabase.from("profiles").select("id,full_name,team"),
       supabase.from("gamification_duels").select("*").order("created_at", { ascending: false }),
@@ -285,6 +302,9 @@ function GamificationPage() {
           </h1>
           <p className="text-muted-foreground">Öyrən, yarış, qazan və lider ol.</p>
         </div>
+        {isAdmin && (
+          <Button variant="outline" onClick={() => setXpOpen(true)}>XP tənzimləmələri</Button>
+        )}
         <Button onClick={() => setCreateOpen(true)} size="lg">
           <Swords className="h-4 w-4 mr-2" /> Duel başlat
         </Button>
