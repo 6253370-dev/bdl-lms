@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type LiveEnv = { url: string; apiKey: string; apiSecret: string };
@@ -18,7 +19,7 @@ function readEnv(): LiveEnv | null {
  *  - the room exists and is currently live (hosts may join before start).
  */
 export const getLiveToken = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((data: { roomId: string }) => {
     if (!data || typeof data.roomId !== "string") throw new Error("roomId required");
     return data;
@@ -83,7 +84,7 @@ export const getLiveToken = createServerFn({ method: "POST" })
 
 /** Teacher/admin force-mutes a participant's published audio inside LiveKit. */
 export const muteLiveParticipant = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((data: { roomId: string; targetUserId: string; muted: boolean }) => data)
   .handler(async ({ data, context }) => {
     const env = readEnv();
@@ -119,7 +120,7 @@ export const muteLiveParticipant = createServerFn({ method: "POST" })
 
 /** Teacher/admin ends the LiveKit room, disconnecting everyone. */
 export const closeLiveRoom = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachSupabaseAuth, requireSupabaseAuth])
   .inputValidator((data: { roomId: string }) => data)
   .handler(async ({ data, context }) => {
     const env = readEnv();

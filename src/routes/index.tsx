@@ -10,6 +10,16 @@ import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Hesaba giriş — Baku Digital Lab" },
+      { name: "description", content: "Baku Digital Lab daxili təlim platformasına giriş." },
+      { property: "og:title", content: "Hesaba giriş — Baku Digital Lab" },
+      { property: "og:description", content: "Baku Digital Lab daxili təlim platformasına giriş." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: LoginPage,
 });
 
