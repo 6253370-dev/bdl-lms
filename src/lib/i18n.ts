@@ -361,6 +361,7 @@ export const t = {
     errCancelled: "Bu canlı dərs ləğv edilib.",
     errForbidden: "Bu canlı dərsə girişiniz yoxdur.",
     errNotConfigured: "Video xidməti hələ konfiqurasiya edilməyib. Administratorla əlaqə saxlayın.",
+    errLivekit: "Video xidmətinə qoşulmaq mümkün olmadı. Canlı yayım tənzimləmələri yanlışdır — administratorla əlaqə saxlayın.",
     errMic: "Mikrofona icazə verilmədi.",
     errCam: "Kameraya icazə verilmədi.",
     errScreen: "Ekran paylaşımına icazə verilmədi.",

@@ -9,7 +9,7 @@ import {
   useConnectionState,
 } from "@livekit/components-react";
 import { Track, ConnectionState } from "livekit-client";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/i18n";
 import {
@@ -35,9 +35,11 @@ export interface LiveStageProps {
   onLeave: () => void;
   onEnd?: () => void;
   onMediaState?: (s: { mic: boolean; cam: boolean }) => void;
+  onConnectionError?: () => void;
 }
 
 export default function LiveStage(props: LiveStageProps) {
+  const everConnected = useRef(false);
   return (
     <LiveKitRoom
       token={props.token}
@@ -45,7 +47,19 @@ export default function LiveStage(props: LiveStageProps) {
       connect
       audio={false}
       video={false}
-      onDisconnected={props.onLeave}
+      onConnected={() => {
+        everConnected.current = true;
+      }}
+      onDisconnected={() => {
+        // A disconnect before the first successful connect means the join
+        // itself failed (e.g. LiveKit rejected the token) — surface an error
+        // instead of silently navigating the user out of the room page.
+        if (everConnected.current) props.onLeave();
+        else props.onConnectionError?.();
+      }}
+      onError={() => {
+        if (!everConnected.current) props.onConnectionError?.();
+      }}
       data-lk-theme="default"
       className="flex flex-col h-full bg-sidebar rounded-xl overflow-hidden"
     >

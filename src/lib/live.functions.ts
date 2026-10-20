@@ -28,6 +28,17 @@ export const getLiveToken = createServerFn({ method: "POST" })
     const env = readEnv();
     if (!env) return { ok: false as const, reason: "not_configured" as const };
 
+    // Fail fast with a clear reason when the LiveKit credentials are wrong
+    // (e.g. key/secret from a different project than LIVEKIT_URL): otherwise
+    // the client gets a token that LiveKit rejects with 401 after joining.
+    try {
+      const { RoomServiceClient } = await import("livekit-server-sdk");
+      const svc = new RoomServiceClient(env.url.replace(/^ws/, "http"), env.apiKey, env.apiSecret);
+      await svc.listRooms();
+    } catch {
+      return { ok: false as const, reason: "livekit_error" as const };
+    }
+
     const { supabase, userId } = context;
 
     const { data: room, error } = await supabase
