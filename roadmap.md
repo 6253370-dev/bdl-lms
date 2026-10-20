@@ -1,0 +1,3 @@
+- [ ] İmtahanı bağlama düyməsi və təsdiq pəncərəsi.
+- [ ] Sual nömrəsi və mətni ilə birbaşa sual seçimi.
+- [ ] Aktiv hesabla hər iki davranışın yoxlanılması.
