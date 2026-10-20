@@ -62,6 +62,7 @@ const REASON: Record<string, string> = {
   ended: t.live.errEnded,
   not_started: t.live.errNotStarted,
   forbidden: t.live.errForbidden,
+  livekit_error: t.live.errLivekit,
 };
 
 async function liveAuthHeaders() {
@@ -343,6 +344,10 @@ function LiveRoomPage() {
               onLeave={leave}
               onEnd={end}
               onMediaState={onMediaState}
+              onConnectionError={() => {
+                setConn(null);
+                setError(t.live.errLivekit);
+              }}
             />
           </Suspense>
         </div>
