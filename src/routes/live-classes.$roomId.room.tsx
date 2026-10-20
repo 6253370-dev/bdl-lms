@@ -344,6 +344,10 @@ function LiveRoomPage() {
               onLeave={leave}
               onEnd={end}
               onMediaState={onMediaState}
+              onConnectionError={() => {
+                setConn(null);
+                setError(t.live.errLivekit);
+              }}
             />
           </Suspense>
         </div>
