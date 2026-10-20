@@ -16,6 +16,16 @@ import { toast } from "sonner";
 const LiveStage = lazy(() => import("@/components/live/LiveStage"));
 
 export const Route = createFileRoute("/live-classes/$roomId/room")({
+  head: () => ({
+    meta: [
+      { title: "Canlı dərs otağı — Baku Digital Lab" },
+      { name: "description", content: "Baku Digital Lab canlı dərs otağı və iştirakçı müzakirələri." },
+      { property: "og:title", content: "Canlı dərs otağı — Baku Digital Lab" },
+      { property: "og:description", content: "Baku Digital Lab canlı dərs otağı və iştirakçı müzakirələri." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedRoute>
       <LiveRoomPage />
@@ -54,6 +64,13 @@ const REASON: Record<string, string> = {
   forbidden: t.live.errForbidden,
 };
 
+async function liveAuthHeaders() {
+  const { data, error } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (error || !token) throw new Error("Sessiya bitib. Hesabınıza yenidən daxil olun.");
+  return { Authorization: `Bearer ${token}` };
+}
+
 function LiveRoomPage() {
   const { roomId } = Route.useParams();
   const { user, profile } = useAuth();
@@ -64,6 +81,7 @@ function LiveRoomPage() {
 
   const [conn, setConn] = useState<{ token: string; url: string; isHost: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [joinAttempt, setJoinAttempt] = useState(0);
   const [title, setTitle] = useState("");
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [hands, setHands] = useState<HandRow[]>([]);
@@ -105,10 +123,16 @@ function LiveRoomPage() {
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
+    setError(null);
+    setConn(null);
     (async () => {
+      try {
       const { data: r } = await supabase.from("live_rooms").select("title").eq("id", roomId).maybeSingle();
+      if (cancelled) return;
       if (r) setTitle(r.title);
-      const res = await fetchToken({ data: { roomId } });
+      const headers = await liveAuthHeaders();
+      if (cancelled) return;
+      const res = await fetchToken({ data: { roomId }, headers });
       if (cancelled) return;
       if (!res.ok) {
         setError(REASON[res.reason] ?? t.common.error);
@@ -135,13 +159,19 @@ function LiveRoomPage() {
         });
       }
       await supabase.from("live_room_events").insert({ room_id: roomId, user_id: user.id, event_type: "join" });
-      loadSide();
+      await loadSide();
+      } catch {
+        if (!cancelled) {
+          setConn(null);
+          setError("Canlı dərsə qoşulmaq mümkün olmadı. Yenidən cəhd edin; xəta davam edərsə hesabınıza yenidən daxil olun.");
+        }
+      }
     })();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, user?.id]);
+  }, [roomId, user?.id, joinAttempt]);
 
   // Realtime
   useEffect(() => {
@@ -197,9 +227,18 @@ function LiveRoomPage() {
 
   const end = async () => {
     if (!confirm(t.live.endConfirm)) return;
-    await supabase.from("live_rooms").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", roomId);
-    await closeFn({ data: { roomId } });
-    await leave();
+    try {
+      const result = await closeFn({ data: { roomId }, headers: await liveAuthHeaders() });
+      if (!result.ok) {
+        toast.error(REASON[result.reason] ?? t.common.error);
+        return;
+      }
+      const { error: updateError } = await supabase.from("live_rooms").update({ status: "ended", ended_at: new Date().toISOString() }).eq("id", roomId);
+      if (updateError) throw updateError;
+      await leave();
+    } catch {
+      toast.error("Dərsi bitirmək mümkün olmadı. Yenidən cəhd edin.");
+    }
   };
 
   const send = async () => {
@@ -231,8 +270,17 @@ function LiveRoomPage() {
   };
 
   const mute = async (p: Part) => {
-    await supabase.from("live_room_participants").update({ force_muted: true }).eq("id", p.id);
-    await muteFn({ data: { roomId, targetUserId: p.user_id, muted: true } });
+    try {
+      const result = await muteFn({ data: { roomId, targetUserId: p.user_id, muted: true }, headers: await liveAuthHeaders() });
+      if (!result.ok) {
+        toast.error(REASON[result.reason] ?? t.common.error);
+        return;
+      }
+      const { error: updateError } = await supabase.from("live_room_participants").update({ force_muted: true }).eq("id", p.id);
+      if (updateError) throw updateError;
+    } catch {
+      toast.error("Mikrofonu söndürmək mümkün olmadı. Yenidən cəhd edin.");
+    }
   };
 
   const muteAll = async () => {
@@ -254,7 +302,8 @@ function LiveRoomPage() {
   if (error)
     return (
       <div className="p-8 max-w-md mx-auto text-center space-y-4">
-        <Card className="p-6">{error}</Card>
+        <Card className="p-6" role="alert">{error}</Card>
+        <Button onClick={() => setJoinAttempt((attempt) => attempt + 1)}>Yenidən cəhd et</Button>
         <Button variant="outline" asChild>
           <Link to="/live-classes">
             <ArrowLeft className="h-4 w-4 mr-2" /> {t.live.title}
