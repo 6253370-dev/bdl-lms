@@ -7,6 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +43,7 @@ import {
   Search,
   Image as ImageIcon,
   Library,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
@@ -45,6 +51,16 @@ import { CertificateTemplateSelect } from "@/components/CertificateTemplateSelec
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
 export const Route = createFileRoute("/exams")({
+  head: () => ({
+    meta: [
+      { title: "İmtahanlar — Learning Management System" },
+      { name: "description", content: "Müstəqil imtahanlar, suallar və imtahan nəticələri." },
+      { property: "og:title", content: "İmtahanlar — Learning Management System" },
+      { property: "og:description", content: "Müstəqil imtahanlar, suallar və imtahan nəticələri." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   validateSearch: (search: Record<string, unknown>) => ({
     exam: typeof search['exam'] === "string" ? (search['exam'] as string) : undefined,
   }),
@@ -703,6 +719,8 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
   const [verifying, setVerifying] = useState(false);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [current, setCurrent] = useState(0);
+  const [questionListOpen, setQuestionListOpen] = useState(false);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [openAnswers, setOpenAnswers] = useState<Record<string, string>>({});
   const [startedAt, setStartedAt] = useState(0);
@@ -855,8 +873,19 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
 
   const q = questions[current];
 
+  const closeExam = () => {
+    onClose();
+    // Let the runner unmount and remove its proctor listeners before exiting fullscreen.
+    requestAnimationFrame(() => { void exitFullscreen(); });
+  };
+
+  const requestClose = () => {
+    if (stage === "running") setCloseConfirmOpen(true);
+    else closeExam();
+  };
+
   return (
-    <Dialog open onOpenChange={(o) => { if (!o && stage !== "running") { void exitFullscreen(); onClose(); } }}>
+    <Dialog open onOpenChange={(o) => { if (!o) requestClose(); }}>
       <DialogContent className="max-w-2xl">
         {stage === "blocked" && (
           <>
@@ -929,10 +958,42 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
         {stage === "running" && q && (
           <>
             <DialogHeader>
-              <DialogTitle className="flex items-center justify-between">
-                <span>
-                  Sual {current + 1} / {questions.length}
-                </span>
+              <DialogTitle className="flex items-center justify-between gap-2 pr-6">
+                <Popover open={questionListOpen} onOpenChange={setQuestionListOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" aria-label="Sual seç">
+                      Sual {current + 1} / {questions.length}
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-96 max-w-[calc(100vw-3rem)] p-2">
+                    <div className="max-h-[min(24rem,50dvh)] overflow-y-auto space-y-1" aria-label="Suallar">
+                      {questions.map((question, index) => {
+                        const answered = question.is_open_ended
+                          ? Boolean(openAnswers[question.id]?.trim())
+                          : Boolean(selected[question.id]);
+                        return (
+                          <Button
+                            key={question.id}
+                            variant={index === current ? "secondary" : "ghost"}
+                            className="h-auto w-full items-start justify-start gap-3 whitespace-normal p-3 text-left"
+                            aria-current={index === current ? "step" : undefined}
+                            onClick={() => { setCurrent(index); setQuestionListOpen(false); }}
+                          >
+                            <span className="min-w-0 flex-1 space-y-1">
+                              <span className="block font-semibold">Sual {index + 1}</span>
+                              <span className="block break-words text-sm font-normal">{question.text}</span>
+                            </span>
+                            <CheckCircle2
+                              className={`mt-1 h-4 w-4 shrink-0 ${answered ? "text-primary" : "text-muted-foreground"}`}
+                              aria-label={answered ? "Cavablandırılıb" : "Cavablandırılmayıb"}
+                            />
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 {remaining !== null && (
                   <span className="text-sm font-mono text-amber-600 flex items-center gap-1">
                     <Clock className="h-4 w-4" />
@@ -1022,6 +1083,20 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
           </>
         )}
       </DialogContent>
+      <AlertDialog open={closeConfirmOpen && stage === "running"} onOpenChange={setCloseConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>İmtahanı bağlamaq istəyirsiniz?</AlertDialogTitle>
+            <AlertDialogDescription>
+              İmtahan tamamlanmayacaq və bu cəhdin cavabları yadda saxlanılmayacaq.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İmtahana davam et</AlertDialogCancel>
+            <AlertDialogAction onClick={closeExam}>İmtahanı bağla</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
