@@ -157,7 +157,7 @@ function GridView({ rows, cols, layout, values, results, onCell, onKey, onFocusC
           const res = results?.[k];
           return (
             <div key={k} className={cn("relative border border-border bg-background", size,
-              active?.has(k) && "bg-accent", res === true && "bg-primary/15", res === false && "bg-destructive/15")}>
+              active?.has(k) && "bg-accent", res === true && "bg-success/20", res === false && "bg-destructive/20")}>
               {num != null && <span className="absolute top-0 left-0.5 text-[9px] leading-none text-muted-foreground">{num}</span>}
               {onCell ? (
                 <input
@@ -168,7 +168,8 @@ function GridView({ rows, cols, layout, values, results, onCell, onKey, onFocusC
                   onKeyDown={(e) => onKey?.(e, r, c)}
                   onFocus={() => onFocusCell?.(r, c, false)}
                   onClick={(e) => { if (document.activeElement === e.currentTarget && e.detail > 0) onFocusCell?.(r, c, e.detail >= 2); }}
-                  className="w-full h-full text-center font-semibold uppercase bg-transparent outline-none focus:bg-accent"
+                  className={cn("w-full h-full text-center font-semibold uppercase bg-transparent outline-none focus:bg-accent",
+                    res === true && "text-success", res === false && "text-destructive")}
                 />
               ) : (
                 <span className="flex w-full h-full items-center justify-center font-semibold">{values?.[k]}</span>
