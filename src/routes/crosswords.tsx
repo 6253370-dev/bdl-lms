@@ -423,3 +423,62 @@ function Builder({ initial, onClose, onSaved }: { initial: Crossword | null; onC
     </Dialog>
   );
 }
+
+type ResultRow = { user_id: string; correct_count: number; total_words: number; score_percent: number; duration_seconds: number; xp_earned: number; completed_at: string };
+
+function ResultsDialog({ cw, onClose }: { cw: Crossword; onClose: () => void }) {
+  const [rows, setRows] = useState<(ResultRow & { name: string; team: string | null; attempts: number })[] | null>(null);
+  useEffect(() => {
+    void (async () => {
+      const { data, error } = await supabase.from("crossword_completions")
+        .select("user_id,correct_count,total_words,score_percent,duration_seconds,xp_earned,completed_at")
+        .eq("crossword_id", cw.id).order("completed_at", { ascending: false });
+      if (error) { toast.error(error.message); setRows([]); return; }
+      const list = (data ?? []) as ResultRow[];
+      const ids = [...new Set(list.map((x) => x.user_id))];
+      const { data: profs } = ids.length
+        ? await supabase.from("profiles").select("id,full_name,team").in("id", ids)
+        : { data: [] as { id: string; full_name: string; team: string | null }[] };
+      const pm = new Map((profs ?? []).map((p) => [p.id, p]));
+      const best = new Map<string, ResultRow & { attempts: number; xpTotal: number }>();
+      list.forEach((x) => {
+        const cur = best.get(x.user_id);
+        const better = !cur || Number(x.score_percent) > Number(cur.score_percent) ||
+          (Number(x.score_percent) === Number(cur.score_percent) && x.duration_seconds < cur.duration_seconds);
+        const attempts = (cur?.attempts ?? 0) + 1, xpTotal = (cur?.xpTotal ?? 0) + x.xp_earned;
+        best.set(x.user_id, better ? { ...x, attempts, xpTotal } : { ...cur!, attempts, xpTotal });
+      });
+      setRows([...best.values()].map((b) => ({ ...b, xp_earned: b.xpTotal, name: pm.get(b.user_id)?.full_name ?? "—", team: pm.get(b.user_id)?.team ?? null }))
+        .sort((a, b) => Number(b.score_percent) - Number(a.score_percent) || a.duration_seconds - b.duration_seconds));
+    })();
+  }, [cw.id]);
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Nəticələr — {cw.title}</DialogTitle></DialogHeader>
+        {!rows ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          : rows.length === 0 ? <p className="text-center text-muted-foreground py-8">Hələ heç kim həll etməyib.</p>
+          : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-left text-muted-foreground border-b">
+                  <th className="py-2 pr-2">#</th><th className="pr-2">İştirakçı</th><th className="pr-2">Komanda</th><th className="pr-2">Düzgün</th><th className="pr-2">Faiz</th><th className="pr-2">Vaxt</th><th className="pr-2">Cəhd</th><th className="pr-2">XP</th><th>Tarix</th>
+                </tr></thead>
+                <tbody>
+                  {rows.map((r, i) => (
+                    <tr key={r.user_id} className="border-b last:border-0">
+                      <td className="py-2 pr-2">{i + 1}</td><td className="pr-2 font-medium">{r.name}</td><td className="pr-2">{r.team ?? "—"}</td>
+                      <td className="pr-2">{r.correct_count}/{r.total_words}</td><td className="pr-2">{Number(r.score_percent)}%</td>
+                      <td className="pr-2">{fmt(r.duration_seconds)}</td><td className="pr-2">{r.attempts}</td><td className="pr-2">{r.xp_earned}</td>
+                      <td className="text-xs text-muted-foreground">{new Date(r.completed_at).toLocaleString("az-AZ")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+      </DialogContent>
+    </Dialog>
+  );
+}
