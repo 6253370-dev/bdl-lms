@@ -36,6 +36,13 @@
       "when": 1792418214189,
       "tag": "0004_exam_proctoring_block",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792748648594,
+      "tag": "0005_crosswords",
+      "breakpoints": true
     }
   ]
 }
