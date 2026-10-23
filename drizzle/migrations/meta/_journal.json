@@ -43,6 +43,13 @@
       "when": 1792748648594,
       "tag": "0005_crosswords",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792750323096,
+      "tag": "0006_crossword_xp",
+      "breakpoints": true
     }
   ]
 }
