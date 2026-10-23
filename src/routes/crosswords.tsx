@@ -192,7 +192,7 @@ function Clues({ layout, onPick, results }: { layout: PlacedWord[]; onPick?: (i:
           <ol className="space-y-1">
             {group(d).map(({ w, i }) => (
               <li key={i} onClick={() => onPick?.(i)} className={cn("cursor-pointer rounded px-1 hover:bg-muted flex gap-2",
-                results?.[i] === true && "text-primary", results?.[i] === false && "text-destructive")}>
+                results?.[i] === true && "text-success", results?.[i] === false && "text-destructive")}>
                 <span className="font-semibold">{w.number}.</span><span>{w.clue} <span className="text-muted-foreground">({w.length})</span></span>
               </li>
             ))}
