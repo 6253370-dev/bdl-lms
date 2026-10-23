@@ -12,7 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cellsOf, generateCrossword, normalizeWord, type GeneratedCrossword, type PlacedWord } from "@/lib/crossword";
-import { Grid3x3, Plus, Trash2, Pencil, Wand2, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Grid3x3, Plus, Trash2, Pencil, Wand2, Loader2, ArrowLeft, CheckCircle2, Clock, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
