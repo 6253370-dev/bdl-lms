@@ -645,6 +645,89 @@ export type Database = {
           },
         ]
       }
+      crossword_completions: {
+        Row: {
+          completed_at: string
+          correct_count: number
+          crossword_id: string
+          duration_seconds: number
+          id: string
+          score_percent: number
+          total_words: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          correct_count: number
+          crossword_id: string
+          duration_seconds?: number
+          id?: string
+          score_percent: number
+          total_words: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          correct_count?: number
+          crossword_id?: string
+          duration_seconds?: number
+          id?: string
+          score_percent?: number
+          total_words?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crossword_completions_crossword_id_fkey"
+            columns: ["crossword_id"]
+            isOneToOne: false
+            referencedRelation: "crosswords"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crosswords: {
+        Row: {
+          answers: Json
+          cols: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_published: boolean
+          layout: Json
+          rows: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json
+          cols?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          layout?: Json
+          rows?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json
+          cols?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          layout?: Json
+          rows?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exam_event_invitees: {
         Row: {
           created_at: string
@@ -2361,6 +2444,10 @@ export type Database = {
         Args: { _room_id: string; _user_id: string }
         Returns: boolean
       }
+      check_crossword: {
+        Args: { _answers: Json; _duration: number; _id: string }
+        Returns: Json
+      }
       find_live_room_by_code: {
         Args: { _code: string }
         Returns: {
@@ -2371,6 +2458,7 @@ export type Database = {
         }[]
       }
       generate_live_room_code: { Args: never; Returns: string }
+      get_crossword_answers: { Args: { _id: string }; Returns: Json }
       get_email_by_employee_id: {
         Args: { _employee_id: string }
         Returns: string
