@@ -126,10 +126,12 @@ function CrosswordsPage() {
   );
 }
 
-function GridView({ rows, cols, layout, values, results, onCell, active, inputsRef }: {
+function GridView({ rows, cols, layout, values, results, onCell, onKey, onFocusCell, active, inputsRef }: {
   rows: number; cols: number; layout: PlacedWord[];
   values?: Record<string, string>; results?: Record<string, boolean>;
   onCell?: (k: string, v: string, r: number, c: number) => void;
+  onKey?: (e: React.KeyboardEvent, r: number, c: number) => void;
+  onFocusCell?: (r: number, c: number, toggle: boolean) => void;
   active?: Set<string>;
   inputsRef?: React.MutableRefObject<Record<string, HTMLInputElement | null>>;
 }) {
@@ -160,6 +162,9 @@ function GridView({ rows, cols, layout, values, results, onCell, active, inputsR
                   value={values?.[k] ?? ""}
                   maxLength={2}
                   onChange={(e) => onCell(k, normalizeWord(e.target.value).slice(-1), r, c)}
+                  onKeyDown={(e) => onKey?.(e, r, c)}
+                  onFocus={() => onFocusCell?.(r, c, false)}
+                  onClick={(e) => { if (document.activeElement === e.currentTarget && e.detail > 0) onFocusCell?.(r, c, e.detail >= 2); }}
                   className="w-full h-full text-center font-semibold uppercase bg-transparent outline-none focus:bg-accent"
                 />
               ) : (
@@ -197,10 +202,18 @@ function Clues({ layout, onPick, results }: { layout: PlacedWord[]; onPick?: (i:
 function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [activeWord, setActiveWord] = useState(0);
-  const [result, setResult] = useState<{ correct: number; total: number; results: boolean[] } | null>(null);
+  const [result, setResult] = useState<{ correct: number; total: number; results: boolean[]; xp?: number; seconds: number } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const started = useRef(Date.now());
   const inputs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  useEffect(() => {
+    if (result) return;
+    const t = setInterval(() => setElapsed(Math.round((Date.now() - started.current) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [result]);
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   const active = useMemo(() => new Set(cellsOf(cw.layout[activeWord] ?? cw.layout[0]).map(({ r, c }) => `${r},${c}`)), [activeWord, cw]);
   const cellResults = useMemo(() => {
@@ -212,61 +225,98 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
     return m;
   }, [result, cw]);
 
+  const wordsAt = (r: number, c: number) => cw.layout.map((w, i) => ({ w, i })).filter(({ w }) => cellsOf(w).some((x) => x.r === r && x.c === c)).map((x) => x.i);
+  const focus = (r: number, c: number) => inputs.current[`${r},${c}`]?.focus();
+
   const onCell = (k: string, v: string, r: number, c: number) => {
     setValues((s) => ({ ...s, [k]: v }));
     if (!v) return;
-    let w = cw.layout[activeWord];
-    let cells = w ? cellsOf(w) : [];
-    let pos = cells.findIndex((x) => x.r === r && x.c === c);
-    if (pos < 0) {
-      const idx = cw.layout.findIndex((ww) => cellsOf(ww).some((x) => x.r === r && x.c === c));
-      if (idx >= 0) { setActiveWord(idx); w = cw.layout[idx]; cells = cellsOf(w); pos = cells.findIndex((x) => x.r === r && x.c === c); }
-    }
+    let idx = activeWord;
+    if (!wordsAt(r, c).includes(idx)) { idx = wordsAt(r, c)[0] ?? idx; setActiveWord(idx); }
+    const cells = cellsOf(cw.layout[idx]);
+    const pos = cells.findIndex((x) => x.r === r && x.c === c);
     const next = cells[pos + 1];
-    if (next) inputs.current[`${next.r},${next.c}`]?.focus();
+    if (next) focus(next.r, next.c);
+  };
+
+  const onKey = (e: React.KeyboardEvent, r: number, c: number) => {
+    const k = `${r},${c}`;
+    const move: Record<string, [number, number]> = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+    if (move[e.key]) {
+      e.preventDefault();
+      const [dr, dc] = move[e.key];
+      let nr = r + dr, nc = c + dc;
+      while (nr >= 0 && nc >= 0 && nr < cw.rows && nc < cw.cols) {
+        if (inputs.current[`${nr},${nc}`]) { focus(nr, nc); const ws = wordsAt(nr, nc); const want = dr ? "down" : "across"; const m = ws.find((i) => cw.layout[i].direction === want) ?? ws[0]; if (m !== undefined) setActiveWord(m); return; }
+        nr += dr; nc += dc;
+      }
+    } else if (e.key === "Backspace" && !values[k]) {
+      e.preventDefault();
+      const cells = cellsOf(cw.layout[activeWord]);
+      const pos = cells.findIndex((x) => x.r === r && x.c === c);
+      const prev = cells[pos - 1];
+      if (prev) { setValues((s) => ({ ...s, [`${prev.r},${prev.c}`]: "" })); focus(prev.r, prev.c); }
+    }
+  };
+
+  const onFocusCell = (r: number, c: number, toggle: boolean) => {
+    const ws = wordsAt(r, c);
+    if (!ws.length) return;
+    if (toggle && ws.length > 1) setActiveWord(ws.find((i) => i !== activeWord) ?? ws[0]);
+    else if (!ws.includes(activeWord)) setActiveWord(ws[0]);
   };
 
   const pick = (i: number) => {
     setActiveWord(i);
     const f = cellsOf(cw.layout[i])[0];
-    inputs.current[`${f.r},${f.c}`]?.focus();
+    focus(f.r, f.c);
   };
 
   const submit = async () => {
     setBusy(true);
+    const seconds = Math.round((Date.now() - started.current) / 1000);
     const answers = cw.layout.map((w) => cellsOf(w).map(({ r, c }) => values[`${r},${c}`] ?? "").join(""));
-    const { data, error } = await supabase.rpc("check_crossword", {
-      _id: cw.id, _answers: answers, _duration: Math.round((Date.now() - started.current) / 1000),
-    });
+    const { data, error } = await supabase.rpc("check_crossword", { _id: cw.id, _answers: answers, _duration: seconds });
     setBusy(false);
     if (error) return toast.error(error.message.includes("not found") ? "Krossvord dərc olunmayıb." : error.message);
-    const r = data as unknown as { correct: number; total: number; results: boolean[] };
-    setResult(r);
-    toast.success(`${r.correct} / ${r.total} söz düzgündür`);
+    const r = data as unknown as { correct: number; total: number; results: boolean[]; xp?: number };
+    setResult({ ...r, seconds });
+    toast.success(`${r.correct} / ${r.total} söz düzgündür${r.xp ? ` · +${r.xp} XP` : ""}`);
   };
+
+  const restart = () => { setValues({}); setResult(null); started.current = Date.now(); setElapsed(0); };
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-5">
       <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-2" />Krossvordlar</Button>
-      <div>
-        <h1 className="text-2xl font-display font-bold">{cw.title}</h1>
-        {cw.description && <p className="text-muted-foreground text-sm">{cw.description}</p>}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-display font-bold">{cw.title}</h1>
+          {cw.description && <p className="text-muted-foreground text-sm">{cw.description}</p>}
+        </div>
+        <Badge variant="secondary" className="text-base gap-1.5 px-3 py-1"><Clock className="h-4 w-4" />{fmt(result ? result.seconds : elapsed)}</Badge>
       </div>
       <div className="grid lg:grid-cols-[auto_1fr] gap-6 items-start">
         <Card className="p-4">
-          <GridView rows={cw.rows} cols={cw.cols} layout={cw.layout} values={values} onCell={onCell} active={active} results={cellResults} inputsRef={inputs} />
+          <GridView rows={cw.rows} cols={cw.cols} layout={cw.layout} values={values} onCell={onCell} onKey={onKey} onFocusCell={onFocusCell} active={active} results={cellResults} inputsRef={inputs} />
+          <p className="text-xs text-muted-foreground mt-3">Ox düymələri ilə hərəkət edin, xanaya təkrar klikləyib istiqaməti dəyişin.</p>
         </Card>
         <Card className="p-4 space-y-4">
+          {cw.layout[activeWord] && !result && (
+            <div className="rounded-lg bg-accent p-3 text-sm"><b>{cw.layout[activeWord].number}. {cw.layout[activeWord].direction === "across" ? "Üfüqi" : "Şaquli"}:</b> {cw.layout[activeWord].clue}</div>
+          )}
           <Clues layout={cw.layout} onPick={pick} results={result?.results} />
           {result && (
-            <div className="flex items-center gap-2 rounded-lg bg-muted p-3 text-sm">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
-              Nəticə: <b>{result.correct} / {result.total}</b> ({Math.round((result.correct / Math.max(result.total, 1)) * 100)}%)
+            <div className="rounded-lg bg-muted p-4 text-sm space-y-1">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-primary" />
+                Nəticə: <b>{result.correct} / {result.total}</b> ({Math.round((result.correct / Math.max(result.total, 1)) * 100)}%)</div>
+              <div>Vaxt: <b>{fmt(result.seconds)}</b></div>
+              <div className="text-primary font-semibold">{result.xp ? `+${result.xp} XP qazandınız` : "Bu nəticə üçün əlavə XP yoxdur (əvvəlki ən yaxşı nəticənizi keçin)."}</div>
             </div>
           )}
           <div className="flex gap-2">
-            <Button onClick={submit} disabled={busy}>{busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Yoxla</Button>
-            {result && <Button variant="outline" onClick={() => { setValues({}); setResult(null); started.current = Date.now(); }}>Yenidən başla</Button>}
+            {!result && <Button onClick={submit} disabled={busy}>{busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Yoxla</Button>}
+            {result && <Button variant="outline" onClick={restart}>Yenidən başla</Button>}
           </div>
         </Card>
       </div>
