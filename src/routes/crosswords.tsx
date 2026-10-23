@@ -207,7 +207,7 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
     if (!result) return undefined;
     const m: Record<string, boolean> = {};
     cw.layout.forEach((w, i) => cellsOf(w).forEach(({ r, c }) => {
-      const k = `${r},${c}`; m[k] = (m[k] ?? true) && result.results[i] ? true : m[k] === true && !result.results[i] ? true : result.results[i];
+      const k = `${r},${c}`; m[k] = (m[k] ?? true) && result.results[i];
     }));
     return m;
   }, [result, cw]);

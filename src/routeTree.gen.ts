@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AttendanceRouteImport } from './routes/attendance'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as ChampionsRouteImport } from './routes/champions'
+import { Route as CrosswordsRouteImport } from './routes/crosswords'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ExamsRouteImport } from './routes/exams'
 import { Route as GradingRouteImport } from './routes/grading'
@@ -50,6 +51,11 @@ const CalendarRoute = CalendarRouteImport.update({
 const ChampionsRoute = ChampionsRouteImport.update({
   id: '/champions',
   path: '/champions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrosswordsRoute = CrosswordsRouteImport.update({
+  id: '/crosswords',
+  path: '/crosswords',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/attendance': typeof AttendanceRoute
   '/calendar': typeof CalendarRoute
   '/champions': typeof ChampionsRoute
+  '/crosswords': typeof CrosswordsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
   '/grading': typeof GradingRoute
@@ -172,6 +179,7 @@ export interface FileRoutesByTo {
   '/attendance': typeof AttendanceRoute
   '/calendar': typeof CalendarRoute
   '/champions': typeof ChampionsRoute
+  '/crosswords': typeof CrosswordsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
   '/grading': typeof GradingRoute
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/attendance': typeof AttendanceRoute
   '/calendar': typeof CalendarRoute
   '/champions': typeof ChampionsRoute
+  '/crosswords': typeof CrosswordsRoute
   '/dashboard': typeof DashboardRoute
   '/exams': typeof ExamsRoute
   '/grading': typeof GradingRoute
@@ -223,6 +232,7 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/calendar'
     | '/champions'
+    | '/crosswords'
     | '/dashboard'
     | '/exams'
     | '/grading'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/calendar'
     | '/champions'
+    | '/crosswords'
     | '/dashboard'
     | '/exams'
     | '/grading'
@@ -271,6 +282,7 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/calendar'
     | '/champions'
+    | '/crosswords'
     | '/dashboard'
     | '/exams'
     | '/grading'
@@ -296,6 +308,7 @@ export interface RootRouteChildren {
   AttendanceRoute: typeof AttendanceRoute
   CalendarRoute: typeof CalendarRoute
   ChampionsRoute: typeof ChampionsRoute
+  CrosswordsRoute: typeof CrosswordsRoute
   DashboardRoute: typeof DashboardRoute
   ExamsRoute: typeof ExamsRoute
   GradingRoute: typeof GradingRoute
@@ -344,6 +357,13 @@ declare module '@tanstack/react-router' {
       path: '/champions'
       fullPath: '/champions'
       preLoaderRoute: typeof ChampionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crosswords': {
+      id: '/crosswords'
+      path: '/crosswords'
+      fullPath: '/crosswords'
+      preLoaderRoute: typeof CrosswordsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -480,6 +500,7 @@ const rootRouteChildren: RootRouteChildren = {
   AttendanceRoute: AttendanceRoute,
   CalendarRoute: CalendarRoute,
   ChampionsRoute: ChampionsRoute,
+  CrosswordsRoute: CrosswordsRoute,
   DashboardRoute: DashboardRoute,
   ExamsRoute: ExamsRoute,
   GradingRoute: GradingRoute,
