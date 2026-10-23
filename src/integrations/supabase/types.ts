@@ -655,6 +655,7 @@ export type Database = {
           score_percent: number
           total_words: number
           user_id: string
+          xp_earned: number
         }
         Insert: {
           completed_at?: string
@@ -665,6 +666,7 @@ export type Database = {
           score_percent: number
           total_words: number
           user_id: string
+          xp_earned?: number
         }
         Update: {
           completed_at?: string
@@ -675,6 +677,7 @@ export type Database = {
           score_percent?: number
           total_words?: number
           user_id?: string
+          xp_earned?: number
         }
         Relationships: [
           {
