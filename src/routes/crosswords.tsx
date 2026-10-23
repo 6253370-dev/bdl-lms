@@ -47,6 +47,7 @@ function CrosswordsPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Crossword | null | "new">(null);
   const [solving, setSolving] = useState<Crossword | null>(null);
+  const [stats, setStats] = useState<Crossword | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -112,6 +113,7 @@ function CrosswordsPage() {
                   {done[cw.id] !== undefined ? "Yenidən həll et" : "Həll et"}
                 </Button>
                 {isAdmin && <>
+                  <Button size="icon" variant="outline" className="h-9 w-9" title="Nəticələr" onClick={() => setStats(cw)}><BarChart3 className="h-4 w-4" /></Button>
                   <Button size="icon" variant="outline" className="h-9 w-9" onClick={() => setEditing(cw)}><Pencil className="h-4 w-4" /></Button>
                   <Button size="icon" variant="outline" className="h-9 w-9" onClick={() => remove(cw.id)}><Trash2 className="h-4 w-4" /></Button>
                 </>}
@@ -122,6 +124,7 @@ function CrosswordsPage() {
       )}
 
       {editing && <Builder initial={editing === "new" ? null : editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); void load(); }} />}
+      {stats && <ResultsDialog cw={stats} onClose={() => setStats(null)} />}
     </div>
   );
 }
