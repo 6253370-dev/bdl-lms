@@ -238,7 +238,7 @@ function CourseLandingPage() {
                 <p className="text-muted-foreground mt-3 text-lg leading-relaxed">{course.short_description}</p>
               )}
               <div className="flex items-center gap-2 mt-4 flex-wrap">
-                <span className="font-bold text-lg text-warning">{avgRating ? avgRating.toFixed(1) : "—"}</span>
+                <span className="font-bold text-lg text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</span>
                 <StarRating value={avgRating} size="sm" />
                 <a href="#reyler" className="text-sm text-primary hover:underline">({reviewCount} rəy)</a>
               </div>
