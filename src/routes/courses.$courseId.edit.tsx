@@ -109,11 +109,13 @@ function CourseBuilderPage() {
     setCourse(course);
     setBlocks((b ?? []) as Block[]);
     const adminIds = Array.from(new Set(((roleRows ?? []) as { user_id: string }[]).map((r) => r.user_id)));
+    let adminList: AdminProfile[] = [];
     if (adminIds.length) {
       const { data: profs } = await supabase.from("profiles").select("id,full_name").in("id", adminIds).order("full_name");
-      setAdmins((profs ?? []) as AdminProfile[]);
+      adminList = (profs ?? []) as AdminProfile[];
+      setAdmins(adminList);
     }
-    const names = new Set(((profsCache ?? []) as AdminProfile[]).map((p) => p.full_name));
+    const names = new Set(adminList.map((p) => p.full_name));
     setInstructorMode(course?.instructor_name && !names.has(course.instructor_name) ? CUSTOM_INSTRUCTOR : (course?.instructor_name ?? ""));
     setLoading(false);
   }, [courseId]);
@@ -132,6 +134,11 @@ function CourseBuilderPage() {
       .update({
         title: course.title,
         description: course.description,
+        short_description: course.short_description,
+        instructor_name: instructorMode === CUSTOM_INSTRUCTOR ? course.instructor_name : (instructorMode || null),
+        language: course.language,
+        what_you_will_learn: course.what_you_will_learn.filter((s) => s.trim()),
+        requirements: course.requirements.filter((s) => s.trim()),
         passing_score: course.passing_score,
         is_published: course.is_published,
         cover_image_url: course.cover_image_url,
