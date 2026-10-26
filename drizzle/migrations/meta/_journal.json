@@ -57,6 +57,13 @@
       "when": 1792990890214,
       "tag": "0007_crossword_dotted_i",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792991063153,
+      "tag": "0008_crossword_progress",
+      "breakpoints": true
     }
   ]
 }

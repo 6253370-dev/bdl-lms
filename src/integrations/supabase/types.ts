@@ -689,6 +689,41 @@ export type Database = {
           },
         ]
       }
+      crossword_progress: {
+        Row: {
+          cell_values: Json
+          crossword_id: string
+          elapsed_seconds: number
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cell_values?: Json
+          crossword_id: string
+          elapsed_seconds?: number
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cell_values?: Json
+          crossword_id?: string
+          elapsed_seconds?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crossword_progress_crossword_id_fkey"
+            columns: ["crossword_id"]
+            isOneToOne: false
+            referencedRelation: "crosswords"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crosswords: {
         Row: {
           answers: Json
