@@ -146,7 +146,7 @@ function CourseLandingPage() {
       // Instructor rating: average across all published courses taught by this instructor
       const taught = teacherName
         ? await supabase.from("courses").select("id").eq("instructor_name", teacherName).eq("is_published", true)
-        : await supabase.from("courses").select("id").eq("created_by", teacherId).eq("is_published", true);
+        : await supabase.from("courses").select("id").eq("created_by", teacherId as string).eq("is_published", true);
       const ids = ((taught.data ?? []) as { id: string }[]).map((x) => x.id);
       if (ids.length) {
         const { data: allRevs } = await supabase.from("course_reviews").select("rating").in("course_id", ids);
