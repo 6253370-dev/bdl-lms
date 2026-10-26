@@ -8,13 +8,16 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, BookOpen, Dumbbell, FileQuestion, GraduationCap,
   Loader2, CheckCircle2, XCircle, Play, Trophy, Clock, FileText, Video, Award,
-  Circle, Lock as LockIcon,
+  Circle, Lock as LockIcon, ChevronLeft, ChevronRight, X, PanelRightOpen, PanelRightClose,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 import { recordCourseView } from "@/lib/course-views";
 import { Textarea } from "@/components/ui/textarea";
+import { CourseReviews } from "@/components/CourseReviews";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { LessonComments } from "@/components/LessonComments";
 import { downloadCertificateSmart } from "@/lib/certificate";
 import { useExamProctor, getExamBlock, enterFullscreen, exitFullscreen, EXAM_BLOCKED_MSG } from "@/hooks/use-exam-proctor";
@@ -29,7 +32,7 @@ export const Route = createFileRoute("/courses/$courseId/play")({
     { name: "twitter:card", content: "summary" },
   ] }),
   component: () => (
-    <ProtectedRoute>
+    <ProtectedRoute showAppShell={false}>
       <CoursePlayer />
     </ProtectedRoute>
   ),
@@ -60,6 +63,11 @@ interface Course {
   description: string | null;
   passing_score: number;
   certificate_template_url: string | null;
+  instructor_name: string | null;
+  language: string | null;
+  short_description: string | null;
+  created_by: string;
+  teacher_name?: string;
 }
 
 const meta: Record<BlockType, { icon: typeof BookOpen; label: string; tone: string }> = {
@@ -76,16 +84,20 @@ function CoursePlayer() {
   const [course, setCourse] = useState<Course | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
+  const [materialsOpen, setMaterialsOpen] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
     const [{ data: c }, { data: b }] = await Promise.all([
-      supabase.from("courses").select("id,title,description,passing_score,certificate_template_url").eq("id", courseId).single(),
+      supabase.from("courses").select("id,title,description,passing_score,certificate_template_url,instructor_name,language,short_description,created_by").eq("id", courseId).single(),
       supabase.from("course_blocks").select("*").eq("course_id", courseId).order("position"),
     ]);
-    setCourse(c as Course);
+    if (c) {
+      const { data: creator } = await supabase.from("profiles").select("full_name").eq("id", c.created_by).maybeSingle();
+      setCourse({ ...c, teacher_name: c.instructor_name?.trim() || creator?.full_name || "—" } as Course);
+    } else setCourse(null);
     const raw = (b ?? []) as Block[];
     // Hide standalone "quiz" blocks from the player and ensure final_exam is the last step
     const filtered = raw.filter((x) => x.block_type !== "quiz");
@@ -143,104 +155,100 @@ function CoursePlayer() {
 
   const active = blocks.find((b) => b.id === activeId) ?? null;
 
+  const activeIndex = blocks.findIndex((b) => b.id === activeId);
+  const doneCount = blocks.filter((b) => completed.has(b.id)).length;
+  const percent = blocks.length ? Math.round(doneCount / blocks.length * 100) : 0;
+  const canReview = blocks.length > 0 && blocks.every((b) => completed.has(b.id));
+  const previous = blocks[activeIndex - 1];
+  const next = blocks[activeIndex + 1];
+  const previousUnlocked = previous && (activeIndex === 1 || completed.has(previous.id) || completed.has(blocks[activeIndex - 2]?.id));
+
   return (
-    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-3.5rem)]">
-      {/* Sidebar */}
-      <aside className="order-2 lg:order-1 lg:w-80 lg:shrink-0 lg:border-r bg-background/50 lg:flex lg:flex-col lg:h-[calc(100vh-3.5rem)] lg:sticky lg:top-0 overflow-hidden">
-        <div className="p-5 border-b shrink-0">
-          <button
-            onClick={() => navigate({ to: "/courses" })}
-            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mb-3"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> {t.player.allCourses}
-          </button>
-          <h2 className="font-display font-bold text-lg leading-tight">{course.title}</h2>
-          {course.description && <p className="text-xs text-muted-foreground mt-1">{course.description}</p>}
+    <div className="min-h-dvh bg-background">
+      <header className="sticky top-0 z-30 border-b bg-background">
+        <div className="flex min-h-16 items-center gap-3 px-3 sm:px-5">
+          <Button variant="ghost" size="icon" asChild className="shrink-0" title="Kursa qayıt">
+            <Link to="/courses/$courseId" params={{ courseId }} aria-label="Kursa qayıt"><ArrowLeft className="h-5 w-5" /></Link>
+          </Button>
+          <GraduationCap className="hidden sm:block h-7 w-7 shrink-0 text-primary" />
+          <h1 className="min-w-0 flex-1 font-display font-bold text-sm sm:text-base break-words leading-snug">{course.title}</h1>
+          <div className="shrink-0 w-16 sm:w-36 text-right">
+            <span className="text-xs font-semibold tabular-nums">{percent}%</span>
+            <span className="hidden sm:inline text-xs text-muted-foreground"> · {doneCount}/{blocks.length} tamamlandı</span>
+            <Progress value={percent} className="mt-1 h-1.5" aria-label="Kurs proqresi" />
+          </div>
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => setMaterialsOpen((v) => !v)} aria-label={materialsOpen ? "Materialları gizlət" : "Materialları göstər"} aria-expanded={materialsOpen} title={materialsOpen ? "Materialları gizlət" : "Materialları göstər"}>
+            {materialsOpen ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
+          </Button>
         </div>
-        <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden">
-          <div className="p-3 space-y-1">
-            {blocks.length === 0 && (
-              <div className="text-sm text-muted-foreground p-4 text-center">{t.player.noContent}</div>
-            )}
+      </header>
+      <div className="flex flex-col lg:flex-row items-start">
+        <section className="min-w-0 w-full flex-1">
+          {!active ? (
+            <div className="py-24 text-center text-muted-foreground"><BookOpen className="h-10 w-10 mx-auto mb-3" />{t.player.noContent}</div>
+          ) : (
+            <>
+              {active.block_type === "lesson" ? (
+                <LessonView key={active.id} block={active} course={course} canReview={canReview} onComplete={() => markComplete(active.id)} nextBlockId={next?.id ?? null} onGoNext={setActiveId} />
+              ) : (
+                <>
+                  <div className="px-4 py-8 sm:px-8"><AssessmentView key={active.id} block={active} course={course} onComplete={() => markComplete(active.id)} nextBlockId={next?.id ?? null} onGoNext={setActiveId} /></div>
+                  <PlayerDetails block={active} course={course} canReview={canReview} />
+                </>
+              )}
+              <div className="flex items-center justify-between gap-3 border-t px-4 py-4 sm:px-8">
+                <Button variant="ghost" disabled={!previousUnlocked} onClick={() => previous && setActiveId(previous.id)}><ChevronLeft className="h-4 w-4" /> Əvvəlki dərs</Button>
+                <span className="text-xs text-muted-foreground tabular-nums">{activeIndex + 1} / {blocks.length}</span>
+                <Button variant="ghost" disabled={!next || !completed.has(active.id)} onClick={() => next && setActiveId(next.id)}>Növbəti dərs <ChevronRight className="h-4 w-4" /></Button>
+              </div>
+            </>
+          )}
+        </section>
+        {materialsOpen && (
+          <aside aria-label="Kursun materialları" className="w-full border-t lg:border-t-0 lg:border-l lg:w-80 xl:w-96 lg:shrink-0 lg:sticky lg:top-16 lg:max-h-[calc(100dvh-4rem)] overflow-y-auto bg-background">
+            <div className="flex items-center justify-between border-b px-5 py-3">
+              <div><h2 className="font-display font-bold text-base">Kursun materialları</h2><p className="text-xs text-muted-foreground mt-1">{blocks.length} material · {doneCount} tamamlandı</p></div>
+              <Button variant="ghost" size="icon" onClick={() => setMaterialsOpen(false)} aria-label="Materialları bağla" title="Materialları bağla"><X className="h-4 w-4" /></Button>
+            </div>
+            {blocks.length === 0 && <p className="p-5 text-sm text-muted-foreground">{t.player.noContent}</p>}
             {blocks.map((b, i) => {
-              const Icon = meta[b.block_type].icon;
               const isActive = b.id === activeId;
               const isDone = completed.has(b.id);
               const unlocked = i === 0 || isDone || completed.has(blocks[i - 1].id);
+              const Icon = b.video_url || b.external_video_url ? Video : b.pdf_url || b.pptx_url || b.docx_url ? FileText : meta[b.block_type].icon;
               return (
-                <button
-                  key={b.id}
-                  onClick={() => unlocked && setActiveId(b.id)}
-                  disabled={!unlocked}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors",
-                    isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted",
-                    !unlocked && "opacity-50 cursor-not-allowed hover:bg-transparent",
-                  )}
-                >
-                  <div className={cn("h-7 w-7 rounded-md flex items-center justify-center shrink-0",
-                    isActive ? "bg-primary-foreground/15" : meta[b.block_type].tone)}>
-                    <Icon className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className={cn("text-[10px] uppercase tracking-wider",
-                      isActive ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                      {String(i + 1).padStart(2, "0")} · {meta[b.block_type].label}
-                    </div>
-                    <div className="font-medium truncate">{b.title}</div>
-                  </div>
-                  {isDone ? (
-                    <CheckCircle2 className={cn("h-5 w-5 shrink-0", isActive ? "text-primary-foreground" : "text-success")} />
-                  ) : !unlocked ? (
-                    <LockIcon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary-foreground/70" : "text-muted-foreground")} />
-                  ) : (
-                    <Circle className={cn("h-5 w-5 shrink-0", isActive ? "text-primary-foreground/70" : "text-muted-foreground/50")} />
-                  )}
-                </button>
+                <Button key={b.id} variant="ghost" disabled={!unlocked} onClick={() => setActiveId(b.id)} aria-current={isActive ? "step" : undefined} className={cn("w-full h-auto min-h-20 rounded-none border-b px-5 py-4 items-start justify-start gap-3 text-left whitespace-normal", isActive && "bg-accent text-accent-foreground hover:bg-accent border-l-2 border-l-primary")}>
+                  {isDone ? <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-success" /> : !unlocked ? <LockIcon className="h-4 w-4 mt-0.5 shrink-0" /> : <Circle className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />}
+                  <span className="min-w-0 flex-1"><span className="block text-sm font-medium break-words">{i + 1}. {b.title}</span><span className="flex items-center gap-1.5 text-xs text-muted-foreground mt-2"><Icon className="h-3.5 w-3.5 shrink-0" />{meta[b.block_type].label}{isActive && " · İndi baxılır"}</span></span>
+                </Button>
               );
             })}
-          </div>
-        </div>
-      </aside>
-
-      {/* Content */}
-      <section className="order-1 lg:order-2 flex-1 min-w-0 p-6 lg:p-10 max-w-5xl mx-auto w-full">
-        {!active ? (
-          <Card className="p-12 text-center border-dashed">
-            <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">{t.player.noContent}</p>
-          </Card>
-        ) : active.block_type === "lesson" ? (
-          <LessonView
-            key={active.id}
-            block={active}
-            onComplete={() => markComplete(active.id)}
-            nextBlockId={(() => {
-              const i = blocks.findIndex((b) => b.id === active.id);
-              return i >= 0 && i < blocks.length - 1 ? blocks[i + 1].id : null;
-            })()}
-            onGoNext={(id) => setActiveId(id)}
-          />
-        ) : (
-          <AssessmentView
-            key={active.id}
-            block={active}
-            course={course}
-            onComplete={() => markComplete(active.id)}
-            nextBlockId={(() => {
-              const i = blocks.findIndex((b) => b.id === active.id);
-              return i >= 0 && i < blocks.length - 1 ? blocks[i + 1].id : null;
-            })()}
-            onGoNext={(id) => setActiveId(id)}
-          />
+          </aside>
         )}
-
-      </section>
+      </div>
     </div>
   );
 }
 
-function LessonView({ block, nextBlockId, onGoNext, onComplete }: { block: Block; nextBlockId: string | null; onGoNext: (id: string) => void; onComplete: () => void }) {
+function PlayerDetails({ block, course, canReview }: { block: Block; course: Course; canReview: boolean }) {
+  return (
+    <Tabs defaultValue="overview" className="w-full">
+      <div className="border-b px-3 sm:px-8">
+        <TabsList className="h-14 w-full justify-start gap-1 sm:gap-5 rounded-none bg-transparent p-0">
+          {[['overview', 'İcmal'], ['notes', 'Şəxsi qeydlər'], ['reviews', 'Rəylər']].map(([value, label]) => <TabsTrigger key={value} value={value} className="h-full rounded-none border-b-2 border-transparent px-3 text-sm data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:shadow-none">{label}</TabsTrigger>)}
+        </TabsList>
+      </div>
+      <TabsContent value="overview" className="m-0 px-4 py-6 sm:px-8 space-y-5">
+        <div><p className="text-xs text-muted-foreground mb-2">{meta[block.block_type].label}</p><h2 className="font-display font-bold text-xl sm:text-2xl break-words">{block.title}</h2>{block.description && <p className="mt-3 text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">{block.description}</p>}</div>
+        <div className="border-t pt-5"><h3 className="font-semibold mb-2">Kurs haqqında</h3><p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{course.short_description || course.description}</p><div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm"><span>Müəllim: <span className="font-medium">{course.teacher_name}</span></span>{course.language && <span>Dil: <span className="font-medium">{course.language}</span></span>}</div><Button variant="link" asChild className="px-0 mt-2"><Link to="/courses/$courseId" params={{ courseId: course.id }}>Kursun təqdimatına bax <ChevronRight className="h-4 w-4" /></Link></Button></div>
+      </TabsContent>
+      <TabsContent value="notes" className="m-0 px-4 py-6 sm:px-8"><LessonComments blockId={block.id} courseId={course.id} /></TabsContent>
+      <TabsContent value="reviews" className="m-0 px-4 py-6 sm:px-8">{!canReview && <p className="text-sm text-muted-foreground mb-5">Kursu qiymətləndirmək üçün onu tam başa vurmalısınız.</p>}<CourseReviews courseId={course.id} canReview={canReview} /></TabsContent>
+    </Tabs>
+  );
+}
+
+function LessonView({ block, course, canReview, nextBlockId, onGoNext, onComplete }: { block: Block; course: Course; canReview: boolean; nextBlockId: string | null; onGoNext: (id: string) => void; onComplete: () => void }) {
   const navigate = useNavigate();
   const required = block.min_view_seconds ?? 0;
   const hasVideo = !!(block.video_url || block.external_video_url);
@@ -269,7 +277,7 @@ function LessonView({ block, nextBlockId, onGoNext, onComplete }: { block: Block
   const remaining = Math.max(0, required - elapsed);
 
   return (
-    <div className="space-y-6">
+    <div>
       <LessonContent
         block={block}
         videoStarted={counting}
@@ -277,10 +285,10 @@ function LessonView({ block, nextBlockId, onGoNext, onComplete }: { block: Block
         onVideoPause={() => setCounting(false)}
       />
 
-      <Card className="p-5 space-y-3">
+      <div className="border-y px-4 py-4 sm:px-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
         {required > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
+          <div className="space-y-2 flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-3 text-sm">
               <span className="text-muted-foreground">
                 {unlocked
                   ? "Minimum baxış vaxtı tamamlandı"
@@ -299,17 +307,17 @@ function LessonView({ block, nextBlockId, onGoNext, onComplete }: { block: Block
           </div>
         )}
         <Button
-          className="w-full"
-          size="lg"
+          className="sm:ml-auto shrink-0"
+          size="default"
           disabled={!unlocked}
           onClick={() => (nextBlockId ? onGoNext(nextBlockId) : navigate({ to: "/courses" }))}
         >
           {unlocked ? null : <Clock className="h-4 w-4 mr-2" />}
           {nextBlockId ? "Davam et" : t.player.allCourses}
         </Button>
-      </Card>
+      </div>
 
-      <LessonComments blockId={block.id} courseId={block.course_id} />
+      <PlayerDetails block={block} course={course} canReview={canReview} />
     </div>
   );
 }
@@ -340,15 +348,9 @@ function LessonContent({
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">{t.player.lesson}</div>
-        <h1 className="font-display text-3xl font-bold">{block.title}</h1>
-        {block.description && <p className="text-muted-foreground mt-2">{block.description}</p>}
-      </div>
-
+    <div className="bg-muted/40">
       {block.external_video_url && (
-        <Card className="overflow-hidden aspect-video relative">
+        <div className="overflow-hidden aspect-video relative">
           <iframe
             src={toEmbedUrl(block.external_video_url)}
             className="w-full h-full"
@@ -357,20 +359,21 @@ function LessonContent({
             title={block.title}
           />
           {!videoStarted && onVideoPlay && (
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={onVideoPlay}
-              className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/80 backdrop-blur-sm text-sm font-medium"
+              className="absolute inset-0 w-full h-full rounded-none flex flex-col items-center justify-center gap-2 bg-background/80 backdrop-blur-sm text-sm font-medium"
             >
               <span className="rounded-full bg-primary text-primary-foreground px-5 py-2.5">Videoya bax</span>
               <span className="text-muted-foreground text-xs">Baxış vaxtı bu andan hesablanacaq</span>
-            </button>
+            </Button>
           )}
-        </Card>
+        </div>
       )}
 
       {block.video_url && (
-        <Card className="overflow-hidden">
+        <div className="overflow-hidden">
           <video
             ref={videoRef}
             src={block.video_url}
@@ -381,41 +384,41 @@ function LessonContent({
             onTimeUpdate={handleTimeUpdate}
             onEnded={() => { onProgress?.(1); onVideoPause?.(); }}
           />
-        </Card>
+        </div>
       )}
 
 
       {block.pdf_url && (
-        <Card className="overflow-hidden h-[70vh]">
+        <div className="overflow-hidden h-[min(68dvh,850px)] min-h-80">
           <iframe src={block.pdf_url} className="w-full h-full" title={`${block.title} PDF`} />
-        </Card>
+        </div>
       )}
 
       {block.pptx_url && (
-        <Card className="overflow-hidden h-[70vh]">
+        <div className="overflow-hidden h-[min(68dvh,850px)] min-h-80">
           <iframe
             src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(block.pptx_url)}`}
             className="w-full h-full"
             title={`${block.title} PPTX`}
           />
-        </Card>
+        </div>
       )}
 
       {block.docx_url && (
-        <Card className="overflow-hidden h-[70vh]">
+        <div className="overflow-hidden h-[min(68dvh,850px)] min-h-80">
           <iframe
             src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(block.docx_url)}`}
             className="w-full h-full"
             title={`${block.title} DOCX`}
           />
-        </Card>
+        </div>
       )}
 
       {!block.external_video_url && !block.video_url && !block.pdf_url && !block.pptx_url && !block.docx_url && (
-        <Card className="p-12 text-center border-dashed">
+        <div className="py-20 px-4 text-center">
           <Video className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
           <p className="text-muted-foreground">{t.courses.noMedia}</p>
-        </Card>
+        </div>
       )}
     </div>
   );
