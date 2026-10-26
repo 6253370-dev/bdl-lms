@@ -66,7 +66,7 @@ interface Course {
   instructor_name: string | null;
   language: string | null;
   short_description: string | null;
-  created_by: string;
+  created_by: string | null;
   teacher_name?: string;
 }
 
@@ -80,7 +80,6 @@ const meta: Record<BlockType, { icon: typeof BookOpen; label: string; tone: stri
 function CoursePlayer() {
   const { courseId } = Route.useParams();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +94,9 @@ function CoursePlayer() {
       supabase.from("course_blocks").select("*").eq("course_id", courseId).order("position"),
     ]);
     if (c) {
-      const { data: creator } = await supabase.from("profiles").select("full_name").eq("id", c.created_by).maybeSingle();
+      const { data: creator } = c.created_by
+        ? await supabase.from("profiles").select("full_name").eq("id", c.created_by).maybeSingle()
+        : { data: null };
       setCourse({ ...c, teacher_name: c.instructor_name?.trim() || creator?.full_name || "—" } as Course);
     } else setCourse(null);
     const raw = (b ?? []) as Block[];
@@ -113,7 +114,8 @@ function CoursePlayer() {
         .from("block_progress")
         .select("block_id")
         .eq("user_id", user.id)
-        .eq("course_id", courseId);
+        .eq("course_id", courseId)
+        .eq("completed", true);
       done = new Set((prog ?? []).map((p) => p.block_id));
       setCompleted(done);
     }
