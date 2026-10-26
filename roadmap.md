@@ -9,3 +9,6 @@
 - [x] /courses kartlarının göndərilən nümunəyə uyğun yenilənməsi və təqdimat səhifəsinə keçidlərin yoxlanılması.
 - [x] Müəllim adı həmişə görünsün: kursda müəllim seçilməyibsə kartda və təqdimat səhifəsində kursu yaradanın adı göstərilir.
 - [x] Ana səhifədə "Son baxılan kurslar" üçün görünüş dəyişdirici: siyahı / kart (seçim brauzerdə yadda saxlanılır).
+- [ ] Son baxılan kursların standart görünüşü kart olsun.
+- [ ] İcazəli kurslardan ən populyar kurslar bölməsi və müstəqil siyahı/kart seçimi.
+- [ ] Adi istifadəçinin ana səhifəsində yeni bölməni yoxla.
