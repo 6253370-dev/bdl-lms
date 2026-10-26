@@ -43,6 +43,14 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/calendar")({
+  head: () => ({ meta: [
+    { title: "Təqvim | Baku Digital Lab" },
+    { name: "description", content: "Kurs, imtahan və dərs dəvətlərinizin təqvimi." },
+    { property: "og:title", content: "Təqvim | Baku Digital Lab" },
+    { property: "og:description", content: "Kurs, imtahan və dərs dəvətlərinizin təqvimi." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute>
       <CalendarPage />

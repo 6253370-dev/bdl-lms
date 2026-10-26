@@ -43,6 +43,14 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/live-classes/")({
+  head: () => ({ meta: [
+    { title: "Canlı dərslər | Baku Digital Lab" },
+    { name: "description", content: "Planlaşdırılmış və davam edən canlı təlimlər." },
+    { property: "og:title", content: "Canlı dərslər | Baku Digital Lab" },
+    { property: "og:description", content: "Planlaşdırılmış və davam edən canlı təlimlər." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute>
       <LiveClassesPage />

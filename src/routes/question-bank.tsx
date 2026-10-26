@@ -39,6 +39,14 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/question-bank")({
+  head: () => ({ meta: [
+    { title: "Sual bankı | Baku Digital Lab" },
+    { name: "description", content: "Təlim və imtahan suallarının idarə edilməsi." },
+    { property: "og:title", content: "Sual bankı | Baku Digital Lab" },
+    { property: "og:description", content: "Təlim və imtahan suallarının idarə edilməsi." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute requireAdmin>
       <QuestionBankPage />

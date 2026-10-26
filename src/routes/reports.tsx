@@ -46,6 +46,14 @@ import { applyAzerbaijaniFont } from "@/lib/pdfFont";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/reports")({
+  head: () => ({ meta: [
+    { title: "Hesabatlar | Baku Digital Lab" },
+    { name: "description", content: "Kurs və imtahan nəticələri üzrə təlim hesabatları." },
+    { property: "og:title", content: "Hesabatlar | Baku Digital Lab" },
+    { property: "og:description", content: "Kurs və imtahan nəticələri üzrə təlim hesabatları." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute requireAdmin>
       <ReportsPage />

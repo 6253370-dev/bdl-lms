@@ -21,6 +21,14 @@ import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/admin/comments")({
+  head: () => ({ meta: [
+    { title: "Şərhlərin idarəsi | Baku Digital Lab" },
+    { name: "description", content: "Dərs şərhləri və istifadəçilərlə yazışmalar." },
+    { property: "og:title", content: "Şərhlərin idarəsi | Baku Digital Lab" },
+    { property: "og:description", content: "Dərs şərhləri və istifadəçilərlə yazışmalar." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute>
       <AdminCommentsPage />

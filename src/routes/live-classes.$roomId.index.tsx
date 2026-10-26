@@ -11,6 +11,14 @@ import { statusBadge, type LiveRoom } from "./live-classes.index";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/live-classes/$roomId/")({
+  head: () => ({ meta: [
+    { title: "Canlı dərsin məlumatları | Baku Digital Lab" },
+    { name: "description", content: "Canlı dərsin vaxtı, iştirakçıları və təlim məlumatları." },
+    { property: "og:title", content: "Canlı dərsin məlumatları | Baku Digital Lab" },
+    { property: "og:description", content: "Canlı dərsin vaxtı, iştirakçıları və təlim məlumatları." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute>
       <RoomDetailsPage />
