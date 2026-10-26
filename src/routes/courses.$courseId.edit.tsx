@@ -35,11 +35,23 @@ interface Course {
   id: string;
   title: string;
   description: string | null;
+  short_description: string | null;
+  instructor_name: string | null;
+  language: string;
+  what_you_will_learn: string[];
+  requirements: string[];
   passing_score: number;
   is_published: boolean;
   certificate_template_url: string | null;
   cover_image_url: string | null;
 }
+
+interface AdminProfile {
+  id: string;
+  full_name: string;
+}
+
+const CUSTOM_INSTRUCTOR = "__custom__";
 
 type BlockType = "lesson" | "practice" | "quiz" | "final_exam";
 
@@ -78,16 +90,31 @@ function CourseBuilderPage() {
   const [tab, setTab] = useState("details");
   const [savingDetails, setSavingDetails] = useState(false);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [admins, setAdmins] = useState<AdminProfile[]>([]);
+  const [instructorMode, setInstructorMode] = useState<string>("");
   const dragId = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: c }, { data: b }] = await Promise.all([
+    const [{ data: c }, { data: b }, { data: roleRows }] = await Promise.all([
       supabase.from("courses").select("*").eq("id", courseId).single(),
       supabase.from("course_blocks").select("*").eq("course_id", courseId).order("position"),
+      supabase.from("user_roles").select("user_id").in("role", ["admin", "super_admin"]),
     ]);
-    setCourse(c as Course);
+    const course = c as Course | null;
+    if (course) {
+      course.what_you_will_learn = Array.isArray(course.what_you_will_learn) ? course.what_you_will_learn : [];
+      course.requirements = Array.isArray(course.requirements) ? course.requirements : [];
+    }
+    setCourse(course);
     setBlocks((b ?? []) as Block[]);
+    const adminIds = Array.from(new Set(((roleRows ?? []) as { user_id: string }[]).map((r) => r.user_id)));
+    if (adminIds.length) {
+      const { data: profs } = await supabase.from("profiles").select("id,full_name").in("id", adminIds).order("full_name");
+      setAdmins((profs ?? []) as AdminProfile[]);
+    }
+    const names = new Set(((profsCache ?? []) as AdminProfile[]).map((p) => p.full_name));
+    setInstructorMode(course?.instructor_name && !names.has(course.instructor_name) ? CUSTOM_INSTRUCTOR : (course?.instructor_name ?? ""));
     setLoading(false);
   }, [courseId]);
 
