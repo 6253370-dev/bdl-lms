@@ -215,8 +215,8 @@ function CourseLandingPage() {
   return (
     <div className="max-w-5xl mx-auto pb-16">
       {/* Hero */}
-      <div className="rounded-b-2xl border-b border-border" style={{ background: "var(--gradient-hero)" }}>
-        <div className="px-6 lg:px-10 py-10">
+      <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+        <div className="px-6 lg:px-10 py-10 bg-muted/30">
           <nav className="text-sm text-muted-foreground mb-4 flex items-center gap-1.5 flex-wrap">
             <Link to="/courses" className="hover:text-foreground">Kurslar</Link>
             <span>/</span>
