@@ -18,6 +18,7 @@ import {
   User as UserIcon,
   Camera,
   KeyRound,
+  Grid3x3,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -73,6 +74,22 @@ interface ExamHistoryRow {
   passed: boolean;
 }
 
+interface CrosswordAttemptRow {
+  id: string;
+  crossword_id: string;
+  title: string;
+  correct_count: number;
+  total_words: number;
+  score_percent: number;
+  duration_seconds: number;
+  xp_earned: number;
+  completed_at: string;
+}
+
+function fmtDur(s: number) {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
 function fmtDate(iso: string) {
   const d = new Date(iso);
   const p = (n: number) => String(n).padStart(2, "0");
@@ -96,6 +113,7 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<CourseProgress[]>([]);
   const [exams, setExams] = useState<ExamHistoryRow[]>([]);
+  const [cwAttempts, setCwAttempts] = useState<CrosswordAttemptRow[]>([]);
 
   useEffect(() => {
     if (!profile) return;
@@ -112,7 +130,7 @@ function ProfilePage() {
     if (!user) return;
     (async () => {
       setLoading(true);
-      const [{ data: attempts }, { data: examAttempts }, { data: certs }] = await Promise.all([
+      const [{ data: attempts }, { data: examAttempts }, { data: certs }, { data: cwRows }] = await Promise.all([
         supabase
           .from("block_attempts")
           .select("id,course_id,block_id,passed,score_percent,created_at,courses(title)")
@@ -124,7 +142,14 @@ function ProfilePage() {
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
         supabase.from("certificates").select("course_id").eq("user_id", user.id),
+        supabase
+          .from("crossword_completions")
+          .select("id,crossword_id,correct_count,total_words,score_percent,duration_seconds,xp_earned,completed_at,crosswords(title)")
+          .eq("user_id", user.id)
+          .order("completed_at", { ascending: false }),
       ]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setCwAttempts(((cwRows ?? []) as any[]).map((r) => ({ ...r, title: r.crosswords?.title ?? "—", score_percent: Number(r.score_percent) })));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rows = (attempts ?? []) as any[];
@@ -307,6 +332,9 @@ function ProfilePage() {
           <TabsTrigger value="exams">
             <ClipboardList className="h-4 w-4 mr-2" /> İştirak etdiyim imtahanlar
           </TabsTrigger>
+          <TabsTrigger value="crosswords">
+            <Grid3x3 className="h-4 w-4 mr-2" /> Krossvordlarım
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="info">
@@ -412,6 +440,54 @@ function ProfilePage() {
             <Card className="p-8 text-center text-sm text-muted-foreground">
               Hələ imtahanda iştirak etməmisiniz
             </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="crosswords">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : cwAttempts.length ? (
+            <div className="space-y-4">
+              {Object.values(
+                cwAttempts.reduce<Record<string, CrosswordAttemptRow[]>>((acc, a) => {
+                  (acc[a.crossword_id] ??= []).push(a);
+                  return acc;
+                }, {}),
+              ).map((list) => {
+                const best = Math.max(...list.map((a) => a.score_percent));
+                return (
+                  <Card key={list[0].crossword_id} className="p-4 space-y-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="font-medium flex-1 min-w-0 truncate">{list[0].title}</div>
+                      <Badge variant="secondary">{list.length} cəhd</Badge>
+                      <Badge>Ən yaxşı: {Math.round(best)}%</Badge>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="text-muted-foreground text-left">
+                          <tr><th className="pr-3 font-medium">Tarix</th><th className="pr-3 font-medium">Düzgün</th><th className="pr-3 font-medium">Nəticə</th><th className="pr-3 font-medium">Vaxt</th><th className="font-medium">XP</th></tr>
+                        </thead>
+                        <tbody>
+                          {list.map((a) => (
+                            <tr key={a.id} className="border-t">
+                              <td className="pr-3 py-1.5">{fmtDate(a.completed_at)}</td>
+                              <td className="pr-3">{a.correct_count}/{a.total_words}</td>
+                              <td className="pr-3">{Math.round(a.score_percent)}%</td>
+                              <td className="pr-3">{fmtDur(a.duration_seconds)}</td>
+                              <td>{a.xp_earned ? `+${a.xp_earned}` : "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <Card className="p-8 text-center text-sm text-muted-foreground">Hələ krossvord həll etməmisiniz</Card>
           )}
         </TabsContent>
       </Tabs>
