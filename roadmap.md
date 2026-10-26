@@ -7,3 +7,4 @@
 - [x] Kurs redaktə səhifəsi (/courses/$courseId/edit): yeni sahələr (qısa təsvir, müəllim seçimi, dil, öyrənəcəklər, tələblər).
 - [x] Kurs kataloqu kartlarında reytinq + müəllim adı.
 - [x] /courses kartlarının göndərilən nümunəyə uyğun yenilənməsi və təqdimat səhifəsinə keçidlərin yoxlanılması.
+- [x] Müəllim adı həmişə görünsün: kursda müəllim seçilməyibsə kartda və təqdimat səhifəsində kursu yaradanın adı göstərilir.

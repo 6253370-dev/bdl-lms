@@ -52,6 +52,7 @@ interface CourseRow {
   cover_image_url: string | null;
   certificate_template_url: string | null;
   instructor_name: string | null;
+  created_by: string | null;
 }
 
 interface CertRow {
@@ -81,6 +82,7 @@ function CoursesPage() {
   const [certs, setCerts] = useState<Record<string, CertRow>>({});
   const [certBusy, setCertBusy] = useState<string | null>(null);
   const [ratings, setRatings] = useState<Record<string, { avg: number; count: number }>>({});
+  const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
 
   const [loading, setLoading] = useState(true);
 
@@ -103,10 +105,13 @@ function CoursesPage() {
 
   const navigate = useNavigate();
 
+  // Müəllim adı: kursda xüsusi müəllim seçilibsə o, yoxsa kursu yaradanın adı
+  const teacherOf = (c: CourseRow) => c.instructor_name?.trim() || creatorNames[c.created_by ?? ""] || "";
+
   const load = async () => {
     setLoading(true);
     const [cRes, fRes, rRes] = await Promise.all([
-      supabase.from("courses").select("id,title,description,is_published,passing_score,folder_id,cover_image_url,certificate_template_url,instructor_name").order("created_at", { ascending: false }),
+      supabase.from("courses").select("id,title,description,is_published,passing_score,folder_id,cover_image_url,certificate_template_url,instructor_name,created_by").order("created_at", { ascending: false }),
       supabase.from("folders").select("id,name,parent_id").order("name"),
       supabase.from("course_reviews").select("course_id,rating"),
     ]);
@@ -139,6 +144,17 @@ function CoursesPage() {
     }
     setCourses(list);
     setFolders((fRes.data ?? []) as FolderRow[]);
+
+    // Kursu yaradanların adları (müəllim seçilməyibsə kartda göstərilir)
+    const creatorIds = Array.from(new Set(list.map((c) => c.created_by).filter(Boolean) as string[]));
+    if (creatorIds.length) {
+      const { data: profs } = await supabase.from("profiles").select("id,full_name").in("id", creatorIds);
+      const cMap: Record<string, string> = {};
+      ((profs ?? []) as { id: string; full_name: string | null }[]).forEach((p) => { if (p.full_name) cMap[p.id] = p.full_name; });
+      setCreatorNames(cMap);
+    } else {
+      setCreatorNames({});
+    }
 
     // Keçid progresi
     if (user?.id && list.length) {
@@ -444,7 +460,7 @@ function CoursesPage() {
                       {c.title}
                     </Link>
                   </h3>
-                  {c.instructor_name && <p className="mt-1 text-xs text-muted-foreground">{c.instructor_name}</p>}
+                  {teacherOf(c) && <p className="mt-1 truncate text-xs text-muted-foreground">Müəllim: {teacherOf(c)}</p>}
                   <div className="mt-4 flex flex-wrap items-center gap-1.5 text-xs">
                     <span className="rounded border border-border px-1.5 py-0.5 text-muted-foreground">Kurs</span>
                     {ratings[c.id] ? (
