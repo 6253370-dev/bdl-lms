@@ -397,7 +397,7 @@ function LessonContent({
       )}
 
       {block.pptx_url && (
-        <div className="overflow-hidden h-[min(68dvh,850px)] min-h-80">
+        <div className="overflow-hidden aspect-[4/3] sm:aspect-auto sm:h-[min(68dvh,850px)]">
           <iframe
             src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(block.pptx_url)}`}
             className="w-full h-full"
