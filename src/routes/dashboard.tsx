@@ -11,8 +11,17 @@ import {
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { t } from "@/lib/i18n";
+import { DEFAULT_COURSE_VIEW, popularCourses, recentAllowedCourses, type CourseView, type DashboardCourse } from "@/lib/dashboard-courses";
 
 export const Route = createFileRoute("/dashboard")({
+  head: () => ({ meta: [
+    { title: "Ana səhifə | Baku Digital Lab" },
+    { name: "description", content: "Şəxsi təlim nəticələri, son baxılan və ən populyar icazəli kurslar." },
+    { property: "og:title", content: "Ana səhifə | Baku Digital Lab" },
+    { property: "og:description", content: "Təlim nəticələriniz və sizin üçün əlçatan kurslar." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute>
       <Dashboard />
@@ -38,27 +47,33 @@ interface UserStats {
   certificates: number;
   attempts: number;
   passed: number;
-  recent: { id: string; title: string; viewed_at: string; cover_image_url: string | null; teacher: string }[];
+  recent: DashboardCourse[];
+  popular: DashboardCourse[];
 }
 
-const RECENT_VIEW_KEY = "bdl-dashboard-recent-view";
+const RECENT_VIEW_KEY = "bdl-dashboard-recent-view-v2";
+const POPULAR_VIEW_KEY = "bdl-dashboard-popular-view";
 
 function Dashboard() {
   const { profile, isAdmin, user } = useAuth();
   const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [recentView, setRecentView] = useState<"list" | "cards">("list");
+  const [recentView, setRecentView] = useState<CourseView>(DEFAULT_COURSE_VIEW);
+  const [popularView, setPopularView] = useState<CourseView>(DEFAULT_COURSE_VIEW);
 
-  // Görünüş seçimi brauzerdə yadda saxlanılır (ilk yüklənmədə oxunur)
   useEffect(() => {
-    const saved = window.localStorage.getItem(RECENT_VIEW_KEY);
-    if (saved === "list" || saved === "cards") setRecentView(saved);
+    try {
+      const recent = window.localStorage.getItem(RECENT_VIEW_KEY);
+      const popular = window.localStorage.getItem(POPULAR_VIEW_KEY);
+      if (recent === "list" || recent === "cards") setRecentView(recent);
+      if (popular === "list" || popular === "cards") setPopularView(popular);
+    } catch { /* Storage may be unavailable. */ }
   }, []);
 
-  const changeRecentView = (v: "list" | "cards") => {
-    setRecentView(v);
-    try { window.localStorage.setItem(RECENT_VIEW_KEY, v); } catch { /* skip */ }
+  const changeView = (key: string, v: CourseView, setter: (view: CourseView) => void) => {
+    setter(v);
+    try { window.localStorage.setItem(key, v); } catch { /* skip */ }
   };
 
   useEffect(() => {
@@ -118,44 +133,19 @@ function Dashboard() {
           { count: certificates },
           { data: attempts },
           { data: views },
+          allowedResult,
         ] = await Promise.all([
           supabase.from("certificates").select("*", { count: "exact", head: true }).eq("user_id", user.id),
           supabase.from("block_attempts").select("score_percent,passed").eq("user_id", user.id),
-          supabase.from("course_views").select("course_id,viewed_at").eq("user_id", user.id).order("viewed_at", { ascending: false }).limit(20),
+          supabase.from("course_views").select("course_id,viewed_at").eq("user_id", user.id).order("viewed_at", { ascending: false }),
+          supabase.rpc("dashboard_allowed_courses"),
         ]);
         const total = attempts?.length ?? 0;
         const passed = (attempts ?? []).filter((a) => a.passed).length;
-        // Dedup recent by course_id, take first 5
-        const seen = new Set<string>();
-        const recentIds: { id: string; viewed_at: string }[] = [];
-        (views ?? []).forEach((v: any) => {
-          if (!seen.has(v.course_id)) {
-            seen.add(v.course_id);
-            recentIds.push({ id: v.course_id, viewed_at: v.viewed_at });
-          }
-        });
-        const top5 = recentIds.slice(0, 5);
-        const { data: courseRows } = top5.length
-          ? await supabase.from("courses").select("id,title,cover_image_url,instructor_name,created_by").in("id", top5.map((r) => r.id))
-          : { data: [] as any[] };
-        const rows = (courseRows ?? []) as { id: string; title: string; cover_image_url: string | null; instructor_name: string | null; created_by: string | null }[];
-        const creatorIds = Array.from(new Set(rows.map((c) => c.created_by).filter(Boolean) as string[]));
-        const { data: creatorRows } = creatorIds.length
-          ? await supabase.from("profiles").select("id,full_name").in("id", creatorIds)
-          : { data: [] as any[] };
-        const creatorNames: Record<string, string> = {};
-        ((creatorRows ?? []) as { id: string; full_name: string | null }[]).forEach((p) => { if (p.full_name) creatorNames[p.id] = p.full_name; });
-        const recent = top5.map((r) => {
-          const c = rows.find((x) => x.id === r.id);
-          return {
-            id: r.id,
-            title: c?.title ?? "—",
-            viewed_at: r.viewed_at,
-            cover_image_url: c?.cover_image_url ?? null,
-            teacher: c?.instructor_name?.trim() || creatorNames[c?.created_by ?? ""] || "",
-          };
-        });
-        setUserStats({ certificates: certificates ?? 0, attempts: total, passed, recent });
+        if (allowedResult.error) console.error("Unable to load allowed dashboard courses", allowedResult.error.message);
+        const allowed: DashboardCourse[] = (allowedResult.data ?? []).map((c) => ({ ...c, viewers: Number(c.viewers) }));
+        const recent = recentAllowedCourses(views ?? [], allowed);
+        setUserStats({ certificates: certificates ?? 0, attempts: total, passed, recent, popular: popularCourses(allowed) });
       }
       setLoading(false);
     })();
@@ -242,69 +232,80 @@ function Dashboard() {
             <StatCard icon={Trophy} label={t.dashboard.certificates} value={userStats.certificates} tone="accent" />
           </div>
 
-          <Card className="mt-6 p-5">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <h3 className="font-display font-semibold flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" /> {t.dashboard.recentlyViewed}
-              </h3>
-              {userStats.recent.length > 0 && (
-                <Tabs value={recentView} onValueChange={(v) => changeRecentView(v as "list" | "cards")}>
-                  <TabsList>
-                    <TabsTrigger value="list"><List className="h-4 w-4 mr-2" />{t.dashboard.viewList}</TabsTrigger>
-                    <TabsTrigger value="cards"><LayoutGrid className="h-4 w-4 mr-2" />{t.dashboard.viewCards}</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              )}
-            </div>
-            {userStats.recent.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t.dashboard.noRecent}</p>
-            ) : recentView === "list" ? (
-              <ul className="space-y-2">
-                {userStats.recent.map((r) => (
-                  <li key={r.id}>
-                    <Link
-                      to="/courses/$courseId"
-                      params={{ courseId: r.id }}
-                      className="flex items-center justify-between gap-3 text-sm py-2 px-3 rounded-md hover:bg-muted"
-                    >
-                      <span className="flex min-w-0 items-center gap-2">
-                        <BookOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{r.title}</span>
-                        {r.teacher && <span className="shrink-0 text-xs text-muted-foreground">Müəllim: {r.teacher}</span>}
-                      </span>
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {new Date(r.viewed_at).toLocaleDateString()}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,200px),1fr))] gap-4">
-                {userStats.recent.map((r) => (
-                  <article key={r.id} className="group relative flex min-w-0 flex-col rounded-lg border border-border bg-card p-3 text-card-foreground transition-shadow hover:shadow-[var(--shadow-card)] focus-within:ring-2 focus-within:ring-ring">
-                    <div className="relative mb-3 aspect-video overflow-hidden rounded-md bg-muted">
-                      {r.cover_image_url ? (
-                        <img src={r.cover_image_url} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-105" />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-muted-foreground"><BookOpen className="h-8 w-8" /></div>
-                      )}
-                    </div>
-                    <h4 className="font-display text-sm font-semibold leading-snug">
-                      <Link to="/courses/$courseId" params={{ courseId: r.id }} className="after:absolute after:inset-0 after:z-10 after:rounded-lg hover:text-primary focus:outline-none">
-                        {r.title}
-                      </Link>
-                    </h4>
-                    {r.teacher && <p className="mt-1 truncate text-xs text-muted-foreground">Müəllim: {r.teacher}</p>}
-                    <p className="mt-auto pt-2 text-xs text-muted-foreground">{t.dashboard.lastViewed}: {new Date(r.viewed_at).toLocaleDateString()}</p>
-                  </article>
-                ))}
-              </div>
-            )}
-          </Card>
+          <CourseSection
+            title={t.dashboard.recentlyViewed} icon={Clock} courses={userStats.recent}
+            view={recentView} onViewChange={(v) => changeView(RECENT_VIEW_KEY, v, setRecentView)}
+            emptyText={t.dashboard.noRecent} recent
+          />
+          <CourseSection
+            title={t.dashboard.popularCourses} icon={TrendingUp} courses={userStats.popular}
+            view={popularView} onViewChange={(v) => changeView(POPULAR_VIEW_KEY, v, setPopularView)}
+            emptyText={t.dashboard.noPopularCourses}
+          />
         </>
       ) : null}
     </div>
+  );
+}
+
+function CourseSection({ title, icon: Icon, courses, view, onViewChange, emptyText, recent = false }: {
+  title: string; icon: typeof BookOpen; courses: DashboardCourse[]; view: CourseView;
+  onViewChange: (view: CourseView) => void; emptyText: string; recent?: boolean;
+}) {
+  const metadata = (course: DashboardCourse) => recent && course.viewed_at
+    ? `${t.dashboard.lastViewed}: ${new Date(course.viewed_at).toLocaleDateString("az-AZ")}`
+    : `${course.viewers} ${t.dashboard.courseViewers}`;
+  return (
+    <section className="mt-8" aria-label={title}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="font-display font-semibold flex items-center gap-2">
+          <Icon className="h-4 w-4 text-primary" /> {title}
+        </h3>
+        {courses.length > 0 && (
+          <Tabs value={view} onValueChange={(v) => { if (v === "list" || v === "cards") onViewChange(v); }}>
+            <TabsList aria-label={`${title} görünüşü`}>
+              <TabsTrigger value="list"><List className="h-4 w-4 mr-2" />{t.dashboard.viewList}</TabsTrigger>
+              <TabsTrigger value="cards"><LayoutGrid className="h-4 w-4 mr-2" />{t.dashboard.viewCards}</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
+      </div>
+      {courses.length === 0 ? <p className="text-sm text-muted-foreground">{emptyText}</p> : view === "list" ? (
+        <ul className="divide-y divide-border">
+          {courses.map((course) => (
+            <li key={course.id}>
+              <Link to="/courses/$courseId" params={{ courseId: course.id }} className="flex flex-wrap items-center justify-between gap-3 py-3 px-2 rounded-md hover:bg-muted">
+                <span className="flex min-w-0 flex-1 items-center gap-3">
+                  <BookOpen className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="min-w-0">
+                    <span className="block break-words text-sm font-medium">{course.title}</span>
+                    {course.teacher && <span className="block break-words text-xs text-muted-foreground">Müəllim: {course.teacher}</span>}
+                  </span>
+                </span>
+                <span className="text-xs text-muted-foreground">{metadata(course)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,200px),1fr))] gap-4">
+          {courses.map((course) => (
+            <article key={course.id} className="group relative flex min-w-0 flex-col rounded-lg border border-border bg-card p-3 text-card-foreground transition-shadow hover:shadow-[var(--shadow-card)] focus-within:ring-2 focus-within:ring-ring">
+              <div className="relative mb-3 aspect-video overflow-hidden rounded-md bg-muted">
+                {course.cover_image_url ? <img src={course.cover_image_url} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-105" /> : (
+                  <div className="flex h-full items-center justify-center text-muted-foreground"><BookOpen className="h-8 w-8" /></div>
+                )}
+              </div>
+              <h4 className="font-display text-sm font-semibold leading-snug break-words">
+                <Link to="/courses/$courseId" params={{ courseId: course.id }} className="after:absolute after:inset-0 after:z-10 after:rounded-lg hover:text-primary focus:outline-none">{course.title}</Link>
+              </h4>
+              {course.teacher && <p className="mt-1 break-words text-xs text-muted-foreground">Müəllim: {course.teacher}</p>}
+              <p className="mt-auto pt-2 text-xs text-muted-foreground">{metadata(course)}</p>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 

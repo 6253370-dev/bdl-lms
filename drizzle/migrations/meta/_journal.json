@@ -71,6 +71,13 @@
       "when": 1792997981639,
       "tag": "0009_course_landing_reviews",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793001195737,
+      "tag": "0010_dashboard_allowed_course_popularity",
+      "breakpoints": true
     }
   ]
 }

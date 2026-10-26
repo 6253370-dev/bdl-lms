@@ -2546,6 +2546,16 @@ export type Database = {
         Returns: Json
       }
       crossword_norm: { Args: { t: string }; Returns: string }
+      dashboard_allowed_courses: {
+        Args: never
+        Returns: {
+          cover_image_url: string
+          id: string
+          teacher: string
+          title: string
+          viewers: number
+        }[]
+      }
       find_live_room_by_code: {
         Args: { _code: string }
         Returns: {
