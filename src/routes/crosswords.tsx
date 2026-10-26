@@ -392,11 +392,22 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
     toast.success(`${r.correct} / ${r.total} söz düzgündür${r.xp ? ` · +${r.xp} XP` : ""}`);
   };
 
-  const restart = () => { doneRef.current = false; clearProgress(); setValues({}); setResult(null); started.current = Date.now(); setElapsed(0); };
+  const restart = () => { doneRef.current = false; clearProgress(); setValues({}); setResult(null); setRestored(false); started.current = Date.now(); setElapsed(0); };
+  const resetDraft = () => {
+    if (!confirm("Yazdığınız bütün hərflər silinəcək və saniyəölçən sıfırlanacaq. Davam edilsin?")) return;
+    restart();
+  };
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-5">
       <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-2" />Krossvordlar</Button>
+      {restored && !result && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm">
+          <PlayCircle className="h-5 w-5 text-warning shrink-0" />
+          <span className="flex-1 min-w-0">Dayandığınız yerdən bərpa olundu — yazdığınız hərflər və vaxt yerindədir.</span>
+          <Button size="sm" variant="outline" onClick={resetDraft}><RotateCcw className="h-4 w-4 mr-2" />Təmizlə və yenidən başla</Button>
+        </div>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold">{cw.title}</h1>
