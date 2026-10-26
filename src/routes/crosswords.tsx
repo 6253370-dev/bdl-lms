@@ -216,6 +216,7 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
   const [loaded, setLoaded] = useState(false);
   const valuesRef = useRef(values);
   valuesRef.current = values;
+  const doneRef = useRef(false);
 
   // Load saved progress
   useEffect(() => {
@@ -233,7 +234,7 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
   }, [user, cw.id]);
 
   const saveProgress = () => {
-    if (!user || !loaded || result) return;
+    if (!user || !loaded || doneRef.current) return;
     const secs = Math.round((Date.now() - started.current) / 1000);
     void supabase.from("crossword_progress").upsert(
       { crossword_id: cw.id, user_id: user.id, cell_values: valuesRef.current, elapsed_seconds: secs, updated_at: new Date().toISOString() },
@@ -328,12 +329,13 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
     setBusy(false);
     if (error) return toast.error(error.message.includes("not found") ? "Krossvord dərc olunmayıb." : error.message);
     const r = data as unknown as { correct: number; total: number; results: boolean[]; xp?: number };
+    doneRef.current = true;
     setResult({ ...r, seconds });
     clearProgress();
     toast.success(`${r.correct} / ${r.total} söz düzgündür${r.xp ? ` · +${r.xp} XP` : ""}`);
   };
 
-  const restart = () => { clearProgress(); setValues({}); setResult(null); started.current = Date.now(); setElapsed(0); };
+  const restart = () => { doneRef.current = false; clearProgress(); setValues({}); setResult(null); started.current = Date.now(); setElapsed(0); };
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-5">
