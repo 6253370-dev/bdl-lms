@@ -264,6 +264,7 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
 
   const { user } = useAuth();
   const [loaded, setLoaded] = useState(false);
+  const [restored, setRestored] = useState(false);
   const valuesRef = useRef(values);
   valuesRef.current = values;
   const doneRef = useRef(false);
@@ -273,11 +274,11 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
     if (!user) return;
     supabase.from("crossword_progress").select("cell_values,elapsed_seconds").eq("crossword_id", cw.id).eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
-        if (data) {
+        if (data && Object.values((data.cell_values ?? {}) as Record<string, string>).some(Boolean)) {
           setValues((data.cell_values ?? {}) as Record<string, string>);
           started.current = Date.now() - data.elapsed_seconds * 1000;
           setElapsed(data.elapsed_seconds);
-          if (Object.values(data.cell_values ?? {}).some(Boolean)) toast.info("Dayandığınız yerdən davam edirsiniz");
+          setRestored(true);
         }
         setLoaded(true);
       });
@@ -285,6 +286,12 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
 
   const saveProgress = () => {
     if (!user || !loaded || doneRef.current) return;
+    const hasAny = Object.values(valuesRef.current).some(Boolean);
+    if (!hasAny) {
+      // Nothing typed yet — don't keep an empty draft around
+      void supabase.from("crossword_progress").delete().eq("crossword_id", cw.id).eq("user_id", user.id).then(() => {});
+      return;
+    }
     const secs = Math.round((Date.now() - started.current) / 1000);
     void supabase.from("crossword_progress").upsert(
       { crossword_id: cw.id, user_id: user.id, cell_values: valuesRef.current, elapsed_seconds: secs, updated_at: new Date().toISOString() },
