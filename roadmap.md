@@ -14,3 +14,4 @@
 - [x] Adi istifadəçinin ana səhifəsində yeni bölməni yoxla.
 - [x] Kursun təqdimat səhifəsinə baxışı şəxsi tarixçəyə yaz və təkrar baxış vaxtını yenilə; aktiv hesabla yoxla.
 - [x] Dərs pleyerini fokuslanmış üst zolaq, sağ material paneli və alt bölmələrlə yenilə; mövcud funksiyaları saxla və yoxla.
+- [x] Kurs təqdimat səhifəsinin yuxarı blokunu işıqlı və təmiz fona keçir; qırmızı yalnız əsas düymədə qalsın.
