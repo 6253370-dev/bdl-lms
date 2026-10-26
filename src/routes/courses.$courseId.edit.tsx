@@ -11,6 +11,9 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -297,14 +300,79 @@ function CourseBuilderPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{t.courses.description}</Label>
+              <Label>Qısa təsvir (kurs kartında və başlıqda görünür)</Label>
               <Textarea
-                value={course.description ?? ""}
-                onChange={(e) => updateCourseField({ description: e.target.value })}
-                rows={4}
+                value={course.short_description ?? ""}
+                onChange={(e) => updateCourseField({ short_description: e.target.value })}
+                rows={2}
+                placeholder="1-2 cümləlik cəlbedici təsvir"
                 disabled={!isAdmin}
               />
             </div>
+            <div className="space-y-2">
+              <Label>{t.courses.description} (ətraflı — "Haqqında" bölməsi)</Label>
+              <Textarea
+                value={course.description ?? ""}
+                onChange={(e) => updateCourseField({ description: e.target.value })}
+                rows={6}
+                disabled={!isAdmin}
+              />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Müəllim</Label>
+                <Select
+                  value={instructorMode}
+                  onValueChange={(v) => {
+                    setInstructorMode(v);
+                    if (v !== CUSTOM_INSTRUCTOR) updateCourseField({ instructor_name: v || null });
+                  }}
+                  disabled={!isAdmin}
+                >
+                  <SelectTrigger><SelectValue placeholder="Müəllim seçin" /></SelectTrigger>
+                  <SelectContent>
+                    {admins.map((a) => (
+                      <SelectItem key={a.id} value={a.full_name}>{a.full_name}</SelectItem>
+                    ))}
+                    <SelectItem value={CUSTOM_INSTRUCTOR}>Digər (əl ilə yaz)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {instructorMode === CUSTOM_INSTRUCTOR && (
+                  <Input
+                    value={course.instructor_name ?? ""}
+                    onChange={(e) => updateCourseField({ instructor_name: e.target.value })}
+                    placeholder="Müəllimin adı"
+                    disabled={!isAdmin}
+                  />
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Müəllimin təfərrüatları onun profil səhifəsindəki "Vəzifə / Haqqımda" sahələrindən götürülür.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Kursun dili</Label>
+                <Input
+                  value={course.language ?? ""}
+                  onChange={(e) => updateCourseField({ language: e.target.value })}
+                  placeholder="Azərbaycan dili"
+                  disabled={!isAdmin}
+                />
+              </div>
+            </div>
+            <StringListEditor
+              label="Kursda nələr öyrənəcəksiniz"
+              placeholder="məs. Satış texnikalarının əsasları"
+              values={course.what_you_will_learn}
+              onChange={(v) => updateCourseField({ what_you_will_learn: v })}
+              disabled={!isAdmin}
+            />
+            <StringListEditor
+              label="Tələblər (boş buraxsanız bölmə gizlənir)"
+              placeholder="məs. Kompüter və internet bağlantısı"
+              values={course.requirements}
+              onChange={(v) => updateCourseField({ requirements: v })}
+              disabled={!isAdmin}
+            />
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t.courses.passingScore}</Label>
