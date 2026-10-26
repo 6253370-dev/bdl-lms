@@ -13,12 +13,21 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
+import { recordCourseView } from "@/lib/course-views";
 import { Textarea } from "@/components/ui/textarea";
 import { LessonComments } from "@/components/LessonComments";
 import { downloadCertificateSmart } from "@/lib/certificate";
 import { useExamProctor, getExamBlock, enterFullscreen, exitFullscreen, EXAM_BLOCKED_MSG } from "@/hooks/use-exam-proctor";
 
 export const Route = createFileRoute("/courses/$courseId/play")({
+  head: () => ({ meta: [
+    { title: "Kurs dərsləri | Baku Digital Lab" },
+    { name: "description", content: "Kurs dərsləri, məşqlər və şəxsi təlim proqresi." },
+    { property: "og:title", content: "Kurs dərsləri | Baku Digital Lab" },
+    { property: "og:description", content: "Dərslərə davam edin və təliminizi tamamlayın." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute>
       <CoursePlayer />
@@ -123,9 +132,9 @@ function CoursePlayer() {
 
   // Record course view for "recently viewed" dashboard
   useEffect(() => {
-    if (!user?.id || !courseId) return;
-    supabase.from("course_views").insert({ user_id: user.id, course_id: courseId }).then(() => {});
-  }, [user?.id, courseId]);
+    if (!user?.id || course?.id !== courseId) return;
+    void recordCourseView(user.id, courseId);
+  }, [user?.id, course?.id, courseId]);
 
   if (loading) {
     return <div className="p-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;

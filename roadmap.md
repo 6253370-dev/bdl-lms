@@ -12,3 +12,4 @@
 - [x] Son baxılan kursların standart görünüşü kart olsun.
 - [x] İcazəli kurslardan ən populyar kurslar bölməsi və müstəqil siyahı/kart seçimi.
 - [x] Adi istifadəçinin ana səhifəsində yeni bölməni yoxla.
+- [x] Kursun təqdimat səhifəsinə baxışı şəxsi tarixçəyə yaz və təkrar baxış vaxtını yenilə; aktiv hesabla yoxla.

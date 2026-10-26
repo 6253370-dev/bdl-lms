@@ -14,6 +14,7 @@ import {
 import { StarRating } from "@/components/StarRating";
 import { CourseReviews } from "@/components/CourseReviews";
 import { cn } from "@/lib/utils";
+import { recordCourseView } from "@/lib/course-views";
 
 export const Route = createFileRoute("/courses/$courseId/")({
   head: () => ({
@@ -160,6 +161,11 @@ function CourseLandingPage() {
   }, [courseId, user?.id]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!user?.id || !course?.id || (!course.is_published && !isAdmin)) return;
+    void recordCourseView(user.id, course.id);
+  }, [user?.id, course?.id, course?.is_published, isAdmin]);
 
   const stats = useMemo(() => {
     const lessons = blocks.filter((b) => b.block_type === "lesson").length;
