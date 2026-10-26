@@ -41,6 +41,7 @@ interface Course {
   description: string | null;
   short_description: string | null;
   instructor_name: string | null;
+  created_by: string | null;
   language: string;
   what_you_will_learn: string[];
   requirements: string[];
@@ -118,21 +119,35 @@ function CourseLandingPage() {
       setCompleted(new Set(((mine ?? []) as { block_id: string }[]).map((r) => r.block_id)));
     }
 
-    if (course?.instructor_name) {
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("full_name,headline,bio,avatar_url")
-        .eq("full_name", course.instructor_name)
-        .maybeSingle();
-      setInstructor((prof as InstructorProfile) ?? { full_name: course.instructor_name, headline: null, bio: null, avatar_url: null });
+    const teacherName = course?.instructor_name?.trim() || "";
+    const teacherId = course?.created_by ?? null;
+    if (teacherName || teacherId) {
+      let prof: InstructorProfile | null = null;
+      if (teacherName) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("full_name,headline,bio,avatar_url")
+          .eq("full_name", teacherName)
+          .maybeSingle();
+        prof = (data as InstructorProfile) ?? null;
+      }
+      // Müəllim seçilməyibsə kursu yaradanın profili göstərilir
+      if (!prof && teacherId) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("full_name,headline,bio,avatar_url")
+          .eq("id", teacherId)
+          .maybeSingle();
+        prof = (data as InstructorProfile) ?? null;
+      }
+      if (prof) setInstructor(prof);
+      else if (teacherName) setInstructor({ full_name: teacherName, headline: null, bio: null, avatar_url: null });
 
       // Instructor rating: average across all published courses taught by this instructor
-      const { data: taught } = await supabase
-        .from("courses")
-        .select("id")
-        .eq("instructor_name", course.instructor_name)
-        .eq("is_published", true);
-      const ids = ((taught ?? []) as { id: string }[]).map((x) => x.id);
+      const taught = teacherName
+        ? await supabase.from("courses").select("id").eq("instructor_name", teacherName).eq("is_published", true)
+        : await supabase.from("courses").select("id").eq("created_by", teacherId).eq("is_published", true);
+      const ids = ((taught.data ?? []) as { id: string }[]).map((x) => x.id);
       if (ids.length) {
         const { data: allRevs } = await supabase.from("course_reviews").select("rating").in("course_id", ids);
         const arr = (allRevs ?? []) as { rating: number }[];
@@ -225,8 +240,8 @@ function CourseLandingPage() {
                 <span className="inline-flex items-center gap-1.5">
                   <Users className="h-4 w-4" /> {participants} iştirakçı
                 </span>
-                {course.instructor_name && (
-                  <span>Müəllim: <span className="text-foreground font-medium">{course.instructor_name}</span></span>
+                {(instructor?.full_name || course.instructor_name) && (
+                  <span>Müəllim: <span className="text-foreground font-medium">{instructor?.full_name || course.instructor_name}</span></span>
                 )}
                 <span className="inline-flex items-center gap-1.5">
                   <RefreshCw className="h-4 w-4" /> Son yenilənmə: {updatedLabel}

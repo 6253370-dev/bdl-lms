@@ -346,7 +346,7 @@ function CourseBuilderPage() {
                   />
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Müəllimin təfərrüatları onun profil səhifəsindəki "Vəzifə / Haqqımda" sahələrindən götürülür.
+                  Müəllimin təfərrüatları onun profil səhifəsindəki "Vəzifə / Haqqımda" sahələrindən götürülür. Seçilməyibsə kursu yaradan şəxsin adı göstərilir.
                 </p>
               </div>
               <div className="space-y-2">
