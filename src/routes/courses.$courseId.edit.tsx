@@ -242,10 +242,10 @@ function CourseBuilderPage() {
   return (
     <div className="p-6 lg:p-10 max-w-6xl mx-auto">
       <button
-        onClick={() => navigate({ to: "/courses" })}
+        onClick={() => navigate({ to: "/courses/$courseId", params: { courseId } })}
         className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1"
       >
-        <ArrowLeft className="h-4 w-4" /> {t.courses.backToCourses}
+        <ArrowLeft className="h-4 w-4" /> Kurs səhifəsinə qayıt
       </button>
       <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
@@ -652,6 +652,42 @@ function BlockCard({
         </div>
       )}
     </Card>
+  );
+}
+
+function StringListEditor({
+  label, placeholder, values, onChange, disabled,
+}: {
+  label: string;
+  placeholder: string;
+  values: string[];
+  onChange: (v: string[]) => void;
+  disabled?: boolean;
+}) {
+  const update = (i: number, v: string) => {
+    const next = [...values];
+    next[i] = v;
+    onChange(next);
+  };
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      {values.map((v, i) => (
+        <div key={i} className="flex gap-2">
+          <Input value={v} onChange={(e) => update(i, e.target.value)} placeholder={placeholder} disabled={disabled} />
+          {!disabled && (
+            <Button variant="ghost" size="icon" onClick={() => onChange(values.filter((_, j) => j !== i))}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      ))}
+      {!disabled && (
+        <Button variant="ghost" size="sm" onClick={() => onChange([...values, ""])}>
+          <Plus className="h-3.5 w-3.5 mr-1" /> Bənd əlavə et
+        </Button>
+      )}
+    </div>
   );
 }
 
