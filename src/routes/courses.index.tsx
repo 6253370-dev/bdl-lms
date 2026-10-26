@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Plus, Loader2, Folder, Search, MoreVertical, Pencil, Trash2, FolderPlus, Move, Award } from "lucide-react";
+import { BookOpen, Plus, Loader2, Folder, Search, MoreVertical, Pencil, Trash2, FolderPlus, Move, Award, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,16 @@ import { StarRating } from "@/components/StarRating";
 
 
 export const Route = createFileRoute("/courses/")({
+  head: () => ({
+    meta: [
+      { title: "Kurslar — Baku Digital Lab" },
+      { name: "description", content: "Baku Digital Lab təlim kursları, müəllimlər və iştirakçıların qiymətləndirmələri." },
+      { property: "og:title", content: "Kurslar — Baku Digital Lab" },
+      { property: "og:description", content: "Təlim kurslarına baxın, rəyləri oxuyun və öyrənməyə davam edin." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: () => (
     <ProtectedRoute>
       <CoursesPage />
@@ -399,95 +409,74 @@ function CoursesPage() {
               )}
             </Card>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] gap-5">
               {visibleCourses.map((c) => (
-                <Card key={c.id} className="p-5 h-full hover:shadow-[var(--shadow-elegant)] transition-shadow border-border/60 flex flex-col relative">
-                  <Link
-                    to="/courses/$courseId"
-                    params={{ courseId: c.id }}
-                    className="block h-32 -mx-5 -mt-5 mb-4 rounded-t-xl bg-cover bg-center"
-                    style={c.cover_image_url
-                      ? { backgroundImage: `url(${c.cover_image_url})` }
-                      : { background: "var(--gradient-hero)" }}
-                  />
-                  {isAdmin && (
-                    <div className="absolute top-3 right-3">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="secondary" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setMoveDialog({ courseId: c.id, current: c.folder_id })}>
-                            <Move className="h-4 w-4 mr-2" /> {t.folders.moveTo}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.is_published ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
-                      {c.is_published ? t.common.published : t.common.draft}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{t.common.pass}: {c.passing_score}%</span>
+                <article key={c.id} className="group relative flex min-w-0 flex-col rounded-lg border border-border bg-card p-4 text-card-foreground transition-shadow hover:shadow-[var(--shadow-card)] focus-within:ring-2 focus-within:ring-ring">
+                  <div className="relative mb-4 aspect-video overflow-hidden rounded-md bg-muted">
+                    {c.cover_image_url ? (
+                      <img src={c.cover_image_url} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-105" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground"><BookOpen className="h-10 w-10" /></div>
+                    )}
+                    {!c.is_published && (
+                      <span className="absolute left-2 top-2 rounded px-2 py-1 text-xs font-medium bg-card text-card-foreground shadow-sm">{t.common.draft}</span>
+                    )}
+                    {isAdmin && (
+                      <div className="absolute right-2 top-2 z-20 flex gap-1">
+                        <Button asChild variant="secondary" size="icon" className="h-8 w-8 rounded-full" title={t.common.edit}>
+                          <Link to="/courses/$courseId/edit" params={{ courseId: c.id }} aria-label={`${c.title}: ${t.common.edit}`}><Pencil className="h-4 w-4" /></Link>
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full" aria-label={`${c.title}: seçimlər`} title="Seçimlər"><MoreVertical className="h-4 w-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setMoveDialog({ courseId: c.id, current: c.folder_id })}>
+                              <Move className="h-4 w-4 mr-2" /> {t.folders.moveTo}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
                   </div>
-                  <h3 className="font-display font-semibold text-lg leading-snug">
-                    <Link to="/courses/$courseId" params={{ courseId: c.id }} className="hover:text-primary transition-colors">
+                  <h3 className="font-display text-base font-semibold leading-snug tracking-normal">
+                    <Link to="/courses/$courseId" params={{ courseId: c.id }} className="after:absolute after:inset-0 after:z-10 after:rounded-lg hover:text-primary focus:outline-none">
                       {c.title}
                     </Link>
                   </h3>
-                  {c.instructor_name && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{c.instructor_name}</p>
-                  )}
-                  {ratings[c.id] && (
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <span className="text-sm font-bold text-warning">{ratings[c.id].avg.toFixed(1)}</span>
-                      <StarRating value={ratings[c.id].avg} size="sm" />
-                      <span className="text-xs text-muted-foreground">({ratings[c.id].count})</span>
-                    </div>
-                  )}
-                  {c.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2 flex-1">{c.description}</p>}
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                      <span>Keçid</span>
-                      <span>{progress[c.id] ?? 0}%</span>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress[c.id] ?? 0}%` }} />
-                    </div>
-                  </div>
-                  {certs[c.id] && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="mt-3 w-full"
-                      disabled={certBusy === c.id}
-                      onClick={() => handleCertificate(c)}
-                    >
-                      {certBusy === c.id ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Award className="h-4 w-4 mr-2" />
-                      )}
-                      Sertifikatı əldə et
-                    </Button>
-                  )}
-                  <div className="flex gap-2 mt-3">
-
-                    <Button asChild size="sm" className="flex-1" variant={certs[c.id] ? "outline" : "default"}>
-                      <Link to="/courses/$courseId" params={{ courseId: c.id }}>
-                        {certs[c.id] ? "Kursu təkrar keç" : t.common.open}
-                      </Link>
-                    </Button>
-                    {isAdmin && (
-                      <Button asChild size="sm" variant="outline">
-                        <Link to="/courses/$courseId/edit" params={{ courseId: c.id }}>{t.common.edit}</Link>
-                      </Button>
+                  {c.instructor_name && <p className="mt-1 text-xs text-muted-foreground">{c.instructor_name}</p>}
+                  <div className="mt-4 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="rounded border border-border px-1.5 py-0.5 text-muted-foreground">Kurs</span>
+                    {ratings[c.id] ? (
+                      <>
+                        <span className="inline-flex items-center gap-1.5 rounded border border-border px-1.5 py-0.5" aria-label={`5 üzərindən ${ratings[c.id].avg.toFixed(1)}`}>
+                          <StarRating value={ratings[c.id].avg} size="sm" />
+                          <span className="font-semibold">{ratings[c.id].avg.toFixed(1)}</span>
+                        </span>
+                        <span className="rounded border border-border px-1.5 py-0.5 text-muted-foreground">{ratings[c.id].count} rəy</span>
+                      </>
+                    ) : (
+                      <span className="py-0.5 text-muted-foreground">Hələ qiymətləndirilməyib</span>
                     )}
                   </div>
-
-                </Card>
+                  {certs[c.id] && (
+                    <div className="relative z-20 mt-3 flex flex-wrap items-center gap-2">
+                      <Button asChild size="sm" variant="ghost" className="h-auto justify-start p-0 text-xs text-primary hover:bg-transparent">
+                        <Link to="/courses/$courseId" params={{ courseId: c.id }}><RotateCcw />Kursu təkrar keç</Link>
+                      </Button>
+                      <Button size="icon" variant="ghost" className="ml-auto h-7 w-7" title="Sertifikatı əldə et" aria-label={`${c.title}: sertifikatı əldə et`} disabled={certBusy === c.id} onClick={() => handleCertificate(c)}>
+                        {certBusy === c.id ? <Loader2 className="animate-spin" /> : <Award />}
+                      </Button>
+                    </div>
+                  )}
+                  {(progress[c.id] ?? 0) > 0 && (
+                    <div className="mt-auto pt-4">
+                      <div role="progressbar" aria-label={`${c.title}: keçid`} aria-valuenow={progress[c.id]} aria-valuemin={0} aria-valuemax={100} className="h-1 overflow-hidden rounded-full bg-muted" title={`Keçid: ${progress[c.id]}%`}>
+                        <div className="h-full bg-primary" style={{ width: `${progress[c.id]}%` }} />
+                      </div>
+                    </div>
+                  )}
+                </article>
               ))}
             </div>
           )}
