@@ -12,11 +12,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cellsOf, generateCrossword, normalizeWord, type GeneratedCrossword, type PlacedWord } from "@/lib/crossword";
-import { Grid3x3, Plus, Trash2, Pencil, Wand2, Loader2, ArrowLeft, CheckCircle2, Clock, BarChart3 } from "lucide-react";
+import { Grid3x3, Plus, Trash2, Pencil, Wand2, Loader2, ArrowLeft, CheckCircle2, Clock, BarChart3, PlayCircle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+const fmtSecs = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
 export const Route = createFileRoute("/crosswords")({
+  validateSearch: (s: Record<string, unknown>): { resume?: string } =>
+    typeof s.resume === "string" && s.resume ? { resume: s.resume } : {},
   head: () => ({
     meta: [
       { title: "Krossvordlar · Baku Digital Lab" },
@@ -40,10 +44,15 @@ type Crossword = {
 };
 type Completion = { crossword_id: string; score_percent: number };
 
+type Draft = { filled: number; elapsed: number };
+
 function CrosswordsPage() {
   const { isAdmin, user } = useAuth();
+  const { resume } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [items, setItems] = useState<Crossword[]>([]);
   const [done, setDone] = useState<Record<string, number>>({});
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Crossword | null | "new">(null);
   const [solving, setSolving] = useState<Crossword | null>(null);
@@ -58,15 +67,31 @@ function CrosswordsPage() {
     if (error) toast.error(error.message);
     setItems((data ?? []) as unknown as Crossword[]);
     if (user) {
-      const { data: c } = await supabase.from("crossword_completions")
-        .select("crossword_id,score_percent").eq("user_id", user.id);
+      const [{ data: c }, { data: p }] = await Promise.all([
+        supabase.from("crossword_completions").select("crossword_id,score_percent").eq("user_id", user.id),
+        supabase.from("crossword_progress").select("crossword_id,cell_values,elapsed_seconds").eq("user_id", user.id),
+      ]);
       const best: Record<string, number> = {};
       ((c ?? []) as Completion[]).forEach((x) => { best[x.crossword_id] = Math.max(best[x.crossword_id] ?? 0, Number(x.score_percent)); });
       setDone(best);
+      const d: Record<string, Draft> = {};
+      (p ?? []).forEach((x) => {
+        const filled = Object.values((x.cell_values ?? {}) as Record<string, string>).filter(Boolean).length;
+        if (filled > 0) d[x.crossword_id] = { filled, elapsed: x.elapsed_seconds };
+      });
+      setDrafts(d);
     }
     setLoading(false);
   };
   useEffect(() => { void load(); }, [user?.id]);
+
+  // Open a crossword directly via ?resume=<id> (e.g. from the profile page)
+  useEffect(() => {
+    if (!resume || loading) return;
+    const cw = items.find((x) => x.id === resume);
+    if (cw) setSolving(cw);
+    void navigate({ search: {}, replace: true });
+  }, [resume, loading, items]);
 
   const remove = async (id: string) => {
     if (!confirm("Bu krossvordu silmək istədiyinizə əminsiniz?")) return;
@@ -76,6 +101,9 @@ function CrosswordsPage() {
   };
 
   if (solving) return <Solver cw={solving} onBack={() => { setSolving(null); void load(); }} />;
+
+  const draftItems = items.filter((cw) => drafts[cw.id]);
+  const totalCells = (cw: Crossword) => new Set(cw.layout.flatMap((w) => cellsOf(w).map(({ r, c }) => `${r},${c}`))).size;
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
@@ -89,6 +117,25 @@ function CrosswordsPage() {
         {isAdmin && <Button onClick={() => setEditing("new")}><Plus className="h-4 w-4 mr-2" />Yeni krossvord</Button>}
       </div>
 
+      {!loading && draftItems.length > 0 && (
+        <Card className="p-4 border-warning/50 bg-warning/10 space-y-3">
+          <div className="flex items-center gap-2 font-semibold"><PlayCircle className="h-5 w-5 text-warning" />Yarımçıq qalmış krossvordlar</div>
+          <div className="flex flex-col gap-2">
+            {draftItems.map((cw) => (
+              <div key={cw.id} className="flex flex-wrap items-center gap-3 rounded-md bg-background p-3">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{cw.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {drafts[cw.id].filled}/{totalCells(cw)} xana doldurulub · {fmtSecs(drafts[cw.id].elapsed)}
+                  </div>
+                </div>
+                <Button size="sm" onClick={() => setSolving(cw)}><PlayCircle className="h-4 w-4 mr-2" />Davam et</Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : items.length === 0 ? (
@@ -101,7 +148,10 @@ function CrosswordsPage() {
             <Card key={cw.id} className="p-5 flex flex-col gap-3">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-semibold leading-tight">{cw.title}</h3>
-                {isAdmin && <Badge variant={cw.is_published ? "default" : "secondary"}>{cw.is_published ? "Dərc olunub" : "Layihə"}</Badge>}
+                <div className="flex gap-1 flex-wrap justify-end">
+                  {drafts[cw.id] && <Badge className="bg-warning text-warning-foreground hover:bg-warning">Yarımçıq</Badge>}
+                  {isAdmin && <Badge variant={cw.is_published ? "default" : "secondary"}>{cw.is_published ? "Dərc olunub" : "Layihə"}</Badge>}
+                </div>
               </div>
               {cw.description && <p className="text-sm text-muted-foreground line-clamp-2">{cw.description}</p>}
               <div className="text-xs text-muted-foreground flex gap-3">
@@ -110,7 +160,7 @@ function CrosswordsPage() {
               </div>
               <div className="mt-auto flex gap-2">
                 <Button size="sm" className="flex-1" onClick={() => setSolving(cw)} disabled={!cw.is_published && !isAdmin}>
-                  {done[cw.id] !== undefined ? "Yenidən həll et" : "Həll et"}
+                  {drafts[cw.id] ? <><PlayCircle className="h-4 w-4 mr-2" />Davam et</> : done[cw.id] !== undefined ? "Yenidən həll et" : "Həll et"}
                 </Button>
                 {isAdmin && <>
                   <Button size="icon" variant="outline" className="h-9 w-9" title="Nəticələr" onClick={() => setStats(cw)}><BarChart3 className="h-4 w-4" /></Button>
@@ -214,6 +264,7 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
 
   const { user } = useAuth();
   const [loaded, setLoaded] = useState(false);
+  const [restored, setRestored] = useState(false);
   const valuesRef = useRef(values);
   valuesRef.current = values;
   const doneRef = useRef(false);
@@ -223,11 +274,11 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
     if (!user) return;
     supabase.from("crossword_progress").select("cell_values,elapsed_seconds").eq("crossword_id", cw.id).eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
-        if (data) {
+        if (data && Object.values((data.cell_values ?? {}) as Record<string, string>).some(Boolean)) {
           setValues((data.cell_values ?? {}) as Record<string, string>);
           started.current = Date.now() - data.elapsed_seconds * 1000;
           setElapsed(data.elapsed_seconds);
-          if (Object.values(data.cell_values ?? {}).some(Boolean)) toast.info("Dayandığınız yerdən davam edirsiniz");
+          setRestored(true);
         }
         setLoaded(true);
       });
@@ -235,6 +286,12 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
 
   const saveProgress = () => {
     if (!user || !loaded || doneRef.current) return;
+    const hasAny = Object.values(valuesRef.current).some(Boolean);
+    if (!hasAny) {
+      // Nothing typed yet — don't keep an empty draft around
+      void supabase.from("crossword_progress").delete().eq("crossword_id", cw.id).eq("user_id", user.id).then(() => {});
+      return;
+    }
     const secs = Math.round((Date.now() - started.current) / 1000);
     void supabase.from("crossword_progress").upsert(
       { crossword_id: cw.id, user_id: user.id, cell_values: valuesRef.current, elapsed_seconds: secs, updated_at: new Date().toISOString() },
@@ -335,11 +392,22 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
     toast.success(`${r.correct} / ${r.total} söz düzgündür${r.xp ? ` · +${r.xp} XP` : ""}`);
   };
 
-  const restart = () => { doneRef.current = false; clearProgress(); setValues({}); setResult(null); started.current = Date.now(); setElapsed(0); };
+  const restart = () => { doneRef.current = false; clearProgress(); setValues({}); setResult(null); setRestored(false); started.current = Date.now(); setElapsed(0); };
+  const resetDraft = () => {
+    if (!confirm("Yazdığınız bütün hərflər silinəcək və saniyəölçən sıfırlanacaq. Davam edilsin?")) return;
+    restart();
+  };
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-5">
       <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-2" />Krossvordlar</Button>
+      {restored && !result && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm">
+          <PlayCircle className="h-5 w-5 text-warning shrink-0" />
+          <span className="flex-1 min-w-0">Dayandığınız yerdən bərpa olundu — yazdığınız hərflər və vaxt yerindədir.</span>
+          <Button size="sm" variant="outline" onClick={resetDraft}><RotateCcw className="h-4 w-4 mr-2" />Təmizlə və yenidən başla</Button>
+        </div>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold">{cw.title}</h1>

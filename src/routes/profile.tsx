@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -19,6 +19,7 @@ import {
   Camera,
   KeyRound,
   Grid3x3,
+  PlayCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -114,6 +115,7 @@ function ProfilePage() {
   const [courses, setCourses] = useState<CourseProgress[]>([]);
   const [exams, setExams] = useState<ExamHistoryRow[]>([]);
   const [cwAttempts, setCwAttempts] = useState<CrosswordAttemptRow[]>([]);
+  const [cwDrafts, setCwDrafts] = useState<{ crossword_id: string; title: string; filled: number; elapsed_seconds: number; updated_at: string }[]>([]);
 
   useEffect(() => {
     if (!profile) return;
@@ -130,7 +132,7 @@ function ProfilePage() {
     if (!user) return;
     (async () => {
       setLoading(true);
-      const [{ data: attempts }, { data: examAttempts }, { data: certs }, { data: cwRows }] = await Promise.all([
+      const [{ data: attempts }, { data: examAttempts }, { data: certs }, { data: cwRows }, { data: draftRows }] = await Promise.all([
         supabase
           .from("block_attempts")
           .select("id,course_id,block_id,passed,score_percent,created_at,courses(title)")
@@ -147,9 +149,26 @@ function ProfilePage() {
           .select("id,crossword_id,correct_count,total_words,score_percent,duration_seconds,xp_earned,completed_at,crosswords(title)")
           .eq("user_id", user.id)
           .order("completed_at", { ascending: false }),
+        supabase
+          .from("crossword_progress")
+          .select("crossword_id,cell_values,elapsed_seconds,updated_at,crosswords(title)")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false }),
       ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setCwAttempts(((cwRows ?? []) as any[]).map((r) => ({ ...r, title: r.crosswords?.title ?? "—", score_percent: Number(r.score_percent) })));
+      setCwDrafts(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ((draftRows ?? []) as any[])
+          .map((r) => ({
+            crossword_id: r.crossword_id as string,
+            title: (r.crosswords?.title ?? "—") as string,
+            filled: Object.values((r.cell_values ?? {}) as Record<string, string>).filter(Boolean).length,
+            elapsed_seconds: r.elapsed_seconds as number,
+            updated_at: r.updated_at as string,
+          }))
+          .filter((r) => r.filled > 0),
+      );
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rows = (attempts ?? []) as any[];
@@ -443,7 +462,29 @@ function ProfilePage() {
           )}
         </TabsContent>
 
-        <TabsContent value="crosswords">
+        <TabsContent value="crosswords" className="space-y-4">
+          {!loading && cwDrafts.length > 0 && (
+            <Card className="p-4 space-y-3 border-warning/50 bg-warning/10">
+              <div className="flex items-center gap-2 font-semibold">
+                <PlayCircle className="h-5 w-5 text-warning" /> Yarımçıq qalmış krossvordlar
+              </div>
+              {cwDrafts.map((d) => (
+                <div key={d.crossword_id} className="flex flex-wrap items-center gap-3 rounded-md bg-background p-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{d.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {d.filled} xana doldurulub · {fmtDur(d.elapsed_seconds)} · {fmtDate(d.updated_at)}
+                    </div>
+                  </div>
+                  <Button size="sm" asChild>
+                    <Link to="/crosswords" search={{ resume: d.crossword_id }}>
+                      <PlayCircle className="h-4 w-4 mr-2" /> Davam et
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </Card>
+          )}
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
