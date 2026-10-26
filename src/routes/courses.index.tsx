@@ -402,8 +402,10 @@ function CoursesPage() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {visibleCourses.map((c) => (
                 <Card key={c.id} className="p-5 h-full hover:shadow-[var(--shadow-elegant)] transition-shadow border-border/60 flex flex-col relative">
-                  <div
-                    className="h-32 -mx-5 -mt-5 mb-4 rounded-t-xl bg-cover bg-center"
+                  <Link
+                    to="/courses/$courseId"
+                    params={{ courseId: c.id }}
+                    className="block h-32 -mx-5 -mt-5 mb-4 rounded-t-xl bg-cover bg-center"
                     style={c.cover_image_url
                       ? { backgroundImage: `url(${c.cover_image_url})` }
                       : { background: "var(--gradient-hero)" }}
@@ -430,7 +432,11 @@ function CoursesPage() {
                     </span>
                     <span className="text-xs text-muted-foreground">{t.common.pass}: {c.passing_score}%</span>
                   </div>
-                  <h3 className="font-display font-semibold text-lg leading-snug">{c.title}</h3>
+                  <h3 className="font-display font-semibold text-lg leading-snug">
+                    <Link to="/courses/$courseId" params={{ courseId: c.id }} className="hover:text-primary transition-colors">
+                      {c.title}
+                    </Link>
+                  </h3>
                   {c.instructor_name && (
                     <p className="text-xs text-muted-foreground mt-0.5">{c.instructor_name}</p>
                   )}
@@ -470,7 +476,7 @@ function CoursesPage() {
                   <div className="flex gap-2 mt-3">
 
                     <Button asChild size="sm" className="flex-1" variant={certs[c.id] ? "outline" : "default"}>
-                      <Link to="/courses/$courseId/play" params={{ courseId: c.id }}>
+                      <Link to="/courses/$courseId" params={{ courseId: c.id }}>
                         {certs[c.id] ? "Kursu təkrar keç" : t.common.open}
                       </Link>
                     </Button>
