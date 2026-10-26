@@ -6,3 +6,4 @@
 - [x] Profil: Vəzifə (headline) və Haqqımda (bio) sahələri — müəllim bölməsi üçün.
 - [x] Kurs redaktə səhifəsi (/courses/$courseId/edit): yeni sahələr (qısa təsvir, müəllim seçimi, dil, öyrənəcəklər, tələblər).
 - [x] Kurs kataloqu kartlarında reytinq + müəllim adı.
+- [x] /courses kartlarının göndərilən nümunəyə uyğun yenilənməsi və təqdimat səhifəsinə keçidlərin yoxlanılması.
