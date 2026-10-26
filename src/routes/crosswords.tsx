@@ -212,12 +212,56 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
   const started = useRef(Date.now());
   const inputs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  const { user } = useAuth();
+  const [loaded, setLoaded] = useState(false);
+  const valuesRef = useRef(values);
+  valuesRef.current = values;
+
+  // Load saved progress
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("crossword_progress").select("cell_values,elapsed_seconds").eq("crossword_id", cw.id).eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setValues((data.cell_values ?? {}) as Record<string, string>);
+          started.current = Date.now() - data.elapsed_seconds * 1000;
+          setElapsed(data.elapsed_seconds);
+          if (Object.values(data.cell_values ?? {}).some(Boolean)) toast.info("Dayandığınız yerdən davam edirsiniz");
+        }
+        setLoaded(true);
+      });
+  }, [user, cw.id]);
+
+  const saveProgress = () => {
+    if (!user || !loaded || result) return;
+    const secs = Math.round((Date.now() - started.current) / 1000);
+    void supabase.from("crossword_progress").upsert(
+      { crossword_id: cw.id, user_id: user.id, cell_values: valuesRef.current, elapsed_seconds: secs, updated_at: new Date().toISOString() },
+      { onConflict: "crossword_id,user_id" },
+    ).then(() => {});
+  };
+
+  // Save after edits (debounced) and periodically; also on leave
+  useEffect(() => {
+    if (!loaded || result) return;
+    const t = setTimeout(saveProgress, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values, loaded]);
+  useEffect(() => {
+    if (!loaded || result) return;
+    const t = setInterval(saveProgress, 15000);
+    return () => { clearInterval(t); saveProgress(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, result]);
+
   useEffect(() => {
     if (result) return;
     const t = setInterval(() => setElapsed(Math.round((Date.now() - started.current) / 1000)), 1000);
     return () => clearInterval(t);
   }, [result]);
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  const clearProgress = () => { if (user) void supabase.from("crossword_progress").delete().eq("crossword_id", cw.id).eq("user_id", user.id).then(() => {}); };
 
   const active = useMemo(() => new Set(cellsOf(cw.layout[activeWord] ?? cw.layout[0]).map(({ r, c }) => `${r},${c}`)), [activeWord, cw]);
   const cellResults = useMemo(() => {
@@ -285,10 +329,11 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
     if (error) return toast.error(error.message.includes("not found") ? "Krossvord dərc olunmayıb." : error.message);
     const r = data as unknown as { correct: number; total: number; results: boolean[]; xp?: number };
     setResult({ ...r, seconds });
+    clearProgress();
     toast.success(`${r.correct} / ${r.total} söz düzgündür${r.xp ? ` · +${r.xp} XP` : ""}`);
   };
 
-  const restart = () => { setValues({}); setResult(null); started.current = Date.now(); setElapsed(0); };
+  const restart = () => { clearProgress(); setValues({}); setResult(null); started.current = Date.now(); setElapsed(0); };
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-5">
