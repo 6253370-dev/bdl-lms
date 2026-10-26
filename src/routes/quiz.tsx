@@ -26,6 +26,14 @@ import { toast } from "sonner";
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
 export const Route = createFileRoute("/quiz")({
+  head: () => ({ meta: [
+    { title: "Quiz | Baku Digital Lab" },
+    { name: "description", content: "Bilik yarışları və quiz nəticələriniz." },
+    { property: "og:title", content: "Quiz | Baku Digital Lab" },
+    { property: "og:description", content: "Bilik yarışları və quiz nəticələriniz." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute>
       <QuizHub />

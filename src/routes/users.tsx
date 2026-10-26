@@ -21,6 +21,14 @@ import { t } from "@/lib/i18n";
 import { saveCourseAccess } from "@/components/CourseAccessEditor";
 
 export const Route = createFileRoute("/users")({
+  head: () => ({ meta: [
+    { title: "İstifadəçilər | Baku Digital Lab" },
+    { name: "description", content: "Təlim platformasının istifadəçiləri və hesab məlumatlarının idarəsi." },
+    { property: "og:title", content: "İstifadəçilər | Baku Digital Lab" },
+    { property: "og:description", content: "Təlim platformasının istifadəçiləri və hesab məlumatlarının idarəsi." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute requireAdmin>
       <UsersPage />

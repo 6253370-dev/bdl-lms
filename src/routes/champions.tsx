@@ -15,6 +15,14 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/champions")({
+  head: () => ({ meta: [
+    { title: "Gamification Center | Baku Digital Lab" },
+    { name: "description", content: "Təlim yarışları, gündəlik suallar və şəxsi nailiyyətlər." },
+    { property: "og:title", content: "Gamification Center | Baku Digital Lab" },
+    { property: "og:description", content: "Təlim yarışları, gündəlik suallar və şəxsi nailiyyətlər." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute>
       <GamificationPage />

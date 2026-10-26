@@ -12,6 +12,14 @@ import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/certificates/my")({
+  head: () => ({ meta: [
+    { title: "Sertifikatlarım | Baku Digital Lab" },
+    { name: "description", content: "Tamamladığınız təlimlər üzrə şəxsi sertifikatlarınız." },
+    { property: "og:title", content: "Sertifikatlarım | Baku Digital Lab" },
+    { property: "og:description", content: "Tamamladığınız təlimlər üzrə şəxsi sertifikatlarınız." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute>
       <MyCertificatesPage />

@@ -27,6 +27,14 @@ import { t } from "@/lib/i18n";
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 
 export const Route = createFileRoute("/courses/$courseId/edit")({
+  head: () => ({ meta: [
+    { title: "Kursun redaktəsi | Baku Digital Lab" },
+    { name: "description", content: "Kurs məlumatları, dərslər və təlim materiallarının idarəsi." },
+    { property: "og:title", content: "Kursun redaktəsi | Baku Digital Lab" },
+    { property: "og:description", content: "Kurs məlumatları, dərslər və təlim materiallarının idarəsi." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <ProtectedRoute>
       <CourseBuilderPage />
