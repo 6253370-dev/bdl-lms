@@ -556,6 +556,44 @@ export type Database = {
           },
         ]
       }
+      course_reviews: {
+        Row: {
+          comment: string | null
+          course_id: string
+          created_at: string
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          course_id: string
+          created_at?: string
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          course_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_reviews_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_views: {
         Row: {
           course_id: string
@@ -595,10 +633,15 @@ export type Database = {
           description: string | null
           folder_id: string | null
           id: string
+          instructor_name: string | null
           is_published: boolean
+          language: string
           passing_score: number
+          requirements: Json
+          short_description: string | null
           title: string
           updated_at: string
+          what_you_will_learn: Json
         }
         Insert: {
           certificate_template_id?: string | null
@@ -609,10 +652,15 @@ export type Database = {
           description?: string | null
           folder_id?: string | null
           id?: string
+          instructor_name?: string | null
           is_published?: boolean
+          language?: string
           passing_score?: number
+          requirements?: Json
+          short_description?: string | null
           title: string
           updated_at?: string
+          what_you_will_learn?: Json
         }
         Update: {
           certificate_template_id?: string | null
@@ -623,10 +671,15 @@ export type Database = {
           description?: string | null
           folder_id?: string | null
           id?: string
+          instructor_name?: string | null
           is_published?: boolean
+          language?: string
           passing_score?: number
+          requirements?: Json
+          short_description?: string | null
           title?: string
           updated_at?: string
+          what_you_will_learn?: Json
         }
         Relationships: [
           {
@@ -1706,6 +1759,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
           email: string
           employee_id: string
@@ -1713,6 +1767,7 @@ export type Database = {
           exam_blocked_reason: string | null
           first_name: string | null
           full_name: string
+          headline: string | null
           id: string
           is_exam_blocked: boolean
           last_name: string | null
@@ -1722,6 +1777,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           email: string
           employee_id: string
@@ -1729,6 +1785,7 @@ export type Database = {
           exam_blocked_reason?: string | null
           first_name?: string | null
           full_name: string
+          headline?: string | null
           id: string
           is_exam_blocked?: boolean
           last_name?: string | null
@@ -1738,6 +1795,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           email?: string
           employee_id?: string
@@ -1745,6 +1803,7 @@ export type Database = {
           exam_blocked_reason?: string | null
           first_name?: string | null
           full_name?: string
+          headline?: string | null
           id?: string
           is_exam_blocked?: boolean
           last_name?: string | null

@@ -64,6 +64,13 @@
       "when": 1792991063153,
       "tag": "0008_crossword_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792997981639,
+      "tag": "0009_course_landing_reviews",
+      "breakpoints": true
     }
   ]
 }
