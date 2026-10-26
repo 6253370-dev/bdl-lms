@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { downloadCertificateSmart } from "@/lib/certificate";
+import { StarRating } from "@/components/StarRating";
 
 
 export const Route = createFileRoute("/courses/")({
@@ -40,6 +41,7 @@ interface CourseRow {
   folder_id: string | null;
   cover_image_url: string | null;
   certificate_template_url: string | null;
+  instructor_name: string | null;
 }
 
 interface CertRow {
@@ -68,6 +70,7 @@ function CoursesPage() {
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [certs, setCerts] = useState<Record<string, CertRow>>({});
   const [certBusy, setCertBusy] = useState<string | null>(null);
+  const [ratings, setRatings] = useState<Record<string, { avg: number; count: number }>>({});
 
   const [loading, setLoading] = useState(true);
 
@@ -92,10 +95,20 @@ function CoursesPage() {
 
   const load = async () => {
     setLoading(true);
-    const [cRes, fRes] = await Promise.all([
-      supabase.from("courses").select("id,title,description,is_published,passing_score,folder_id,cover_image_url,certificate_template_url").order("created_at", { ascending: false }),
+    const [cRes, fRes, rRes] = await Promise.all([
+      supabase.from("courses").select("id,title,description,is_published,passing_score,folder_id,cover_image_url,certificate_template_url,instructor_name").order("created_at", { ascending: false }),
       supabase.from("folders").select("id,name,parent_id").order("name"),
+      supabase.from("course_reviews").select("course_id,rating"),
     ]);
+    const rMap: Record<string, { sum: number; count: number }> = {};
+    ((rRes.data ?? []) as { course_id: string; rating: number }[]).forEach((r) => {
+      const cur = rMap[r.course_id] ?? { sum: 0, count: 0 };
+      cur.sum += r.rating; cur.count += 1;
+      rMap[r.course_id] = cur;
+    });
+    const rFinal: Record<string, { avg: number; count: number }> = {};
+    Object.entries(rMap).forEach(([id, v]) => { rFinal[id] = { avg: v.sum / v.count, count: v.count }; });
+    setRatings(rFinal);
     let list = (cRes.data ?? []) as CourseRow[];
     if (!isAdmin) {
       // Hide unpublished
@@ -418,6 +431,16 @@ function CoursesPage() {
                     <span className="text-xs text-muted-foreground">{t.common.pass}: {c.passing_score}%</span>
                   </div>
                   <h3 className="font-display font-semibold text-lg leading-snug">{c.title}</h3>
+                  {c.instructor_name && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{c.instructor_name}</p>
+                  )}
+                  {ratings[c.id] && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <span className="text-sm font-bold text-warning">{ratings[c.id].avg.toFixed(1)}</span>
+                      <StarRating value={ratings[c.id].avg} size="sm" />
+                      <span className="text-xs text-muted-foreground">({ratings[c.id].count})</span>
+                    </div>
+                  )}
                   {c.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-2 flex-1">{c.description}</p>}
                   <div className="mt-4">
                     <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
@@ -453,7 +476,7 @@ function CoursesPage() {
                     </Button>
                     {isAdmin && (
                       <Button asChild size="sm" variant="outline">
-                        <Link to="/courses/$courseId" params={{ courseId: c.id }}>{t.common.edit}</Link>
+                        <Link to="/courses/$courseId/edit" params={{ courseId: c.id }}>{t.common.edit}</Link>
                       </Button>
                     )}
                   </div>
