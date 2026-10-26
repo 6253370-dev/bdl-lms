@@ -2451,6 +2451,7 @@ export type Database = {
         Args: { _answers: Json; _duration: number; _id: string }
         Returns: Json
       }
+      crossword_norm: { Args: { t: string }; Returns: string }
       find_live_room_by_code: {
         Args: { _code: string }
         Returns: {

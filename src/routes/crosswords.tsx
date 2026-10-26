@@ -316,6 +316,16 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
                 Nəticə: <b>{result.correct} / {result.total}</b> ({Math.round((result.correct / Math.max(result.total, 1)) * 100)}%)</div>
               <div>Vaxt: <b>{fmt(result.seconds)}</b></div>
               <div className="text-primary font-semibold">{result.xp ? `+${result.xp} XP qazandınız` : "Bu nəticə üçün əlavə XP yoxdur (əvvəlki ən yaxşı nəticənizi keçin)."}</div>
+              {result.results.some((r) => !r) && (
+                <div className="pt-2">
+                  <div className="font-semibold text-destructive">Səhv sözlər:</div>
+                  <ul className="list-disc pl-5 text-destructive">
+                    {cw.layout.map((w, i) => result.results[i] === false && (
+                      <li key={i}>{w.number}. {w.direction === "across" ? "Üfüqi" : "Şaquli"} — {w.clue}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
           <div className="flex gap-2">
