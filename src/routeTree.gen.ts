@@ -29,6 +29,7 @@ import { Route as CertificatesMyRouteImport } from './routes/certificates.my'
 import { Route as CoursesIndexRouteImport } from './routes/courses.index'
 import { Route as LiveClassesIndexRouteImport } from './routes/live-classes.index'
 import { Route as CoursesCourseIdIndexRouteImport } from './routes/courses.$courseId.index'
+import { Route as CoursesCourseIdEditRouteImport } from './routes/courses.$courseId.edit'
 import { Route as CoursesCourseIdPlayRouteImport } from './routes/courses.$courseId.play'
 import { Route as LiveClassesRoomIdIndexRouteImport } from './routes/live-classes.$roomId.index'
 import { Route as LiveClassesRoomIdRoomRouteImport } from './routes/live-classes.$roomId.room'
@@ -133,6 +134,11 @@ const CoursesCourseIdIndexRoute = CoursesCourseIdIndexRouteImport.update({
   path: '/courses/$courseId/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CoursesCourseIdEditRoute = CoursesCourseIdEditRouteImport.update({
+  id: '/courses/$courseId/edit',
+  path: '/courses/$courseId/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CoursesCourseIdPlayRoute = CoursesCourseIdPlayRouteImport.update({
   id: '/courses/$courseId/play',
   path: '/courses/$courseId/play',
@@ -169,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/certificates/': typeof CertificatesIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/live-classes/': typeof LiveClassesIndexRoute
+  '/courses/$courseId/edit': typeof CoursesCourseIdEditRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
   '/live-classes/$roomId/room': typeof LiveClassesRoomIdRoomRoute
   '/courses/$courseId/': typeof CoursesCourseIdIndexRoute
@@ -194,6 +201,7 @@ export interface FileRoutesByTo {
   '/certificates': typeof CertificatesIndexRoute
   '/courses': typeof CoursesIndexRoute
   '/live-classes': typeof LiveClassesIndexRoute
+  '/courses/$courseId/edit': typeof CoursesCourseIdEditRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
   '/live-classes/$roomId/room': typeof LiveClassesRoomIdRoomRoute
   '/courses/$courseId': typeof CoursesCourseIdIndexRoute
@@ -220,6 +228,7 @@ export interface FileRoutesById {
   '/certificates/': typeof CertificatesIndexRoute
   '/courses/': typeof CoursesIndexRoute
   '/live-classes/': typeof LiveClassesIndexRoute
+  '/courses/$courseId/edit': typeof CoursesCourseIdEditRoute
   '/courses/$courseId/play': typeof CoursesCourseIdPlayRoute
   '/live-classes/$roomId/room': typeof LiveClassesRoomIdRoomRoute
   '/courses/$courseId/': typeof CoursesCourseIdIndexRoute
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
     | '/certificates/'
     | '/courses/'
     | '/live-classes/'
+    | '/courses/$courseId/edit'
     | '/courses/$courseId/play'
     | '/live-classes/$roomId/room'
     | '/courses/$courseId/'
@@ -272,6 +282,7 @@ export interface FileRouteTypes {
     | '/certificates'
     | '/courses'
     | '/live-classes'
+    | '/courses/$courseId/edit'
     | '/courses/$courseId/play'
     | '/live-classes/$roomId/room'
     | '/courses/$courseId'
@@ -297,6 +308,7 @@ export interface FileRouteTypes {
     | '/certificates/'
     | '/courses/'
     | '/live-classes/'
+    | '/courses/$courseId/edit'
     | '/courses/$courseId/play'
     | '/live-classes/$roomId/room'
     | '/courses/$courseId/'
@@ -323,6 +335,7 @@ export interface RootRouteChildren {
   CertificatesIndexRoute: typeof CertificatesIndexRoute
   CoursesIndexRoute: typeof CoursesIndexRoute
   LiveClassesIndexRoute: typeof LiveClassesIndexRoute
+  CoursesCourseIdEditRoute: typeof CoursesCourseIdEditRoute
   CoursesCourseIdPlayRoute: typeof CoursesCourseIdPlayRoute
   LiveClassesRoomIdRoomRoute: typeof LiveClassesRoomIdRoomRoute
   CoursesCourseIdIndexRoute: typeof CoursesCourseIdIndexRoute
@@ -471,6 +484,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesCourseIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/courses/$courseId/edit': {
+      id: '/courses/$courseId/edit'
+      path: '/courses/$courseId/edit'
+      fullPath: '/courses/$courseId/edit'
+      preLoaderRoute: typeof CoursesCourseIdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/courses/$courseId/play': {
       id: '/courses/$courseId/play'
       path: '/courses/$courseId/play'
@@ -515,6 +535,7 @@ const rootRouteChildren: RootRouteChildren = {
   CertificatesIndexRoute: CertificatesIndexRoute,
   CoursesIndexRoute: CoursesIndexRoute,
   LiveClassesIndexRoute: LiveClassesIndexRoute,
+  CoursesCourseIdEditRoute: CoursesCourseIdEditRoute,
   CoursesCourseIdPlayRoute: CoursesCourseIdPlayRoute,
   LiveClassesRoomIdRoomRoute: LiveClassesRoomIdRoomRoute,
   CoursesCourseIdIndexRoute: CoursesCourseIdIndexRoute,

@@ -1,3 +1,8 @@
 - [x] İmtahanı bağlama düyməsi və təsdiq pəncərəsi.
 - [x] Sual nömrəsi və mətni ilə birbaşa sual seçimi.
 - [x] Aktiv hesabla hər iki davranışın yoxlanılması.
+- [x] Kurs landing page (Udemy üslubu): hero, öyrənəcəklər, daxildir, materiallar, tələblər, haqqında, müəllim, rəylər.
+- [x] Rəy sistemi: 1-5 ulduz + şərh, yalnız kursu bitirənlər (RLS), öz rəyini redaktə/sil, bütün rəylər modalı + axtarış.
+- [x] Profil: Vəzifə (headline) və Haqqımda (bio) sahələri — müəllim bölməsi üçün.
+- [x] Kurs redaktə səhifəsi (/courses/$courseId/edit): yeni sahələr (qısa təsvir, müəllim seçimi, dil, öyrənəcəklər, tələblər).
+- [x] Kurs kataloqu kartlarında reytinq + müəllim adı.

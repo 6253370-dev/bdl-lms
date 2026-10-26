@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -106,6 +107,8 @@ function ProfilePage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [team, setTeam] = useState("");
+  const [headline, setHeadline] = useState("");
+  const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
@@ -125,6 +128,8 @@ function ProfilePage() {
     setEmail(profile.email ?? "");
     setPhone(profile.phone ?? "");
     setTeam(profile.team ?? "");
+    setHeadline((profile as { headline?: string | null }).headline ?? "");
+    setBio((profile as { bio?: string | null }).bio ?? "");
     setAvatarUrl(profile.avatar_url ?? null);
   }, [profile]);
 
@@ -273,6 +278,8 @@ function ProfilePage() {
         full_name: fullName,
         phone: phone.trim() || null,
         email: email.trim(),
+        headline: headline.trim() || null,
+        bio: bio.trim() || null,
       })
       .eq("id", user.id);
     if (error) {
@@ -380,6 +387,26 @@ function ProfilePage() {
               <Label>Komanda (Team Battle)</Label>
               <Input value={team || "—"} disabled readOnly />
               <p className="text-xs text-muted-foreground">Komandanı yalnız admin dəyişə bilər.</p>
+            </div>
+            <div className="space-y-2 border-t pt-4">
+              <Label>Vəzifə / Uzmanlıq sahəsi</Label>
+              <Input
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+                placeholder="məs. Satış üzrə baş mütəxəssis"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Haqqımda</Label>
+              <Textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={4}
+                placeholder="Təcrübəniz və ixtisasınız haqqında qısa məlumat"
+              />
+              <p className="text-xs text-muted-foreground">
+                Bu məlumatlar müəllim kimi göstərildiyiniz kurs səhifələrində görünür.
+              </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 border-t pt-4">
               <div className="space-y-2">
