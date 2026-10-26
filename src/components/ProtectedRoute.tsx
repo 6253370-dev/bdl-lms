@@ -8,9 +8,10 @@ interface Props {
   children: ReactNode;
   requireAdmin?: boolean;
   requireSuperAdmin?: boolean;
+  showAppShell?: boolean;
 }
 
-export function ProtectedRoute({ children, requireAdmin, requireSuperAdmin }: Props) {
+export function ProtectedRoute({ children, requireAdmin, requireSuperAdmin, showAppShell = true }: Props) {
   const { session, loading, isAdmin, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
@@ -28,5 +29,5 @@ export function ProtectedRoute({ children, requireAdmin, requireSuperAdmin }: Pr
       </div>
     );
   }
-  return <AppShell>{children}</AppShell>;
+  return showAppShell ? <AppShell>{children}</AppShell> : <>{children}</>;
 }
