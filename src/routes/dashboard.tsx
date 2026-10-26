@@ -226,7 +226,7 @@ function Dashboard() {
                 {userStats.recent.map((r) => (
                   <li key={r.id}>
                     <Link
-                      to="/courses/$courseId/play"
+                      to="/courses/$courseId"
                       params={{ courseId: r.id }}
                       className="flex items-center justify-between text-sm py-2 px-3 rounded-md hover:bg-muted"
                     >
