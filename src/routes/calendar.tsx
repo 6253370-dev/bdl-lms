@@ -348,7 +348,7 @@ function CalendarPage() {
   };
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+    <div className="bento-page">
       <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
         <div>
           <h1 className="font-display text-3xl font-bold mb-1 flex items-center gap-2">
@@ -363,8 +363,10 @@ function CalendarPage() {
         )}
       </div>
 
+      <div className="calendar-workspace">
+      <div className="calendar-grid">
       {/* Toolbar */}
-      <Card className="p-3 mb-4 flex items-center justify-between flex-wrap gap-3">
+      <div className="p-4 border-b flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setCursor(startOfDay(new Date()))}>
             Bu gün
@@ -373,7 +375,7 @@ function CalendarPage() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="font-medium px-3 min-w-[200px] text-center capitalize">{navTitle}</div>
+            <div className="font-semibold px-2 text-center capitalize">{navTitle}</div>
             <Button variant="ghost" size="icon" onClick={() => navigate(1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -393,7 +395,7 @@ function CalendarPage() {
             </button>
           ))}
         </div>
-      </Card>
+      </div>
 
       {view === "month" && (
         <MonthView
@@ -426,6 +428,20 @@ function CalendarPage() {
         />
       )}
 
+      </div>
+      <aside className="calendar-agenda">
+        <h2 className="font-display font-bold mb-4">Dəvətlər və hadisələr</h2>
+        {events.filter((event) => eventStatus(event) !== 'completed').slice(0, 8).map((event) => (
+          <div key={event.id} className="py-4 border-b border-border last:border-0">
+            <Button variant="ghost" className="h-auto w-full justify-start p-0 whitespace-normal text-left" onClick={() => setDetails(event)}>{event.title}</Button>
+            <p className="text-xs text-muted-foreground mt-2">{fmtDate(new Date(event.starts_at))} · {fmtTime(new Date(event.starts_at))}</p>
+            <Badge variant="secondary" className="mt-2 text-xs">{EVENT_TYPE_LABEL[event.event_type]}</Badge>
+            {myInvite(event)?.status === 'pending' && <div className="flex gap-2 mt-3"><Button size="sm" onClick={() => respond(event, 'accepted')}><Check className="h-3 w-3" />Qəbul</Button><Button size="sm" variant="outline" onClick={() => respond(event, 'declined')}><X className="h-3 w-3" />İmtina</Button></div>}
+          </div>
+        ))}
+        {!events.some((event) => eventStatus(event) !== 'completed') && <p className="text-sm text-muted-foreground">Gələcək hadisə yoxdur.</p>}
+      </aside>
+      </div>
       {/* Details dialog */}
       <Dialog open={!!details} onOpenChange={(o) => !o && setDetails(null)}>
         <DialogContent className="max-w-lg">

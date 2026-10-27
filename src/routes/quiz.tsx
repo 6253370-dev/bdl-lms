@@ -110,7 +110,7 @@ function QuizHub() {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8">
+    <div className="bento-page space-y-6">
       <div>
         <h1 className="font-display text-3xl font-bold mb-2">Live Quiz</h1>
         <p className="text-muted-foreground">
@@ -118,7 +118,7 @@ function QuizHub() {
         </p>
       </div>
 
-      <Card className="p-6 max-w-md">
+      <Card className="p-6 max-w-xl border-0">
         <div className="flex items-center gap-2 mb-3">
           <KeyRound className="h-5 w-5 text-primary" />
           <div className="font-display font-semibold">Otağa qoşul</div>
@@ -188,7 +188,7 @@ function AdminPanel({ onEnterRoom }: { onEnterRoom: (r: Room) => void }) {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="rooms">
-        <TabsList>
+        <TabsList className="module-tabs">
           <TabsTrigger value="rooms">Aktiv otaqlar ({rooms.length})</TabsTrigger>
           <TabsTrigger value="quizzes">Quizlər ({quizzes.length})</TabsTrigger>
           <TabsTrigger value="history">Tarixçə ({history.length})</TabsTrigger>
@@ -751,7 +751,7 @@ function LiveRoom({ roomId, onLeave }: { roomId: string; onLeave: () => void }) 
   const currentQ = room.current_question_index >= 0 ? questions[room.current_question_index] : null;
 
   return (
-    <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-6">
+    <div className="bento-page space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <div className="text-xs uppercase tracking-wider text-muted-foreground inline-flex items-center gap-2">
@@ -928,13 +928,13 @@ function ActiveView({
 
         <h2 className="font-display text-xl font-semibold leading-snug">{question.text}</h2>
 
-        <div className="space-y-2">
+        <div className="quiz-answers grid sm:grid-cols-2 gap-3">
           {question.answers.map((a) => {
             const isSel = selected === a.id;
             const reveal = !!submitted;
             const isCorrect = a.is_correct;
             return (
-              <button
+              <Button variant="outline"
                 key={a.id}
                 disabled={!!submitted || isAdmin || remaining <= 0}
                 onClick={() => { setSelected(a.id); submit(a.id); }}
@@ -948,7 +948,7 @@ function ActiveView({
                 ].join(" ")}
               >
                 {a.text}
-              </button>
+              </Button>
             );
           })}
         </div>

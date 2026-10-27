@@ -228,7 +228,7 @@ function LibraryPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="bento-page space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
@@ -254,7 +254,7 @@ function LibraryPage() {
         </div>
       </div>
 
-      <Card className="p-4 space-y-3">
+      <div className="space-y-3">
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -291,7 +291,7 @@ function LibraryPage() {
         </div>
 
         <Tabs value={view} onValueChange={(v) => setView(v as "cards" | "table")}>
-          <TabsList>
+          <TabsList className="module-tabs">
             <TabsTrigger value="cards"><LayoutGrid className="h-4 w-4 mr-2" />Kart</TabsTrigger>
             <TabsTrigger value="table"><List className="h-4 w-4 mr-2" />Cədvəl</TabsTrigger>
           </TabsList>
@@ -305,7 +305,7 @@ function LibraryPage() {
                 Hələ kitab yoxdur.
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-5">
                 {filtered.map((b) => (
                   <BookCard
                     key={b.id}
@@ -396,7 +396,7 @@ function LibraryPage() {
             </div>
           </TabsContent>
         </Tabs>
-      </Card>
+      </div>
 
       {editorOpen && (
         <BookEditor
@@ -472,12 +472,12 @@ function BookCard({
   onEdit?: () => void; onDelete?: () => void;
 }) {
   return (
-    <div className="group">
+    <div className="group rounded-lg bg-card shadow-card p-4 min-w-0">
       {/* Book-shaped: standing rectangle with left spine */}
-      <div className="relative aspect-[2/3] rounded-r-md rounded-l-sm overflow-hidden bg-gradient-to-br from-primary/20 to-primary/5 shadow-md border border-border transition-transform group-hover:-translate-y-1 group-hover:shadow-xl">
-        <div className="absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-r from-primary/70 to-primary/40 rounded-l-sm" />
+      <div className="relative aspect-[4/3] rounded-md overflow-hidden bg-muted border border-border transition-transform motion-safe:group-hover:-translate-y-1">
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/30" />
         {coverUrl ? (
-          <img src={coverUrl} alt={book.title} className="absolute inset-0 w-full h-full object-cover pl-2" />
+          <img src={coverUrl} alt={book.title} className="absolute inset-0 w-full h-full object-contain p-3" />
         ) : (
           <div className="absolute inset-0 pl-2 flex flex-col items-center justify-center text-center p-3">
             <BookOpen className="h-10 w-10 text-primary/60 mb-2" />
