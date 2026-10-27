@@ -48,9 +48,10 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-info: var(--info);
 
   --font-display: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
 }
 
 :root {
@@ -87,6 +88,7 @@
 
   --warning: oklch(0.8 0.15 80);
   --warning-foreground: oklch(0.2 0.04 260);
+  --info: oklch(0.58 0.13 240);
 
   --border: oklch(0.935 0.006 250);
   --input: oklch(0.93 0.006 250);
@@ -130,6 +132,7 @@
   --success-foreground: oklch(0.18 0.04 260);
   --warning: oklch(0.78 0.16 75);
   --warning-foreground: oklch(0.18 0.04 260);
+  --info: oklch(0.77 0.1 240);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 12%);
   --ring: oklch(0.78 0.16 75);
@@ -144,7 +147,7 @@
     font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing: -0.025em; }
+  h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing: 0; }
   h1 { font-weight: 800; }
 }
 
@@ -160,3 +163,66 @@
 @utility bg-gradient-soft {
   background-image: var(--gradient-soft);
 }
+
+/* Module layouts share a compact canvas; content itself owns its grid. */
+.bento-page { width: 100%; max-width: 1440px; margin-inline: auto; padding: 24px 28px 40px; }
+.bento-page > :first-child h1 { font-size: 28px; line-height: 1.25; }
+.bento-page h2 { letter-spacing: 0; }
+.bento-panel { border: 0; border-radius: 8px; background: var(--card); box-shadow: var(--shadow-card); }
+.bento-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding-block: 8px 20px; }
+.bento-section-title { font-size: 15px; font-weight: 700; }
+.bento-course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 16px; }
+.bento-course-card { border: 0; border-radius: 8px; box-shadow: var(--shadow-card); }
+.bento-course-card:hover { box-shadow: var(--shadow-elegant); }
+.learning-banner { color: var(--foreground); }
+.dashboard-section { margin-top: 0; padding: 20px; background: var(--card); border-radius: 8px; box-shadow: var(--shadow-card); }
+.dashboard-section article { box-shadow: none; border: 0; padding: 0; }
+.module-tabs { width: 100%; justify-content: flex-start; height: auto; min-height: 42px; flex-wrap: wrap; gap: 4px; background: transparent; padding: 0 0 12px; border-bottom: 1px solid var(--border); border-radius: 0; }
+.module-tabs [role=tab] { padding: 8px 14px; border-radius: 6px; box-shadow: none; }
+.module-tabs [role=tab][data-state=active] { background: var(--accent); color: var(--accent-foreground); }
+.profile-workspace { display: grid; grid-template-columns: 280px minmax(0,1fr); gap: 24px; align-items: start; }
+.profile-identity { position: sticky; top: 92px; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 28px 20px; gap: 16px; }
+.profile-identity > div:first-child > div:first-child { width: 88px; height: 88px; font-size: 28px; }
+.course-overview-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 28px; }
+.course-overview-grid > section { min-width: 0; }
+.course-overview-grid > section:last-child { grid-column: 1 / -1; }
+.course-overview-grid section > h2 { font-size: 20px; }
+.course-overview-grid section > div { box-shadow: none; border-radius: 8px; }
+.course-editor-details { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; align-items: start; }
+.course-editor-details > :nth-child(3), .course-editor-details > :nth-child(5), .course-editor-details > :nth-child(6) { grid-column: 1 / -1; }
+.course-editor-lessons { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; align-items: start; }
+.course-editor-lessons > p, .course-editor-lessons > div:last-child { grid-column: 1 / -1; }
+.question-workspace { display: grid; grid-template-columns: 230px minmax(0,1fr); gap: 24px; }
+.question-rows { background: var(--card); border-radius: 8px; box-shadow: var(--shadow-card); overflow: hidden; }
+.question-rows > div { border: 0; box-shadow: none; border-radius: 0; border-bottom: 1px solid var(--border); }
+.question-rows > div:last-child { border-bottom: 0; }
+.calendar-workspace { display: grid; grid-template-columns: minmax(0,1fr) 280px; gap: 20px; align-items: start; }
+.calendar-grid > div { box-shadow: none; border: 0; border-radius: 0; }
+.calendar-grid { overflow: auto; border-radius: 8px; background: var(--card); box-shadow: var(--shadow-card); }
+.calendar-agenda { padding: 20px; background: var(--card); border-radius: 8px; box-shadow: var(--shadow-card); }
+.bento-table { background: var(--card); border-radius: 8px; overflow: auto; box-shadow: var(--shadow-card); }
+.bento-table th { background: var(--muted); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.bento-table td { padding: 16px 14px; }
+.bento-table tbody tr:hover { background: var(--muted); }
+.quiz-answers > button:nth-child(4n+1) { background: color-mix(in oklab,var(--accent) 45%,var(--card)); }
+.quiz-answers > button:nth-child(4n+2) { background: color-mix(in oklab,var(--info) 8%,var(--card)); }
+.quiz-answers > button:nth-child(4n+3) { background: color-mix(in oklab,var(--success) 8%,var(--card)); }
+.quiz-answers > button:nth-child(4n+4) { background: var(--muted); }
+.quiz-answers > button { height: auto; min-height: 64px; white-space: normal; }
+.quiz-answers > button:disabled { opacity: 1; }
+.bento-page [data-slot=card] { min-width: 0; }
+@media (max-width: 1100px) {
+  .calendar-workspace { grid-template-columns: minmax(0,1fr); }
+  .calendar-agenda { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+  .calendar-agenda > h2 { grid-column: 1 / -1; }
+}
+@media (max-width: 767px) {
+  .bento-page { padding: 20px 16px 32px; }
+  .bento-page > :first-child h1 { font-size: 24px; }
+  .profile-workspace, .course-overview-grid, .course-editor-details, .course-editor-lessons, .question-workspace { grid-template-columns: minmax(0,1fr); }
+  .profile-identity { position: static; flex-direction: row; text-align: left; flex-wrap: wrap; padding: 20px; }
+  .profile-identity > div:first-child > div:first-child { width: 64px; height: 64px; font-size: 22px; }
+  .calendar-agenda { display: block; }
+  .dashboard-section { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
