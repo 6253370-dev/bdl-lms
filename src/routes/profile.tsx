@@ -304,8 +304,8 @@ function ProfilePage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
+    <div className="bento-page profile-workspace">
+      <div className="profile-identity bento-panel">
         <div className="relative">
           <div className="h-16 w-16 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xl font-semibold overflow-hidden">
             {avatarUrl ? (
@@ -337,7 +337,7 @@ function ProfilePage() {
           </Button>
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap justify-center">
             <h1 className="text-2xl font-display font-bold truncate">{profile?.full_name ?? "Profil"}</h1>
             <Badge variant="secondary">{rank}</Badge>
           </div>
@@ -347,8 +347,8 @@ function ProfilePage() {
         </div>
       </div>
 
-      <Tabs defaultValue="info">
-        <TabsList>
+      <Tabs defaultValue="info" className="min-w-0">
+        <TabsList className="module-tabs">
           <TabsTrigger value="info">
             <UserIcon className="h-4 w-4 mr-2" /> Şəxsi məlumatlarım
           </TabsTrigger>
@@ -364,7 +364,7 @@ function ProfilePage() {
         </TabsList>
 
         <TabsContent value="info">
-          <Card className="p-5 space-y-4 max-w-xl">
+          <Card className="p-6 space-y-5 border-0">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Ad</Label>

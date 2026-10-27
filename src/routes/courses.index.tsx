@@ -302,7 +302,7 @@ function CoursesPage() {
   }, [courses, activeFolder, search]);
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+    <div className="bento-page">
       <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-3xl font-bold">{t.courses.title}</h1>
@@ -357,7 +357,7 @@ function CoursesPage() {
       </div>
 
       {/* Search + folder dropdown */}
-      <div className="mb-6 flex flex-wrap items-center gap-2">
+      <div className="bento-toolbar">
         <div className="relative flex-1 min-w-[220px] max-w-md">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -407,6 +407,13 @@ function CoursesPage() {
         )}
       </div>
 
+      {!loading && !search && activeFolder === ALL && courses[0] && (
+        <article className="relative mb-6 flex flex-col sm:flex-row gap-6 rounded-lg bg-card p-5 shadow-card">
+          <div className="w-full sm:w-56 aspect-video shrink-0 overflow-hidden rounded-lg bg-muted">{courses[0].cover_image_url ? <img src={courses[0].cover_image_url} alt="" className="w-full h-full object-cover" /> : <div className="h-full flex items-center justify-center"><BookOpen className="h-10 w-10 text-primary" /></div>}</div>
+          <div className="min-w-0 flex-1"><span className="text-xs font-semibold text-primary">Son əlavə olunan kurs</span><h2 className="mt-2 text-xl font-display font-bold"><Link to="/courses/$courseId" params={{ courseId: courses[0].id }} className="after:absolute after:inset-0">{courses[0].title}</Link></h2><p className="mt-2 text-sm text-muted-foreground line-clamp-2">{courses[0].description}</p><p className="mt-3 text-xs text-muted-foreground">Müəllim: {teacherOf(courses[0])}</p></div>
+          <div className="sm:self-end text-sm font-semibold text-primary">Kursa bax →</div>
+        </article>
+      )}
       <div>
         {/* Courses grid */}
         <div>
@@ -425,9 +432,9 @@ function CoursesPage() {
               )}
             </Card>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] gap-5">
+            <div className="bento-course-grid">
               {visibleCourses.map((c) => (
-                <article key={c.id} className="group relative flex min-w-0 flex-col rounded-lg border border-border bg-card p-4 text-card-foreground transition-shadow hover:shadow-[var(--shadow-card)] focus-within:ring-2 focus-within:ring-ring">
+                <article key={c.id} className="bento-course-card group relative flex min-w-0 flex-col bg-card p-3 text-card-foreground transition-shadow focus-within:ring-2 focus-within:ring-ring">
                   <div className="relative mb-4 aspect-video overflow-hidden rounded-md bg-muted">
                     {c.cover_image_url ? (
                       <img src={c.cover_image_url} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-105" />
@@ -461,15 +468,14 @@ function CoursesPage() {
                     </Link>
                   </h3>
                   {teacherOf(c) && <p className="mt-1 truncate text-xs text-muted-foreground">Müəllim: {teacherOf(c)}</p>}
-                  <div className="mt-4 flex flex-wrap items-center gap-1.5 text-xs">
-                    <span className="rounded border border-border px-1.5 py-0.5 text-muted-foreground">Kurs</span>
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
                     {ratings[c.id] ? (
                       <>
-                        <span className="inline-flex items-center gap-1.5 rounded border border-border px-1.5 py-0.5" aria-label={`5 üzərindən ${ratings[c.id].avg.toFixed(1)}`}>
+                        <span className="inline-flex items-center gap-1.5" aria-label={`5 üzərindən ${ratings[c.id].avg.toFixed(1)}`}>
                           <StarRating value={ratings[c.id].avg} size="sm" />
                           <span className="font-semibold">{ratings[c.id].avg.toFixed(1)}</span>
                         </span>
-                        <span className="rounded border border-border px-1.5 py-0.5 text-muted-foreground">{ratings[c.id].count} rəy</span>
+                        <span className="text-muted-foreground">({ratings[c.id].count} rəy)</span>
                       </>
                     ) : (
                       <span className="py-0.5 text-muted-foreground">Hələ qiymətləndirilməyib</span>

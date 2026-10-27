@@ -23,6 +23,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Sprout,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -92,19 +93,18 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-40 w-72 h-[100dvh] max-h-[100dvh] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col overflow-y-auto overscroll-contain transition-transform lg:sticky lg:top-0",
+          "fixed top-0 left-0 z-40 w-60 shrink-0 h-[100dvh] max-h-[100dvh] bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col overflow-y-auto overscroll-contain transition-transform lg:sticky lg:top-0",
           "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
           open ? "translate-x-0" : "-translate-x-full",
           desktopHidden ? "lg:hidden" : "lg:translate-x-0",
         )}
       >
-        <div className="px-6 pt-7 pb-6 flex items-center gap-3">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-brand flex items-center justify-center text-primary-foreground shadow-elegant">
+        <div className="px-5 pt-6 pb-6 flex items-center gap-3">
+          <div className="h-10 w-10 shrink-0 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
             <GraduationCap className="h-6 w-6" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-display font-extrabold text-lg leading-tight">{t.brand}</div>
-            <div className="text-xs text-muted-foreground truncate">{t.brandTagline}</div>
+            <div className="font-display font-extrabold text-base leading-tight">{t.brand}</div>
           </div>
           <Button
             variant="ghost"
@@ -117,7 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Button>
         </div>
 
-        <nav className="flex-1 px-4 pb-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 pb-4 space-y-1 overflow-y-auto" aria-label="Əsas menyu">
           {items.map((item) => {
             const Icon = item.icon;
             const active =
@@ -129,7 +129,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 to={item.to}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "flex items-center gap-3.5 px-4 py-3 rounded-xl text-[15px] font-medium transition-colors",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
                   active
                     ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
                     : "text-sidebar-foreground/75 hover:bg-muted hover:text-sidebar-foreground",
@@ -180,7 +180,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         {/* Desktop top bar */}
-        <header className="hidden lg:flex h-20 items-center gap-4 px-8 sticky top-0 z-20 bg-background/85 backdrop-blur">
+        <header className="hidden lg:flex h-16 shrink-0 items-center gap-4 px-7 sticky top-0 z-20 bg-card/90 border-b border-border/60 backdrop-blur">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{t.brand}</span><ChevronRight className="h-3 w-3" />
+            <span className="font-medium text-foreground">{location.pathname.startsWith('/profile') ? 'Profil' : items.find((item) => location.pathname.startsWith(item.to))?.label ?? 'Təlim'}</span>
+          </div>
           {desktopHidden && (
             <Button
               variant="secondary"
