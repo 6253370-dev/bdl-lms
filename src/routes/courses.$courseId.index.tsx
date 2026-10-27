@@ -213,10 +213,10 @@ function CourseLandingPage() {
   const videoHours = stats.videoSeconds / 3600;
 
   return (
-    <div className="max-w-5xl mx-auto pb-16">
+    <div className="bento-page pb-16">
       {/* Hero */}
-      <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
-        <div className="px-6 lg:px-10 py-10 bg-muted/30">
+      <div className="border-b border-border overflow-hidden">
+        <div className="py-6">
           <nav className="text-sm text-muted-foreground mb-4 flex items-center gap-1.5 flex-wrap">
             <Link to="/courses" className="hover:text-foreground">Kurslar</Link>
             <span>/</span>
@@ -273,7 +273,7 @@ function CourseLandingPage() {
               </div>
             </div>
             {course.cover_image_url && (
-              <div className="md:w-72 shrink-0">
+              <div className="md:w-[38%] shrink-0">
                 <img
                   src={course.cover_image_url}
                   alt={course.title}
@@ -285,7 +285,7 @@ function CourseLandingPage() {
         </div>
       </div>
 
-      <div className="px-6 lg:px-10 space-y-12 mt-10">
+      <div className="course-overview-grid mt-8">
         {/* What you will learn */}
         {learnItems.length > 0 && (
           <section>

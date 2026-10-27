@@ -194,7 +194,7 @@ function QuestionBankPage() {
   };
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+    <div className="bento-page">
       <div className="flex items-start justify-between gap-4 mb-8">
         <div>
           <h1 className="font-display text-3xl font-bold mb-1 flex items-center gap-2">
@@ -211,7 +211,7 @@ function QuestionBankPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+        <div className="question-workspace">
           {/* Folders */}
           <Card className="p-4 h-fit">
             <div className="flex items-center justify-between mb-3">
@@ -259,7 +259,7 @@ function QuestionBankPage() {
               </Card>
             ) : (
               <>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex flex-wrap items-center gap-3 mb-4">
                   <div className="relative flex-1">
                     <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -291,7 +291,7 @@ function QuestionBankPage() {
                     </p>
                   </Card>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="question-rows">
                     {filteredQs.map((q) => (
                       <Card key={q.id} className="p-4">
                         <div className="flex items-start justify-between gap-3">
@@ -325,7 +325,7 @@ function QuestionBankPage() {
                                   <li
                                     key={a.id}
                                     className={`text-xs flex items-center gap-2 ${
-                                      a.is_correct ? "text-green-700 font-medium" : "text-muted-foreground"
+                                      a.is_correct ? "text-success font-medium" : "text-muted-foreground"
                                     }`}
                                   >
                                     <span className="inline-block w-3">{a.is_correct ? "✓" : "•"}</span>

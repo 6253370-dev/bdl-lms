@@ -154,8 +154,8 @@ function ExamsPage() {
   });
 
   return (
-    <div className="p-6 lg:p-10 max-w-6xl mx-auto">
-      <div className="flex items-start justify-between gap-4 mb-8">
+    <div className="bento-page">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
         <div>
           <h1 className="font-display text-3xl font-bold mb-1">Müstəqil imtahanlar</h1>
           <p className="text-muted-foreground">
@@ -201,13 +201,8 @@ function ExamsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visibleExams.map((exam) => (
-            <Card key={exam.id} className="p-5 flex flex-col overflow-hidden">
-              <div
-                className="h-28 -mx-5 -mt-5 mb-3 bg-cover bg-center"
-                style={exam.cover_image_url
-                  ? { backgroundImage: `url(${exam.cover_image_url})` }
-                  : { background: "var(--gradient-hero)" }}
-              />
+            <Card key={exam.id} className="p-4 flex flex-col overflow-hidden border-0">
+              <div className="aspect-video mb-4 rounded-md overflow-hidden bg-muted flex items-center justify-center">{exam.cover_image_url ? <img src={exam.cover_image_url} alt="" loading="lazy" className="h-full w-full object-cover" /> : <ClipboardList className="h-10 w-10 text-primary/50" />}</div>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
                   {exam.has_password && <Lock className="h-4 w-4 text-amber-600" />}

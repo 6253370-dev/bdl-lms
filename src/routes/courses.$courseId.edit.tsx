@@ -289,7 +289,7 @@ function CourseBuilderPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <TabsList className="mb-6">
+        <TabsList className="module-tabs mb-6">
           <TabsTrigger value="details">{t.courses.details}</TabsTrigger>
           <TabsTrigger value="lessons">{t.courses.lessons}</TabsTrigger>
           <TabsTrigger value="exam">{t.courses.finalExam}</TabsTrigger>
@@ -298,7 +298,7 @@ function CourseBuilderPage() {
 
         {/* DETAILS */}
         <TabsContent value="details" className="space-y-4">
-          <Card className="p-6 space-y-4">
+          <div className="course-editor-details">
             <div className="space-y-2">
               <Label>{t.courses.title_field}</Label>
               <Input
@@ -417,11 +417,11 @@ function CourseBuilderPage() {
                 </Button>
               </div>
             )}
-          </Card>
+          </div>
         </TabsContent>
 
         {/* LESSONS & PRACTICE */}
-        <TabsContent value="lessons" className="space-y-3">
+        <TabsContent value="lessons" className="course-editor-lessons">
           {lessonBlocks.length === 0 && (
             <Card className="p-10 text-center border-dashed">
               <p className="text-sm text-muted-foreground">{t.courses.noLessons}</p>

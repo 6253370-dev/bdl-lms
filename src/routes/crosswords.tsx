@@ -106,7 +106,7 @@ function CrosswordsPage() {
   const totalCells = (cw: Crossword) => new Set(cw.layout.flatMap((w) => cellsOf(w).map(({ r, c }) => `${r},${c}`))).size;
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
+    <div className="bento-page space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold">Krossvordlar</h1>
@@ -145,7 +145,8 @@ function CrosswordsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((cw) => (
-            <Card key={cw.id} className="p-5 flex flex-col gap-3">
+            <Card key={cw.id} className="p-5 flex flex-col gap-3 border-0">
+              <div className="h-36 flex items-center justify-center overflow-hidden rounded-md bg-muted/40" aria-hidden="true"><div className="pointer-events-none origin-center scale-[0.4]"><GridView rows={cw.rows} cols={cw.cols} layout={cw.layout} /></div></div>
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-semibold leading-tight">{cw.title}</h3>
                 <div className="flex gap-1 flex-wrap justify-end">
@@ -399,7 +400,7 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-5">
+    <div className="bento-page space-y-5">
       <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-2" />Krossvordlar</Button>
       {restored && !result && (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm">
@@ -415,11 +416,10 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
         </div>
         <Badge variant="secondary" className="text-base gap-1.5 px-3 py-1"><Clock className="h-4 w-4" />{fmt(result ? result.seconds : elapsed)}</Badge>
       </div>
-      <div className="grid lg:grid-cols-[auto_1fr] gap-6 items-start">
-        <Card className="p-4">
+      <div className="grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-6 items-start">
+        <div className="p-4 sm:p-8 bg-card rounded-lg overflow-auto flex justify-center">
           <GridView rows={cw.rows} cols={cw.cols} layout={cw.layout} values={values} onCell={onCell} onKey={onKey} onFocusCell={onFocusCell} active={active} results={cellResults} inputsRef={inputs} />
-          <p className="text-xs text-muted-foreground mt-3">Ox düymələri ilə hərəkət edin, xanaya təkrar klikləyib istiqaməti dəyişin.</p>
-        </Card>
+        </div>
         <Card className="p-4 space-y-4">
           {cw.layout[activeWord] && !result && (
             <div className="rounded-lg bg-accent p-3 text-sm"><b>{cw.layout[activeWord].number}. {cw.layout[activeWord].direction === "across" ? "Üfüqi" : "Şaquli"}:</b> {cw.layout[activeWord].clue}</div>

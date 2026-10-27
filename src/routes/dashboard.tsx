@@ -12,6 +12,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { t } from "@/lib/i18n";
 import { DEFAULT_COURSE_VIEW, popularCourses, recentAllowedCourses, type CourseView, type DashboardCourse } from "@/lib/dashboard-courses";
+import { LearningBanner } from "@/components/design/LearningBanner";
+import { Button } from "@/components/ui/button";
+import { ArrowUpRight } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [
@@ -160,10 +163,13 @@ function Dashboard() {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
-      <div className="mb-8">
+    <div className="bento-page">
+      <div className="mb-6 flex items-end justify-between gap-4 flex-wrap">
+        <div>
         <h1 className="font-display text-3xl font-bold">{t.dashboard.title}, {profile?.full_name?.split(" ")[0]}</h1>
         <p className="text-muted-foreground mt-1">{t.dashboard.subtitle}</p>
+        </div>
+        <span className="text-xs text-muted-foreground">Baku Digital Lab</span>
       </div>
 
       {isAdmin && adminStats ? (
@@ -181,7 +187,8 @@ function Dashboard() {
             <StatCard icon={Trophy} label={t.dashboard.certificates} value={adminStats.certificates} tone="success" />
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-4 mt-6">
+          <div className="grid lg:grid-cols-[1.2fr_1fr] gap-5 mt-6">
+            <div className="lg:col-span-2"><LearningBanner /></div>
             <Card className="p-5">
               <h3 className="font-display font-semibold mb-3 flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-primary" /> {t.dashboard.topCourses}
@@ -226,7 +233,19 @@ function Dashboard() {
         </>
       ) : userStats ? (
         <>
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid lg:grid-cols-[1.5fr_1fr] gap-5 mb-5">
+            <div className="bg-card rounded-lg shadow-card p-5">
+              <div className="flex items-center justify-between mb-4"><h2 className="font-display font-bold">Öyrənməyə davam et</h2><Button asChild variant="ghost" size="sm"><Link to="/courses">Kurslar <ArrowUpRight className="h-4 w-4" /></Link></Button></div>
+              {userStats.recent[0] ? (
+                <Link to="/courses/$courseId" params={{ courseId: userStats.recent[0].id }} className="flex flex-col sm:flex-row gap-5 items-start">
+                  <div className="w-full sm:w-40 aspect-video rounded-lg overflow-hidden bg-muted shrink-0">{userStats.recent[0].cover_image_url ? <img src={userStats.recent[0].cover_image_url} alt="" className="h-full w-full object-cover" /> : <BookOpen className="h-10 w-10 m-8 text-primary" />}</div>
+                  <div className="flex-1 min-w-0"><h3 className="font-display font-bold text-lg">{userStats.recent[0].title}</h3><p className="text-sm text-muted-foreground mt-2">{userStats.recent[0].teacher}</p><span className="inline-flex items-center gap-2 mt-5 text-sm font-semibold text-primary">Kursa davam et <ArrowUpRight className="h-4 w-4" /></span></div>
+                </Link>
+              ) : <p className="text-sm text-muted-foreground py-8">{t.dashboard.noRecent}</p>}
+            </div>
+            <LearningBanner />
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4 mb-5">
             <StatCard icon={TrendingUp} label={t.dashboard.attempts} value={userStats.attempts} tone="primary" />
             <StatCard icon={CheckCircle2} label={t.reports.passed} value={userStats.passed} tone="success" />
             <StatCard icon={Trophy} label={t.dashboard.certificates} value={userStats.certificates} tone="accent" />
@@ -256,7 +275,7 @@ function CourseSection({ title, icon: Icon, courses, view, onViewChange, emptyTe
     ? `${t.dashboard.lastViewed}: ${new Date(course.viewed_at).toLocaleDateString("az-AZ")}`
     : `${course.viewers} ${t.dashboard.courseViewers}`;
   return (
-    <section className="mt-8" aria-label={title}>
+    <section className="dashboard-section mb-5" aria-label={title}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-display font-semibold flex items-center gap-2">
           <Icon className="h-4 w-4 text-primary" /> {title}
@@ -318,12 +337,13 @@ function StatCard({
     success: "bg-success/10 text-success",
   };
   return (
-    <Card className="p-5">
+    <Card className="p-5 flex items-center gap-4 border-0">
+      <div>
       <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${toneMap[tone]}`}>
         <Icon className="h-5 w-5" />
       </div>
-      <div className="mt-4 text-3xl font-display font-bold">{value}</div>
-      <div className="text-sm text-muted-foreground">{label}</div>
+      </div>
+      <div><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 text-2xl font-display font-bold">{value}</div></div>
     </Card>
   );
 }
