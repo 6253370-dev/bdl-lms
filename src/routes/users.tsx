@@ -19,6 +19,7 @@ import { Plus, Loader2, Trash2, Pencil, ShieldCheck, Search, Eye, Folder, BookOp
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { saveCourseAccess } from "@/components/CourseAccessEditor";
+import { MetricTile } from "@/components/design/MetricTile";
 
 export const Route = createFileRoute("/users")({
   head: () => ({ meta: [
@@ -103,7 +104,7 @@ function UsersPage() {
   }, [users, search]);
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+    <div className="bento-page">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-3xl font-bold">{t.users.title}</h1>
@@ -116,6 +117,11 @@ function UsersPage() {
         )}
       </div>
 
+      <div className="grid sm:grid-cols-3 gap-4 mb-6">
+        <MetricTile icon={ShieldCheck} label="İstifadəçilər" value={users.length} tone="info" />
+        <MetricTile icon={ShieldCheck} label="Adminlər" value={users.filter((u) => u.roles.includes('admin') || u.roles.includes('super_admin')).length} />
+        <MetricTile icon={Unlock} label="İmtahandan bloklanmış" value={users.filter((u) => u.is_exam_blocked).length} tone="warning" />
+      </div>
       <div className="mb-4 relative max-w-md">
         <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -126,7 +132,7 @@ function UsersPage() {
         />
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className="bento-table border-0">
         {loading ? (
           <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : (

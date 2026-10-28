@@ -21,6 +21,7 @@ import {
   CalendarCheck, Plus, Trash2, Pencil, Download, Loader2, Users, Search, UserPlus, ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
+import { MetricTile } from "@/components/design/MetricTile";
 
 export const Route = createFileRoute("/attendance")({
   head: () => ({
@@ -146,7 +147,7 @@ function AttendancePage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="bento-page space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
@@ -162,7 +163,11 @@ function AttendancePage() {
         )}
       </div>
 
-      <Card className="p-4">
+      <div className="grid sm:grid-cols-2 gap-4">
+        <MetricTile icon={CalendarCheck} label="Offline dərslər" value={lessons.length} />
+        <MetricTile icon={Users} label="İştirak qeydiyyatları" value={Array.from(counts.values()).reduce((sum, count) => sum + count, 0)} tone="info" />
+      </div>
+      <Card className="bento-table border-0">
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : lessons.length === 0 ? (

@@ -222,7 +222,7 @@ function AdminCommentsPage() {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+    <div className="bento-page">
       <div className="flex items-center gap-3 mb-2">
         <MessageSquare className="h-7 w-7 text-primary" />
         <h1 className="font-display text-3xl font-bold">{t.comments.adminTitle}</h1>
@@ -282,39 +282,39 @@ function AdminCommentsPage() {
           <p className="text-muted-foreground">{t.comments.adminEmpty}</p>
         </Card>
       ) : (
-        <div className="grid lg:grid-cols-[340px_1fr] gap-6">
+        <div className="grid lg:grid-cols-[300px_minmax(0,1fr)] gap-5">
           {/* Threads list */}
-          <Card className="p-2 max-h-[70vh] overflow-y-auto">
+          <Card className="p-2 max-h-[70vh] overflow-y-auto border-0">
             {threads.map((th) => {
               const isActive = active?.userId === th.userId && active?.blockId === th.blockId;
               return (
-                <button
+                <Button variant="ghost"
                   key={`${th.userId}-${th.blockId}`}
                   onClick={() => setActive({ userId: th.userId, blockId: th.blockId })}
                   className={cn(
-                    "w-full text-left p-3 rounded-lg transition-colors",
-                    isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted",
+                    "block h-auto w-full text-left p-3 rounded-lg whitespace-normal transition-colors",
+                    isActive ? "bg-accent text-accent-foreground" : "hover:bg-muted",
                   )}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <div className="font-semibold text-sm truncate">{th.user?.full_name ?? "—"}</div>
                     <span className={cn(
                       "text-[10px] px-1.5 py-0.5 rounded-full",
-                      isActive ? "bg-primary-foreground/20" : "bg-muted-foreground/15",
+                      isActive ? "bg-primary/10" : "bg-muted-foreground/15",
                     )}>{th.count}</span>
                   </div>
                   <div className={cn(
                     "text-xs flex items-center gap-1 mb-1",
-                    isActive ? "text-primary-foreground/80" : "text-muted-foreground",
+                    "text-muted-foreground",
                   )}>
                     <BookOpen className="h-3 w-3 shrink-0" />
                     <span className="truncate">{th.course?.title ?? "—"} · {th.block?.title ?? "—"}</span>
                   </div>
                   <div className={cn(
                     "text-xs truncate",
-                    isActive ? "text-primary-foreground/70" : "text-muted-foreground",
+                    "text-muted-foreground",
                   )}>{th.lastBody}</div>
-                </button>
+                </Button>
               );
             })}
           </Card>

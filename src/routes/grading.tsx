@@ -18,13 +18,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { ClipboardCheck, Loader2 } from "lucide-react";
+import { MetricTile } from "@/components/design/MetricTile";
 
 export const Route = createFileRoute("/grading")({
   head: () => ({
     meta: [
-      { title: "İmtahan yoxlaması — Learning Management System" },
+      { title: "İmtahan yoxlaması — Baku Digital Lab" },
       { name: "description", content: "Açıq tipli sualların admin tərəfindən qiymətləndirilməsi və yekun nəticənin hesablanması." },
-      { property: "og:title", content: "İmtahan yoxlaması" },
+      { property: "og:title", content: "İmtahan yoxlaması — Baku Digital Lab" },
       { property: "og:description", content: "Açıq tipli sualları yoxlayın və nəticələri hesablayın." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -138,7 +139,7 @@ function GradingInner() {
   useEffect(() => { void load(); }, [load]);
 
   return (
-    <div className="space-y-6">
+    <div className="bento-page space-y-6">
       <div>
         <h1 className="font-display text-3xl font-bold flex items-center gap-2">
           <ClipboardCheck className="h-7 w-7 text-primary" /> İmtahan yoxlaması
@@ -148,8 +149,9 @@ function GradingInner() {
         </p>
       </div>
 
+      <div className="grid sm:grid-cols-2 gap-4"><MetricTile icon={ClipboardCheck} label="Yoxlama gözləyir" value={pending.length} tone="warning" /><MetricTile icon={ClipboardCheck} label="Son yoxlanılan nəticələr" value={done.length} tone="success" /></div>
       <Tabs defaultValue="pending">
-        <TabsList>
+        <TabsList className="module-tabs">
           <TabsTrigger value="pending">Gözləyən ({pending.length})</TabsTrigger>
           <TabsTrigger value="done">Yoxlanılmış</TabsTrigger>
         </TabsList>
@@ -179,9 +181,9 @@ function AttemptList({
   if (loading) return <div className="py-10 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto" /></div>;
   if (!rows.length) return <p className="text-sm text-muted-foreground">{emptyText}</p>;
   return (
-    <div className="space-y-2">
+    <div className="question-rows">
       {rows.map((r) => (
-        <Card key={`${r.source}-${r.id}`} className="p-4 flex flex-wrap items-center justify-between gap-3">
+        <Card key={`${r.source}-${r.id}`} className="p-5 flex flex-wrap items-center justify-between gap-3 border-0 shadow-none">
           <div className="min-w-0">
             <div className="font-medium truncate">{r.title}</div>
             <div className="text-sm text-muted-foreground">

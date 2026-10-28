@@ -248,13 +248,13 @@ function CourseBuilderPage() {
   const examBlock = blocks.find((b) => b.block_type === "final_exam");
 
   return (
-    <div className="p-6 lg:p-10 max-w-6xl mx-auto">
-      <button
+    <div className="bento-page">
+      <Button variant="ghost"
         onClick={() => navigate({ to: "/courses/$courseId", params: { courseId } })}
         className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1"
       >
         <ArrowLeft className="h-4 w-4" /> Kurs səhifəsinə qayıt
-      </button>
+      </Button>
       <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-3xl font-bold">{course.title}</h1>

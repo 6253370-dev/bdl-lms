@@ -229,8 +229,8 @@ function ReportsPage() {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="bento-page space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold mb-1 flex items-center gap-2">
             <BarChart3 className="h-7 w-7 text-primary" /> {t.reports.title}
@@ -242,7 +242,7 @@ function ReportsPage() {
         </Button>
       </div>
 
-      <Card className="p-4">
+      <Card className="p-5 border-0">
         <div className="grid gap-3 md:grid-cols-4">
           <div className="grid gap-1.5">
             <Label className="text-xs">{t.reports.from}</Label>
@@ -306,7 +306,8 @@ function ReportsPage() {
         <Kpi icon={BarChart3} label={t.reports.avgScore} value={`${totals.avg}%`} tone="accent" />
       </div>
 
-      <Card className="p-4">
+      <div className="grid xl:grid-cols-2 gap-5 items-start">
+      <Card className="p-5 border-0">
         <h2 className="font-display font-semibold flex items-center gap-2 mb-3">
           <BookOpen className="h-4 w-4 text-primary" /> {t.reports.courses}
         </h2>
@@ -330,7 +331,7 @@ function ReportsPage() {
         )}
       </Card>
 
-      <Card className="p-4">
+      <Card className="p-5 border-0">
         <h2 className="font-display font-semibold flex items-center gap-2 mb-3">
           <ClipboardList className="h-4 w-4 text-primary" /> {t.reports.standaloneExams}
         </h2>
@@ -354,6 +355,7 @@ function ReportsPage() {
         )}
       </Card>
 
+      </div>
       {detail && (
         <AttemptDetailDialog detailRef={detail} onClose={() => setDetail(null)} />
       )}

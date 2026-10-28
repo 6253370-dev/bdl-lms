@@ -114,14 +114,14 @@ function RoomDetailsPage() {
     : 0;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="bento-page space-y-6">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
         <Link to="/live-classes">
           <ArrowLeft className="h-4 w-4 mr-2" /> {t.live.title}
         </Link>
       </Button>
 
-      <Card className="p-6 space-y-3">
+      <Card className="p-6 space-y-5 border-0">
         <div className="flex items-start gap-3 flex-wrap">
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-display font-bold">{room.title}</h1>

@@ -15,7 +15,8 @@
 - [x] Kursun təqdimat səhifəsinə baxışı şəxsi tarixçəyə yaz və təkrar baxış vaxtını yenilə; aktiv hesabla yoxla.
 - [x] Dərs pleyerini fokuslanmış üst zolaq, sağ material paneli və alt bölmələrlə yenilə; mövcud funksiyaları saxla və yoxla.
 - [x] Kurs təqdimat səhifəsinin yuxarı blokunu işıqlı və təmiz fona keçir; qırmızı yalnız əsas düymədə qalsın.
-- [ ] Bento nümunələrini yoxla və bütün modulların mövcud funksiyalarla düzülüşünü yaxınlaşdır.
-- [ ] Ana səhifənin strukturunu, menyu və üst zolağı yenilə.
-- [ ] Kataloq, cədvəl, profil, təqvim, redaktor və dərs ekranlarını struktur baxımından yenilə.
-- [ ] Aktiv hesabla əsas səhifələri və mövcud idarəetmələri yoxla; kiçik ekranda daşmaları düzəlt.
+- [x] Bento nümunələrini yoxla və modul düzülüşlərini mövcud funksiyalarla yaxınlaşdır.
+- [x] Ana səhifənin strukturunu, menyu və üst zolağı yenilə.
+- [x] Kataloq, cədvəl, profil, təqvim və redaktor ekranlarını struktur baxımından yenilə; fokuslanmış dərs pleyerini saxla.
+- [x] Giriş səhifəsini böyük/kiçik ekranda və kurs/krossvord qaydalarını testlərlə yoxla.
+- [ ] Aktiv hesabla daxili səhifələri və idarəetmələri böyük/kiçik ekranda yoxla, nümunələrlə vizual müqayisəni tamamla. Bloker: preview-da giriş yoxdur və istifadəçinin hesabı müəyyən edilməyib; istifadəçi preview-da daxil olmalıdır.

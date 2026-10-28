@@ -131,7 +131,7 @@ function TemplatesPage() {
   if (!isAdmin) return null;
 
   return (
-    <div className="p-6 lg:p-10 max-w-5xl mx-auto">
+    <div className="bento-page">
       <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
         <div>
           <h1 className="font-display text-3xl font-bold flex items-center gap-2">
@@ -161,13 +161,13 @@ function TemplatesPage() {
           <p className="text-muted-foreground">Hələ şablon yoxdur.</p>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
           {items.map((tpl) => (
-            <Card key={tpl.id} className="p-4 flex items-center gap-3">
-              <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+            <Card key={tpl.id} className="p-4 flex flex-wrap items-center gap-3 border-0">
+              <div className="basis-full aspect-[1.6] bg-muted/40 rounded-md flex items-center justify-center border border-border"><Award className="h-16 w-16 text-primary/50" strokeWidth={1} /></div>
               <div className="min-w-0 flex-1">
                 <div className="font-medium truncate">{tpl.name}</div>
-                <div className="text-xs text-muted-foreground truncate">{tpl.file_url}</div>
+                <div className="text-xs text-muted-foreground">{tpl.file_type.toUpperCase()}</div>
               </div>
               <Badge variant="secondary" className="uppercase">{tpl.file_type}</Badge>
               <Button size="sm" variant="outline" disabled={busy === tpl.id} onClick={() => preview(tpl)}>

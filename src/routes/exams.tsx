@@ -1008,19 +1008,19 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                   onChange={(e) => setOpenAnswers((s) => ({ ...s, [q.id]: e.target.value }))}
                 />
               ) : (
-              <div className="space-y-2">
+              <div className="grid sm:grid-cols-2 gap-3">
                 {q.answers.map((a) => (
-                  <button
+                  <Button variant="outline"
                     key={a.id}
                     onClick={() => setSelected((s) => ({ ...s, [q.id]: a.id }))}
-                    className={`w-full text-left p-3 rounded-md border transition ${
+                    className={`h-auto min-h-16 whitespace-normal justify-start w-full text-left p-4 rounded-md border transition ${
                       selected[q.id] === a.id
                         ? "border-primary bg-primary/5"
                         : "border-input hover:bg-accent"
                     }`}
                   >
                     {a.text}
-                  </button>
+                  </Button>
                 ))}
               </div>
               )}
