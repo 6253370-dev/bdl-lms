@@ -303,7 +303,7 @@ function GamificationPage() {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-6xl mx-auto space-y-6">
+    <div className="bento-page space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold flex items-center gap-2">
@@ -320,7 +320,7 @@ function GamificationPage() {
       </div>
 
       {/* personal stats */}
-      <Card className="p-5">
+      <Card className="p-6 border-0 bg-accent/50">
         <div className="flex flex-wrap items-center gap-6">
           <div>
             <div className="text-xs text-muted-foreground uppercase tracking-wide">Səviyyə</div>
@@ -363,7 +363,7 @@ function GamificationPage() {
       )}
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="flex-wrap h-auto">
+        <TabsList className="module-tabs">
           <TabsTrigger value="overview">Ümumi</TabsTrigger>
           <TabsTrigger value="duels">Duellər</TabsTrigger>
           <TabsTrigger value="leaderboard">Liderlik</TabsTrigger>
@@ -375,13 +375,13 @@ function GamificationPage() {
 
         <TabsContent value="overview" className="space-y-4 mt-4">
           {myActive.length > 0 && (
-            <Card className="p-4 space-y-2">
+            <section className="space-y-2">
               <h3 className="font-semibold text-sm">Aktiv duellər</h3>
               {myActive.map((d) => (
                 <DuelRow key={d.id} duel={d} nameOf={nameOf} userId={user!.id}
                   onPlay={() => setActiveDuel(d)} onOpen={() => setDetailDuel(d)} />
               ))}
-            </Card>
+            </section>
           )}
           <div className="grid gap-4 md:grid-cols-2">
             <Card className="p-4">

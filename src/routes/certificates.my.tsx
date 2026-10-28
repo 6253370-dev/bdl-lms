@@ -110,7 +110,7 @@ function MyCertificatesPage() {
   };
 
   return (
-    <div className="p-6 lg:p-10 max-w-5xl mx-auto">
+    <div className="bento-page">
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold">{t.cert.myCerts}</h1>
         <p className="text-muted-foreground mt-1">{t.cert.title}</p>
@@ -124,15 +124,16 @@ function MyCertificatesPage() {
           <p className="text-muted-foreground">{t.cert.noneYet}</p>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {certs.map((c) => (
-            <Card key={c.id} className="p-5 flex flex-col gap-3">
+            <Card key={c.id} className="p-5 flex flex-col gap-4 border-0">
+              <div className="aspect-[1.6] bg-muted/40 rounded-md flex items-center justify-center border border-border" aria-hidden="true"><Award className="h-16 w-16 text-warning" strokeWidth={1} /></div>
               <div className="flex items-start gap-3">
                 <div className="h-11 w-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <Award className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <div className="font-display font-semibold leading-tight truncate">
+                  <div className="font-display font-semibold leading-tight break-words">
                     {c.course_title}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">

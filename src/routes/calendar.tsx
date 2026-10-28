@@ -436,7 +436,7 @@ function CalendarPage() {
             <Button variant="ghost" className="h-auto w-full justify-start p-0 whitespace-normal text-left" onClick={() => setDetails(event)}>{event.title}</Button>
             <p className="text-xs text-muted-foreground mt-2">{fmtDate(new Date(event.starts_at))} · {fmtTime(new Date(event.starts_at))}</p>
             <Badge variant="secondary" className="mt-2 text-xs">{EVENT_TYPE_LABEL[event.event_type]}</Badge>
-            {myInvite(event)?.status === 'pending' && <div className="flex gap-2 mt-3"><Button size="sm" onClick={() => respond(event, 'accepted')}><Check className="h-3 w-3" />Qəbul</Button><Button size="sm" variant="outline" onClick={() => respond(event, 'declined')}><X className="h-3 w-3" />İmtina</Button></div>}
+            {myInvite(event)?.status === 'invited' && <div className="flex gap-2 mt-3"><Button size="sm" onClick={() => respond(event, 'accepted')}><Check className="h-3 w-3" />Qəbul</Button><Button size="sm" variant="outline" onClick={() => respond(event, 'declined')}><X className="h-3 w-3" />İmtina</Button></div>}
           </div>
         ))}
         {!events.some((event) => eventStatus(event) !== 'completed') && <p className="text-sm text-muted-foreground">Gələcək hadisə yoxdur.</p>}

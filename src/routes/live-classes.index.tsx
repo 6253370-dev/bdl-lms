@@ -293,7 +293,7 @@ function LiveClassesPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="bento-page space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-display font-bold flex items-center gap-2">
@@ -318,7 +318,7 @@ function LiveClassesPage() {
         </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="bento-toolbar">
         {(
           [
             ["all", t.live.all],
@@ -346,7 +346,7 @@ function LiveClassesPage() {
       ) : filtered.length === 0 ? (
         <Card className="p-10 text-center text-muted-foreground">{t.live.noRooms}</Card>
       ) : isAdmin ? (
-        <Card className="overflow-x-auto">
+        <Card className="bento-table border-0">
           <table className="w-full text-sm min-w-[820px]">
             <thead className="bg-muted/50 text-left">
               <tr>
