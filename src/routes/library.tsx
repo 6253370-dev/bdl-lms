@@ -29,6 +29,7 @@ import {
   Tags, Info,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
@@ -229,30 +230,32 @@ function LibraryPage() {
 
   return (
     <div className="bento-page space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <BookOpen className="h-7 w-7 text-primary" />
-            Elektron Kitabxana
-          </h1>
-          <p className="text-sm text-muted-foreground">Kitabları oxu, önizlə və yüklə.</p>
-        </div>
-        <div className="flex gap-2">
-          {isAdmin && (
-            <>
-              <Button variant="outline" onClick={() => setCatManagerOpen(true)}>
-                <Tags className="h-4 w-4 mr-2" /> Kateqoriyalar
-              </Button>
-              <Button variant="outline" onClick={exportExcel}>
-                <DownloadIcon className="h-4 w-4 mr-2" /> Excel
-              </Button>
-              <Button onClick={() => { setEditing(null); setEditorOpen(true); }}>
-                <Plus className="h-4 w-4 mr-2" /> Yeni kitab
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="Elektron Kitabxana"
+        description="Kitabları oxu, önizlə və yüklə."
+        actions={
+          <>
+            {isAdmin && (
+              <>
+                <Button variant="outline" onClick={() => setCatManagerOpen(true)}>
+                  <Tags className="h-4 w-4 mr-2" /> Kateqoriyalar
+                </Button>
+                <Button variant="outline" onClick={exportExcel}>
+                  <DownloadIcon className="h-4 w-4 mr-2" /> Excel
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEditing(null);
+                    setEditorOpen(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Yeni kitab
+                </Button>
+              </>
+            )}
+          </>
+        }
+      />
 
       <div className="space-y-3">
         <div className="flex flex-wrap gap-3">

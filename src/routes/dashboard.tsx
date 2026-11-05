@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { t } from "@/lib/i18n";
 import { DEFAULT_COURSE_VIEW, popularCourses, recentAllowedCourses, type CourseView, type DashboardCourse } from "@/lib/dashboard-courses";
+import { PageHeader } from "@/components/design/PageHeader";
 import { MotivationStrip } from "@/components/design/MotivationStrip";
 import { StatCard } from "@/components/design/StatCard";
 import { RingProgress } from "@/components/design/RingProgress";
@@ -167,13 +168,15 @@ function Dashboard() {
 
   return (
     <div className="bento-page">
-      <div className="mb-6 flex items-end justify-between gap-4 flex-wrap">
-        <div>
-        <h1 className="font-display text-3xl font-bold">{t.dashboard.title}, {profile?.full_name?.split(" ")[0]}</h1>
-        <p className="text-muted-foreground mt-1">{t.dashboard.subtitle}</p>
-        </div>
-        <span className="text-xs text-muted-foreground">Baku Digital Lab</span>
-      </div>
+      <PageHeader
+        title={
+          <>
+            {t.dashboard.title}, {profile?.full_name?.split(" ")[0]}
+          </>
+        }
+        description={t.dashboard.subtitle}
+        actions={<span className="text-xs text-muted-foreground">Baku Digital Lab</span>}
+      />
 
       {isAdmin && adminStats ? (
         <>

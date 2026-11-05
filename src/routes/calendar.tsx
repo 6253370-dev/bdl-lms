@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/calendar")({
   head: () => ({ meta: [
@@ -349,19 +350,19 @@ function CalendarPage() {
 
   return (
     <div className="bento-page">
-      <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
-        <div>
-          <h1 className="font-display text-3xl font-bold mb-1 flex items-center gap-2">
-            <CalendarIcon className="h-7 w-7 text-primary" /> Təqvim
-          </h1>
-          <p className="text-muted-foreground text-sm">İmtahan tədbirlərini planlaşdır və idarə et.</p>
-        </div>
-        {isAdmin && (
-          <Button onClick={() => openCreate()}>
-            <Plus className="h-4 w-4" /> Yeni hadisə
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Təqvim"
+        description="İmtahan tədbirlərini planlaşdır və idarə et."
+        actions={
+          <>
+            {isAdmin && (
+              <Button onClick={() => openCreate()}>
+                <Plus className="h-4 w-4" /> Yeni hadisə
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <div className="calendar-workspace">
       <div className="calendar-grid">

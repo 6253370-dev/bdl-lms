@@ -51,6 +51,7 @@ import { ExportButton } from "@/components/design/ExportButton";
 import { AreaChartCard } from "@/components/design/AreaChartCard";
 import { DonutChart } from "@/components/design/DonutChart";
 import { isoToDate } from "@/lib/design";
+import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({ meta: [
@@ -286,17 +287,17 @@ function ReportsPage() {
 
   return (
     <div className="bento-page space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold mb-1 flex items-center gap-2">
-            <BarChart3 className="h-7 w-7 text-primary" /> {t.reports.title}
-          </h1>
-          <p className="text-muted-foreground">{t.reports.subtitle}</p>
-        </div>
-        <ExportButton format="excel" variant="default" onExport={exportExcel}>
-          {t.reports.exportCsv}
-        </ExportButton>
-      </div>
+      <PageHeader
+        title={t.reports.title}
+        description={t.reports.subtitle}
+        actions={
+          <>
+            <ExportButton format="excel" variant="default" onExport={exportExcel}>
+              {t.reports.exportCsv}
+            </ExportButton>
+          </>
+        }
+      />
 
       <Card className="p-5">
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">

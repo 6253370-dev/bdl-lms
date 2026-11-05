@@ -16,6 +16,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 import { Loader2, MessageSquare, Send, Trash2, BookOpen } from "lucide-react";
+import { PageHeader } from "@/components/design/PageHeader";
 import { MasterDetail } from "@/components/design/MasterDetail";
 import { UserAvatar, AvatarStack } from "@/components/design/UserAvatar";
 import { StatusChip } from "@/components/design/StatusChip";
@@ -244,11 +245,7 @@ function AdminCommentsPage() {
 
   return (
     <div className="bento-page">
-      <div className="flex items-center gap-3 mb-2">
-        <MessageSquare className="h-7 w-7 text-primary" />
-        <h1 className="font-display text-3xl font-bold">{t.comments.adminTitle}</h1>
-      </div>
-      <p className="text-muted-foreground mb-6">{t.comments.adminSubtitle}</p>
+      <PageHeader title={t.comments.adminTitle} description={t.comments.adminSubtitle} />
 
       <Card className="p-4 mb-6">
         <div className="grid gap-3 sm:grid-cols-2">

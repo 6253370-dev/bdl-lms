@@ -49,6 +49,7 @@ import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
 import { CertificateTemplateSelect } from "@/components/CertificateTemplateSelect";
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
+import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/exams")({
   head: () => ({
@@ -155,24 +156,24 @@ function ExamsPage() {
 
   return (
     <div className="bento-page">
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
-        <div>
-          <h1 className="font-display text-3xl font-bold mb-1">Müstəqil imtahanlar</h1>
-          <p className="text-muted-foreground">
-            Kurslardan asılı olmayan, şifrə ilə qorunan imtahanlar.
-          </p>
-        </div>
-        {isAdmin && (
-          <Button
-            onClick={() => {
-              setActiveExam(null);
-              setEditorOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" /> Yeni imtahan
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Müstəqil imtahanlar"
+        description="Kurslardan asılı olmayan, şifrə ilə qorunan imtahanlar."
+        actions={
+          <>
+            {isAdmin && (
+              <Button
+                onClick={() => {
+                  setActiveExam(null);
+                  setEditorOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4" /> Yeni imtahan
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <div className="mb-6 relative max-w-md">
         <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
