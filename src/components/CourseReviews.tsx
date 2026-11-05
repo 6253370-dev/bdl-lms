@@ -26,7 +26,16 @@ function fmtDate(iso: string) {
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
-export function CourseReviews({ courseId, canReview }: { courseId: string; canReview: boolean }) {
+export function CourseReviews({
+  courseId,
+  canReview,
+  embedded = false,
+}: {
+  courseId: string;
+  canReview: boolean;
+  /** Bento kartının içində: xülasə ayrıca kart kimi çəkilmir. */
+  embedded?: boolean;
+}) {
   const { user } = useAuth();
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +79,9 @@ export function CourseReviews({ courseId, canReview }: { courseId: string; canRe
     setLoading(false);
   }, [courseId, user?.id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const summary = useMemo(() => {
     const total = reviews.length;
@@ -86,10 +97,19 @@ export function CourseReviews({ courseId, canReview }: { courseId: string; canRe
   const saveReview = async () => {
     if (!user || myRating < 1) return toast.error("Zəhmət olmasa ulduz seçin");
     setSaving(true);
-    const payload = { rating: myRating, comment: myComment.trim() || null, updated_at: new Date().toISOString() };
+    const payload = {
+      rating: myRating,
+      comment: myComment.trim() || null,
+      updated_at: new Date().toISOString(),
+    };
     const { error } = myReviewId
       ? await supabase.from("course_reviews").update(payload).eq("id", myReviewId)
-      : await supabase.from("course_reviews").insert({ course_id: courseId, user_id: user.id, rating: myRating, comment: myComment.trim() || null });
+      : await supabase.from("course_reviews").insert({
+          course_id: courseId,
+          user_id: user.id,
+          rating: myRating,
+          comment: myComment.trim() || null,
+        });
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success(myReviewId ? "Rəyiniz yeniləndi" : "Rəyiniz əlavə olundu");
@@ -108,11 +128,17 @@ export function CourseReviews({ courseId, canReview }: { courseId: string; canRe
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return reviews;
-    return reviews.filter((r) => r.full_name.toLowerCase().includes(q) || (r.comment ?? "").toLowerCase().includes(q));
+    return reviews.filter(
+      (r) => r.full_name.toLowerCase().includes(q) || (r.comment ?? "").toLowerCase().includes(q),
+    );
   }, [reviews, search]);
 
   if (loading) {
-    return <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   const mine = reviews.find((r) => r.user_id === user?.id);
@@ -121,21 +147,33 @@ export function CourseReviews({ courseId, canReview }: { courseId: string; canRe
   return (
     <div className="space-y-6">
       {/* Summary */}
-      <Card className="p-6">
-        <div className="flex flex-col sm:flex-row gap-8">
-          <div className="text-center sm:text-left shrink-0">
-            <div className="text-5xl font-display font-bold">{summary.avg ? summary.avg.toFixed(1) : "—"}</div>
+      <Card
+        className={
+          embedded ? "@container border-0 bg-transparent p-0 shadow-none" : "@container p-6"
+        }
+      >
+        <div className="flex flex-col gap-6 @md:flex-row @md:gap-8">
+          <div className="shrink-0 text-center @md:text-left">
+            <div className="text-5xl font-display font-semibold tabular-nums">
+              {summary.avg ? summary.avg.toFixed(1) : "—"}
+            </div>
             <StarRating value={summary.avg} size="md" className="mt-2 justify-center" />
             <p className="text-sm text-muted-foreground mt-1">{summary.total} rəy</p>
           </div>
+          {/* Maddə 77: reytinq paylanması */}
           <div className="flex-1 space-y-1.5">
             {summary.counts.map(({ star, pct, count }) => (
               <div key={star} className="flex items-center gap-3 text-sm">
                 <span className="w-8 text-muted-foreground tabular-nums">{star} ★</span>
-                <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                  <div className="h-full rounded-full bg-warning transition-all" style={{ width: `${pct}%` }} />
+                <div className="flex-1 h-2 rounded-full bg-[var(--gray-200)] dark:bg-[var(--gray-700)] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
                 </div>
-                <span className="w-16 text-right text-muted-foreground tabular-nums">{pct}% ({count})</span>
+                <span className="w-16 text-right text-muted-foreground tabular-nums">
+                  {pct}% ({count})
+                </span>
               </div>
             ))}
           </div>
@@ -150,7 +188,12 @@ export function CourseReviews({ courseId, canReview }: { courseId: string; canRe
               <div className="flex items-center justify-between">
                 <h3 className="font-display font-semibold">Sizin rəyiniz</h3>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => setEditing(true)} aria-label="Rəyi redaktə et">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setEditing(true)}
+                    aria-label="Rəyi redaktə et"
+                  >
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={deleteReview} aria-label="Rəyi sil">
@@ -163,7 +206,9 @@ export function CourseReviews({ courseId, canReview }: { courseId: string; canRe
             </div>
           ) : showForm ? (
             <>
-              <h3 className="font-display font-semibold">{mine ? "Rəyinizi redaktə edin" : "Kursu qiymətləndirin"}</h3>
+              <h3 className="font-display font-semibold">
+                {mine ? "Rəyinizi redaktə edin" : "Kursu qiymətləndirin"}
+              </h3>
               <StarRating value={myRating} onChange={setMyRating} size="lg" />
               <Textarea
                 value={myComment}
@@ -177,7 +222,14 @@ export function CourseReviews({ courseId, canReview }: { courseId: string; canRe
                   {mine ? "Yenilə" : "Rəy göndər"}
                 </Button>
                 {mine && (
-                  <Button variant="outline" onClick={() => { setEditing(false); setMyRating(mine.rating); setMyComment(mine.comment ?? ""); }}>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditing(false);
+                      setMyRating(mine.rating);
+                      setMyComment(mine.comment ?? "");
+                    }}
+                  >
                     Ləğv et
                   </Button>
                 )}
@@ -197,9 +249,12 @@ export function CourseReviews({ courseId, canReview }: { courseId: string; canRe
 
       {/* Review list */}
       <div className="space-y-4">
-        {reviews.filter((r) => r.user_id !== user?.id).slice(0, 4).map((r) => (
-          <ReviewCard key={r.id} review={r} />
-        ))}
+        {reviews
+          .filter((r) => r.user_id !== user?.id)
+          .slice(0, 4)
+          .map((r) => (
+            <ReviewCard key={r.id} review={r} />
+          ))}
         {reviews.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-6">Hələ rəy yazılmayıb.</p>
         )}
@@ -220,13 +275,20 @@ export function CourseReviews({ courseId, canReview }: { courseId: string; canRe
           </DialogHeader>
           <div className="relative">
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rəy və ya ad axtar..." className="pl-9" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rəy və ya ad axtar..."
+              className="pl-9"
+            />
           </div>
           <div className="overflow-y-auto space-y-4 pr-1">
             {filtered.length ? (
               filtered.map((r) => <ReviewCard key={r.id} review={r} />)
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">Heç bir rəy tapılmadı.</p>
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Heç bir rəy tapılmadı.
+              </p>
             )}
           </div>
         </DialogContent>
@@ -240,9 +302,13 @@ function ReviewCard({ review }: { review: ReviewRow }) {
     <div className="flex gap-3">
       <div className="h-10 w-10 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-semibold overflow-hidden shrink-0">
         {review.avatar_url ? (
-          <img src={review.avatar_url} alt={review.full_name} className="h-full w-full object-cover" />
+          <img
+            src={review.avatar_url}
+            alt={review.full_name}
+            className="h-full w-full object-cover"
+          />
         ) : (
-          review.full_name[0]?.toUpperCase() ?? "?"
+          (review.full_name[0]?.toUpperCase() ?? "?")
         )}
       </div>
       <div className="min-w-0 flex-1">
@@ -251,7 +317,9 @@ function ReviewCard({ review }: { review: ReviewRow }) {
           <StarRating value={review.rating} size="sm" />
           <span className="text-xs text-muted-foreground">{fmtDate(review.created_at)}</span>
         </div>
-        {review.comment && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{review.comment}</p>}
+        {review.comment && (
+          <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{review.comment}</p>
+        )}
       </div>
     </div>
   );

@@ -6,32 +6,75 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Plus, Loader2, Folder, Search, MoreVertical, Pencil, Trash2, FolderPlus, Move, Award, RotateCcw } from "lucide-react";
+import {
+  BookOpen,
+  Plus,
+  Loader2,
+  Folder,
+  Search,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  FolderPlus,
+  Move,
+  Award,
+  RotateCcw,
+  ArrowRight,
+  Star,
+} from "lucide-react";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { downloadCertificateSmart } from "@/lib/certificate";
-import { StarRating } from "@/components/StarRating";
 import { PageHeader } from "@/components/design/PageHeader";
-
+import { PillTabs } from "@/components/design/PillTabs";
+import { CourseCard } from "@/components/design/CourseCard";
+import { StatusChip } from "@/components/design/StatusChip";
+import {
+  matchesStatusTab,
+  sortCourses,
+  uniqueViewers,
+  type CourseSort,
+  type CourseStatusTab,
+} from "@/lib/courses-catalog";
 
 export const Route = createFileRoute("/courses/")({
   head: () => ({
     meta: [
       { title: "Kurslar — Baku Digital Lab" },
-      { name: "description", content: "Baku Digital Lab təlim kursları, müəllimlər və iştirakçıların qiymətləndirmələri." },
+      {
+        name: "description",
+        content:
+          "Baku Digital Lab təlim kursları, müəllimlər və iştirakçıların qiymətləndirmələri.",
+      },
       { property: "og:title", content: "Kurslar — Baku Digital Lab" },
-      { property: "og:description", content: "Təlim kurslarına baxın, rəyləri oxuyun və öyrənməyə davam edin." },
+      {
+        property: "og:description",
+        content: "Təlim kurslarına baxın, rəyləri oxuyun və öyrənməyə davam edin.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -65,7 +108,6 @@ interface CertRow {
   issued_at: string;
 }
 
-
 interface FolderRow {
   id: string;
   name: string;
@@ -95,35 +137,53 @@ function CoursesPage() {
   const [creating, setCreating] = useState(false);
 
   // Folder create/rename
-  const [folderDialog, setFolderDialog] = useState<{ mode: "create" | "rename"; id?: string; name: string } | null>(null);
+  const [folderDialog, setFolderDialog] = useState<{
+    mode: "create" | "rename";
+    id?: string;
+    name: string;
+  } | null>(null);
 
   // Move dialog
-  const [moveDialog, setMoveDialog] = useState<{ courseId: string; current: string | null } | null>(null);
+  const [moveDialog, setMoveDialog] = useState<{ courseId: string; current: string | null } | null>(
+    null,
+  );
 
   // Filter / search
   const [activeFolder, setActiveFolder] = useState<string>(ALL);
   const [search, setSearch] = useState("");
+  const [statusTab, setStatusTab] = useState<CourseStatusTab>("all");
+  const [sort, setSort] = useState<CourseSort>("newest");
+  const [viewers, setViewers] = useState<Record<string, number>>({});
 
   const navigate = useNavigate();
 
   // Müəllim adı: kursda xüsusi müəllim seçilibsə o, yoxsa kursu yaradanın adı
-  const teacherOf = (c: CourseRow) => c.instructor_name?.trim() || creatorNames[c.created_by ?? ""] || "";
+  const teacherOf = (c: CourseRow) =>
+    c.instructor_name?.trim() || creatorNames[c.created_by ?? ""] || "";
 
   const load = async () => {
     setLoading(true);
     const [cRes, fRes, rRes] = await Promise.all([
-      supabase.from("courses").select("id,title,description,is_published,passing_score,folder_id,cover_image_url,certificate_template_url,instructor_name,created_by").order("created_at", { ascending: false }),
+      supabase
+        .from("courses")
+        .select(
+          "id,title,description,is_published,passing_score,folder_id,cover_image_url,certificate_template_url,instructor_name,created_by",
+        )
+        .order("created_at", { ascending: false }),
       supabase.from("folders").select("id,name,parent_id").order("name"),
       supabase.from("course_reviews").select("course_id,rating"),
     ]);
     const rMap: Record<string, { sum: number; count: number }> = {};
     ((rRes.data ?? []) as { course_id: string; rating: number }[]).forEach((r) => {
       const cur = rMap[r.course_id] ?? { sum: 0, count: 0 };
-      cur.sum += r.rating; cur.count += 1;
+      cur.sum += r.rating;
+      cur.count += 1;
       rMap[r.course_id] = cur;
     });
     const rFinal: Record<string, { avg: number; count: number }> = {};
-    Object.entries(rMap).forEach(([id, v]) => { rFinal[id] = { avg: v.sum / v.count, count: v.count }; });
+    Object.entries(rMap).forEach(([id, v]) => {
+      rFinal[id] = { avg: v.sum / v.count, count: v.count };
+    });
     setRatings(rFinal);
     let list = (cRes.data ?? []) as CourseRow[];
     if (!isAdmin) {
@@ -139,19 +199,37 @@ function CoursesPage() {
         const folderIds = new Set((fa ?? []).map((r) => r.folder_id));
         const hasRules = courseIds.size > 0 || folderIds.size > 0;
         if (hasRules) {
-          list = list.filter((c) => courseIds.has(c.id) || (c.folder_id && folderIds.has(c.folder_id)));
+          list = list.filter(
+            (c) => courseIds.has(c.id) || (c.folder_id && folderIds.has(c.folder_id)),
+          );
         }
       }
     }
     setCourses(list);
     setFolders((fRes.data ?? []) as FolderRow[]);
 
+    // "Ən populyar" sıralaması üçün unikal baxan sayı (ana səhifə ilə eyni mənbə).
+    if (isAdmin) {
+      const { data: views } = await supabase.from("course_views").select("course_id,user_id");
+      setViewers(uniqueViewers((views ?? []) as { course_id: string; user_id: string }[]));
+    } else {
+      const { data: allowed } = await supabase.rpc("dashboard_allowed_courses");
+      setViewers(Object.fromEntries((allowed ?? []).map((c) => [c.id, Number(c.viewers)])));
+    }
+
     // Kursu yaradanların adları (müəllim seçilməyibsə kartda göstərilir)
-    const creatorIds = Array.from(new Set(list.map((c) => c.created_by).filter(Boolean) as string[]));
+    const creatorIds = Array.from(
+      new Set(list.map((c) => c.created_by).filter(Boolean) as string[]),
+    );
     if (creatorIds.length) {
-      const { data: profs } = await supabase.from("profiles").select("id,full_name").in("id", creatorIds);
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id,full_name")
+        .in("id", creatorIds);
       const cMap: Record<string, string> = {};
-      ((profs ?? []) as { id: string; full_name: string | null }[]).forEach((p) => { if (p.full_name) cMap[p.id] = p.full_name; });
+      ((profs ?? []) as { id: string; full_name: string | null }[]).forEach((p) => {
+        if (p.full_name) cMap[p.id] = p.full_name;
+      });
       setCreatorNames(cMap);
     } else {
       setCreatorNames({});
@@ -162,7 +240,11 @@ function CoursesPage() {
       const ids = list.map((c) => c.id);
       const [{ data: blocks }, { data: done }] = await Promise.all([
         supabase.from("course_blocks").select("id,course_id,block_type").in("course_id", ids),
-        supabase.from("block_progress").select("block_id,course_id").eq("user_id", user.id).in("course_id", ids),
+        supabase
+          .from("block_progress")
+          .select("block_id,course_id")
+          .eq("user_id", user.id)
+          .in("course_id", ids),
       ]);
       const totals = new Map<string, number>();
       (blocks ?? []).forEach((b) => {
@@ -170,7 +252,9 @@ function CoursesPage() {
         totals.set(b.course_id, (totals.get(b.course_id) ?? 0) + 1);
       });
       const doneCounts = new Map<string, number>();
-      (done ?? []).forEach((d) => doneCounts.set(d.course_id, (doneCounts.get(d.course_id) ?? 0) + 1));
+      (done ?? []).forEach((d) =>
+        doneCounts.set(d.course_id, (doneCounts.get(d.course_id) ?? 0) + 1),
+      );
       const map: Record<string, number> = {};
       ids.forEach((id) => {
         const total = totals.get(id) ?? 0;
@@ -215,8 +299,9 @@ function CoursesPage() {
     }
   };
 
-
-  useEffect(() => { load(); }, [isAdmin, user?.id]);
+  useEffect(() => {
+    load();
+  }, [isAdmin, user?.id]);
 
   const handleCreate = async () => {
     if (!title.trim()) return;
@@ -232,22 +317,38 @@ function CoursesPage() {
       .select()
       .single();
     setCreating(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Kurs yaradıldı");
     setOpen(false);
-    setTitle(""); setDescription(""); setCreateFolderId(UNCAT);
+    setTitle("");
+    setDescription("");
+    setCreateFolderId(UNCAT);
     navigate({ to: "/courses/$courseId", params: { courseId: data.id } });
   };
 
   const handleSaveFolder = async () => {
     if (!folderDialog || !folderDialog.name.trim()) return;
     if (folderDialog.mode === "create") {
-      const { error } = await supabase.from("folders").insert({ name: folderDialog.name.trim(), created_by: user?.id });
-      if (error) { toast.error(error.message); return; }
+      const { error } = await supabase
+        .from("folders")
+        .insert({ name: folderDialog.name.trim(), created_by: user?.id });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
       toast.success("Qovluq yaradıldı");
     } else {
-      const { error } = await supabase.from("folders").update({ name: folderDialog.name.trim() }).eq("id", folderDialog.id!);
-      if (error) { toast.error(error.message); return; }
+      const { error } = await supabase
+        .from("folders")
+        .update({ name: folderDialog.name.trim() })
+        .eq("id", folderDialog.id!);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
       toast.success("Qovluq yeniləndi");
     }
     setFolderDialog(null);
@@ -259,7 +360,10 @@ function CoursesPage() {
     // Move courses out
     await supabase.from("courses").update({ folder_id: null }).eq("folder_id", id);
     const { error } = await supabase.from("folders").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Qovluq silindi");
     if (activeFolder === id) setActiveFolder(ALL);
     load();
@@ -271,7 +375,10 @@ function CoursesPage() {
       .from("courses")
       .update({ folder_id: folderId === UNCAT ? null : folderId })
       .eq("id", moveDialog.courseId);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Köçürüldü");
     setMoveDialog(null);
     load();
@@ -287,20 +394,42 @@ function CoursesPage() {
     return { byFolder: map, uncategorized: uncat, total: courses.length };
   }, [courses]);
 
-  const visibleCourses = useMemo(() => {
+  // Kateqoriya + axtarış süzgəci (tab sayları bu siyahıdan hesablanır).
+  const filteredCourses = useMemo(() => {
     let list = courses;
     if (activeFolder === UNCAT) list = list.filter((c) => !c.folder_id);
     else if (activeFolder !== ALL) list = list.filter((c) => c.folder_id === activeFolder);
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter(
-        (c) =>
-          c.title.toLowerCase().includes(q) ||
-          (c.description ?? "").toLowerCase().includes(q),
+        (c) => c.title.toLowerCase().includes(q) || (c.description ?? "").toLowerCase().includes(q),
       );
     }
     return list;
   }, [courses, activeFolder, search]);
+
+  const statusCounts = useMemo(() => {
+    const count = (tab: CourseStatusTab) =>
+      filteredCourses.filter((c) => matchesStatusTab(tab, progress[c.id], !!certs[c.id])).length;
+    return {
+      all: filteredCourses.length,
+      in_progress: count("in_progress"),
+      completed: count("completed"),
+    };
+  }, [filteredCourses, progress, certs]);
+
+  const visibleCourses = useMemo(
+    () =>
+      sortCourses(
+        filteredCourses.filter((c) => matchesStatusTab(statusTab, progress[c.id], !!certs[c.id])),
+        sort,
+        viewers,
+        ratings,
+      ),
+    [filteredCourses, statusTab, progress, certs, sort, viewers, ratings],
+  );
+
+  const folderName = useMemo(() => new Map(folders.map((f) => [f.id, f.name])), [folders]);
 
   return (
     <div className="bento-page">
@@ -378,36 +507,106 @@ function CoursesPage() {
         }
       />
 
-      {/* Search + folder dropdown */}
-      <div className="bento-toolbar">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t.folders.search}
-            className="pl-9"
-          />
+      {/* Maddə 71, 73: status tabları, axtarış və sıralama */}
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <PillTabs<CourseStatusTab>
+          ariaLabel="Kurs vəziyyəti"
+          className="-mx-1 flex-nowrap overflow-x-auto px-1 py-0.5"
+          value={statusTab}
+          onValueChange={setStatusTab}
+          items={[
+            { value: "all", label: "Hamısı", count: statusCounts.all },
+            { value: "in_progress", label: "Davam edən", count: statusCounts.in_progress },
+            { value: "completed", label: "Tamamlanan", count: statusCounts.completed },
+          ]}
+        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative sm:w-72">
+            <Search
+              className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t.folders.search}
+              aria-label={t.folders.search}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="course-sort" className="shrink-0 text-sm text-muted-foreground">
+              Sırala:
+            </Label>
+            <Select value={sort} onValueChange={(v) => setSort(v as CourseSort)}>
+              <SelectTrigger id="course-sort" className="w-full sm:w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value="popular">Ən populyar</SelectItem>
+                <SelectItem value="newest">Ən yeni</SelectItem>
+                <SelectItem value="rating">Reytinq</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <Select value={activeFolder} onValueChange={setActiveFolder}>
-          <SelectTrigger className="w-[240px]">
-            <Folder className="h-4 w-4 mr-2 text-muted-foreground" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>{t.folders.all} ({counts.total})</SelectItem>
-            <SelectItem value={UNCAT}>{t.folders.uncategorized} ({counts.uncategorized})</SelectItem>
-            {folders.map((f) => (
-              <SelectItem key={f.id} value={f.id}>
-                {f.name} ({counts.byFolder.get(f.id) ?? 0})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      </div>
+
+      {/* Maddə 72: qovluqlar üfüqi kateqoriya çipləri kimi */}
+      <div className="mb-6 flex items-center gap-2">
+        <div
+          role="group"
+          aria-label="Kateqoriyalar"
+          className="-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:thin] lg:flex-wrap lg:overflow-visible"
+        >
+          {[
+            { id: ALL, name: "Bütün kateqoriyalar", count: counts.total },
+            { id: UNCAT, name: t.folders.uncategorized, count: counts.uncategorized },
+            ...folders.map((f) => ({
+              id: f.id,
+              name: f.name,
+              count: counts.byFolder.get(f.id) ?? 0,
+            })),
+          ].map((chip) => {
+            const active = activeFolder === chip.id;
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setActiveFolder(chip.id)}
+                className={cn(
+                  "inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)]",
+                  active
+                    ? "border-brand-200 bg-brand-50 text-brand-700 dark:border-transparent dark:bg-brand-600/15 dark:text-brand-200"
+                    : "border-border bg-card text-secondary-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {chip.id !== ALL && chip.id !== UNCAT && (
+                  <Folder className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
+                {chip.name}
+                <span
+                  className={cn(
+                    "tabular-nums",
+                    active ? "text-brand-600 dark:text-brand-300" : "text-muted-foreground",
+                  )}
+                >
+                  ({chip.count})
+                </span>
+              </button>
+            );
+          })}
+        </div>
         {isAdmin && activeFolder !== ALL && activeFolder !== UNCAT && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Qovluq seçimləri"
+                title="Qovluq seçimləri"
+              >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -421,7 +620,10 @@ function CoursesPage() {
                 <Pencil className="h-4 w-4 mr-2" /> {t.folders.rename}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteFolder(activeFolder)}>
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => handleDeleteFolder(activeFolder)}
+              >
                 <Trash2 className="h-4 w-4 mr-2" /> {t.folders.delete}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -429,98 +631,175 @@ function CoursesPage() {
         )}
       </div>
 
-      {!loading && !search && activeFolder === ALL && courses[0] && (
-        <article className="relative mb-6 flex flex-col sm:flex-row gap-6 rounded-lg bg-card p-5 shadow-card">
-          <div className="w-full sm:w-56 aspect-video shrink-0 overflow-hidden rounded-lg bg-muted">{courses[0].cover_image_url ? <img src={courses[0].cover_image_url} alt="" className="w-full h-full object-cover" /> : <div className="h-full flex items-center justify-center"><BookOpen className="h-10 w-10 text-primary" /></div>}</div>
-          <div className="min-w-0 flex-1"><span className="text-xs font-semibold text-primary">Son əlavə olunan kurs</span><h2 className="mt-2 text-xl font-display font-bold"><Link to="/courses/$courseId" params={{ courseId: courses[0].id }} className="after:absolute after:inset-0">{courses[0].title}</Link></h2><p className="mt-2 text-sm text-muted-foreground line-clamp-2">{courses[0].description}</p><p className="mt-3 text-xs text-muted-foreground">Müəllim: {teacherOf(courses[0])}</p></div>
-          <div className="sm:self-end text-sm font-semibold text-primary">Kursa bax →</div>
+      {!loading && !search && activeFolder === ALL && statusTab === "all" && courses[0] && (
+        <article className="group relative mb-6 flex flex-col gap-6 rounded-xl border border-border bg-card p-5 shadow-card focus-within:ring-2 focus-within:ring-ring md:flex-row md:items-center">
+          <div className="aspect-video w-full shrink-0 overflow-hidden rounded-xl bg-muted md:w-72">
+            {courses[0].cover_image_url ? (
+              <img src={courses[0].cover_image_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <BookOpen className="h-10 w-10 text-primary" aria-hidden="true" />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <StatusChip tone="brand">Son əlavə olunan kurs</StatusChip>
+            <h2 className="mt-3 font-display text-xl font-semibold leading-snug">
+              <Link
+                to="/courses/$courseId"
+                params={{ courseId: courses[0].id }}
+                className="after:absolute after:inset-0 after:rounded-xl hover:text-primary focus:outline-none"
+              >
+                {courses[0].title}
+              </Link>
+            </h2>
+            {courses[0].description && (
+              <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                {courses[0].description}
+              </p>
+            )}
+            {teacherOf(courses[0]) && (
+              <p className="mt-3 text-xs text-muted-foreground">Müəllim: {teacherOf(courses[0])}</p>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center justify-between gap-6 md:flex-col md:items-end md:self-stretch md:justify-between">
+            {ratings[courses[0].id] ? (
+              <div className="md:text-right">
+                <p className="inline-flex items-center gap-1.5 font-display text-2xl font-semibold tabular-nums">
+                  {ratings[courses[0].id].avg.toFixed(1)}
+                  <Star
+                    className="h-5 w-5 fill-[var(--warning-500)] text-[var(--warning-500)]"
+                    aria-hidden="true"
+                  />
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  ({ratings[courses[0].id].count} rəy)
+                </p>
+              </div>
+            ) : (
+              <span />
+            )}
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+              Kursa bax <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </span>
+          </div>
         </article>
       )}
       <div>
         {/* Courses grid */}
         <div>
           {loading ? (
-            <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            <div className="flex justify-center py-20">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
           ) : visibleCourses.length === 0 ? (
             <Card className="p-12 text-center border-dashed">
               <BookOpen className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
               <h3 className="font-display font-semibold text-lg">
-                {search ? t.folders.noResults : t.courses.noneYet}
+                {search || statusTab !== "all" ? t.folders.noResults : t.courses.noneYet}
               </h3>
-              {!search && (
+              {!search && statusTab === "all" && (
                 <p className="text-sm text-muted-foreground mt-1">
                   {isAdmin ? t.courses.adminEmpty : t.courses.userEmpty}
                 </p>
               )}
             </Card>
           ) : (
-            <div className="bento-course-grid">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,240px),1fr))] gap-5">
               {visibleCourses.map((c) => (
-                <article key={c.id} className="bento-course-card group relative flex min-w-0 flex-col bg-card p-3 text-card-foreground transition-shadow focus-within:ring-2 focus-within:ring-ring">
-                  <div className="relative mb-4 aspect-video overflow-hidden rounded-md bg-muted">
-                    {c.cover_image_url ? (
-                      <img src={c.cover_image_url} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-105" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-muted-foreground"><BookOpen className="h-10 w-10" /></div>
-                    )}
-                    {!c.is_published && (
-                      <span className="absolute left-2 top-2 rounded px-2 py-1 text-xs font-medium bg-card text-card-foreground shadow-sm">{t.common.draft}</span>
-                    )}
-                    {isAdmin && (
-                      <div className="absolute right-2 top-2 z-20 flex gap-1">
-                        <Button asChild variant="secondary" size="icon" className="h-8 w-8 rounded-full" title={t.common.edit}>
-                          <Link to="/courses/$courseId/edit" params={{ courseId: c.id }} aria-label={`${c.title}: ${t.common.edit}`}><Pencil className="h-4 w-4" /></Link>
+                <CourseCard
+                  key={c.id}
+                  id={c.id}
+                  title={c.title}
+                  cover={c.cover_image_url}
+                  teacher={teacherOf(c)}
+                  category={c.folder_id ? folderName.get(c.folder_id) : null}
+                  rating={
+                    ratings[c.id]
+                      ? { average: ratings[c.id].avg, count: ratings[c.id].count }
+                      : null
+                  }
+                  emptyRatingText="Hələ qiymətləndirilməyib"
+                  progress={user?.id ? (progress[c.id] ?? 0) : undefined}
+                  badge={
+                    !c.is_published ? (
+                      <StatusChip tone="gray" className="bg-card shadow-sm">
+                        {t.common.draft}
+                      </StatusChip>
+                    ) : undefined
+                  }
+                  actions={
+                    isAdmin ? (
+                      <>
+                        <Button
+                          asChild
+                          variant="secondary"
+                          size="icon"
+                          className="h-8 w-8 rounded-full shadow-sm"
+                          title={t.common.edit}
+                        >
+                          <Link
+                            to="/courses/$courseId/edit"
+                            params={{ courseId: c.id }}
+                            aria-label={`${c.title}: ${t.common.edit}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Link>
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full" aria-label={`${c.title}: seçimlər`} title="Seçimlər"><MoreVertical className="h-4 w-4" /></Button>
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              className="h-8 w-8 rounded-full shadow-sm"
+                              aria-label={`${c.title}: seçimlər`}
+                              title="Seçimlər"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setMoveDialog({ courseId: c.id, current: c.folder_id })}>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                setMoveDialog({ courseId: c.id, current: c.folder_id })
+                              }
+                            >
                               <Move className="h-4 w-4 mr-2" /> {t.folders.moveTo}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="font-display text-base font-semibold leading-snug tracking-normal">
-                    <Link to="/courses/$courseId" params={{ courseId: c.id }} className="after:absolute after:inset-0 after:z-10 after:rounded-lg hover:text-primary focus:outline-none">
-                      {c.title}
-                    </Link>
-                  </h3>
-                  {teacherOf(c) && <p className="mt-1 truncate text-xs text-muted-foreground">Müəllim: {teacherOf(c)}</p>}
-                  <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
-                    {ratings[c.id] ? (
-                      <>
-                        <span className="inline-flex items-center gap-1.5" aria-label={`5 üzərindən ${ratings[c.id].avg.toFixed(1)}`}>
-                          <StarRating value={ratings[c.id].avg} size="sm" />
-                          <span className="font-semibold">{ratings[c.id].avg.toFixed(1)}</span>
-                        </span>
-                        <span className="text-muted-foreground">({ratings[c.id].count} rəy)</span>
                       </>
-                    ) : (
-                      <span className="py-0.5 text-muted-foreground">Hələ qiymətləndirilməyib</span>
-                    )}
-                  </div>
-                  {certs[c.id] && (
-                    <div className="relative z-20 mt-3 flex flex-wrap items-center gap-2">
-                      <Button asChild size="sm" variant="ghost" className="h-auto justify-start p-0 text-xs text-primary hover:bg-transparent">
-                        <Link to="/courses/$courseId" params={{ courseId: c.id }}><RotateCcw />Kursu təkrar keç</Link>
-                      </Button>
-                      <Button size="icon" variant="ghost" className="ml-auto h-7 w-7" title="Sertifikatı əldə et" aria-label={`${c.title}: sertifikatı əldə et`} disabled={certBusy === c.id} onClick={() => handleCertificate(c)}>
-                        {certBusy === c.id ? <Loader2 className="animate-spin" /> : <Award />}
-                      </Button>
-                    </div>
-                  )}
-                  {(progress[c.id] ?? 0) > 0 && (
-                    <div className="mt-auto pt-4">
-                      <div role="progressbar" aria-label={`${c.title}: keçid`} aria-valuenow={progress[c.id]} aria-valuemin={0} aria-valuemax={100} className="h-1 overflow-hidden rounded-full bg-muted" title={`Keçid: ${progress[c.id]}%`}>
-                        <div className="h-full bg-primary" style={{ width: `${progress[c.id]}%` }} />
+                    ) : undefined
+                  }
+                  footer={
+                    certs[c.id] ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="ghost"
+                          className="h-auto justify-start p-0 text-xs text-primary hover:bg-transparent"
+                        >
+                          <Link to="/courses/$courseId" params={{ courseId: c.id }}>
+                            <RotateCcw />
+                            Kursu təkrar keç
+                          </Link>
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="ml-auto h-7 w-7"
+                          title="Sertifikatı əldə et"
+                          aria-label={`${c.title}: sertifikatı əldə et`}
+                          disabled={certBusy === c.id}
+                          onClick={() => handleCertificate(c)}
+                        >
+                          {certBusy === c.id ? <Loader2 className="animate-spin" /> : <Award />}
+                        </Button>
                       </div>
-                    </div>
-                  )}
-                </article>
+                    ) : undefined
+                  }
+                />
               ))}
             </div>
           )}
@@ -531,20 +810,24 @@ function CoursesPage() {
       <Dialog open={!!folderDialog} onOpenChange={(o) => !o && setFolderDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{folderDialog?.mode === "create" ? t.folders.new : t.folders.rename}</DialogTitle>
+            <DialogTitle>
+              {folderDialog?.mode === "create" ? t.folders.new : t.folders.rename}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             <Label>{t.folders.name}</Label>
             <Input
               autoFocus
               value={folderDialog?.name ?? ""}
-              onChange={(e) => setFolderDialog((p) => p ? { ...p, name: e.target.value } : p)}
+              onChange={(e) => setFolderDialog((p) => (p ? { ...p, name: e.target.value } : p))}
               onKeyDown={(e) => e.key === "Enter" && handleSaveFolder()}
               placeholder="Məs. Satış"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setFolderDialog(null)}>{t.common.cancel}</Button>
+            <Button variant="outline" onClick={() => setFolderDialog(null)}>
+              {t.common.cancel}
+            </Button>
             <Button onClick={handleSaveFolder}>{t.common.save}</Button>
           </DialogFooter>
         </DialogContent>
@@ -553,10 +836,15 @@ function CoursesPage() {
       {/* Move dialog */}
       <Dialog open={!!moveDialog} onOpenChange={(o) => !o && setMoveDialog(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{t.folders.moveTo}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{t.folders.moveTo}</DialogTitle>
+          </DialogHeader>
           <div className="space-y-1 max-h-80 overflow-y-auto">
             <button
-              className={cn("w-full text-left px-3 py-2 rounded-md hover:bg-muted flex items-center gap-2", moveDialog?.current === null && "bg-muted")}
+              className={cn(
+                "w-full text-left px-3 py-2 rounded-md hover:bg-muted flex items-center gap-2",
+                moveDialog?.current === null && "bg-muted",
+              )}
               onClick={() => handleMove(UNCAT)}
             >
               <Folder className="h-4 w-4" /> {t.folders.uncategorized}
@@ -564,7 +852,10 @@ function CoursesPage() {
             {folders.map((f) => (
               <button
                 key={f.id}
-                className={cn("w-full text-left px-3 py-2 rounded-md hover:bg-muted flex items-center gap-2", moveDialog?.current === f.id && "bg-muted")}
+                className={cn(
+                  "w-full text-left px-3 py-2 rounded-md hover:bg-muted flex items-center gap-2",
+                  moveDialog?.current === f.id && "bg-muted",
+                )}
                 onClick={() => handleMove(f.id)}
               >
                 <Folder className="h-4 w-4" /> {f.name}
@@ -576,4 +867,3 @@ function CoursesPage() {
     </div>
   );
 }
-
