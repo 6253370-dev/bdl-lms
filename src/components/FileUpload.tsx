@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadCourseMedia } from "@/lib/course-media";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,38 +16,44 @@ interface Props {
   disabled?: boolean;
 }
 
-const BUCKET = "course-media";
-
-export function FileUpload({ label, icon: Icon, value, onChange, accept, folder, disabled }: Props) {
+export function FileUpload({
+  label,
+  icon: Icon,
+  value,
+  onChange,
+  accept,
+  folder,
+  disabled,
+}: Props) {
   const ref = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
   const handleFile = async (file: File) => {
-    if (file.size > 200 * 1024 * 1024) {
-      toast.error("Fayl 200MB-dan kiçik olmalıdır");
-      return;
-    }
     setUploading(true);
-    const ext = file.name.split(".").pop() ?? "bin";
-    const path = `${folder}/${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-      contentType: file.type,
-      upsert: false,
-    });
+    const url = await uploadCourseMedia(file, folder);
     setUploading(false);
-    if (error) { toast.error(error.message); return; }
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-    onChange(data.publicUrl);
+    if (!url) return;
+    onChange(url);
     toast.success(`${label} yükləndi`);
   };
 
   return (
     <div className="space-y-2">
-      <Label className="flex items-center gap-1.5"><Icon className="h-3.5 w-3.5" /> {label}</Label>
+      <Label className="flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5" /> {label}
+      </Label>
       {value ? (
         <div className="flex items-center gap-2">
           <Input value={value} readOnly className="text-xs font-mono" />
-          <Button type="button" variant="ghost" size="icon" onClick={() => onChange(null)} disabled={disabled}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => onChange(null)}
+            disabled={disabled}
+            aria-label={`${label}: faylı sil`}
+            title="Faylı sil"
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -72,8 +78,12 @@ export function FileUpload({ label, icon: Icon, value, onChange, accept, folder,
             disabled={uploading || disabled}
             onClick={() => ref.current?.click()}
           >
-            {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-            {uploading ? "Uploading…" : `Upload ${label}`}
+            {uploading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            {uploading ? "Yüklənir…" : `${label} yüklə`}
           </Button>
         </>
       )}
