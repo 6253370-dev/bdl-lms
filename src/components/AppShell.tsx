@@ -79,7 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   })();
 
   const avatar = (
-    <div className="h-10 w-10 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-semibold overflow-hidden shrink-0 ring-2 ring-card shadow-card">
+    <div className="h-10 w-10 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-semibold overflow-hidden shrink-0 border border-border">
       {profile?.avatar_url ? (
         <img src={profile.avatar_url} alt="Profil şəkli" className="h-full w-full object-cover" />
       ) : (
@@ -104,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <GraduationCap className="h-6 w-6" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-display font-extrabold text-base leading-tight">{t.brand}</div>
+            <div className="font-display font-semibold text-base leading-tight">{t.brand}</div>
           </div>
           <Button
             variant="ghost"
@@ -129,13 +129,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                 to={item.to}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors",
+                  "flex items-center gap-3 px-3 py-2 rounded-md text-base font-semibold transition-colors duration-150",
                   active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
-                    : "text-sidebar-foreground/75 hover:bg-muted hover:text-sidebar-foreground",
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
-                <Icon className="h-5 w-5 shrink-0" strokeWidth={active ? 2.25 : 1.75} />
+                <Icon className="h-5 w-5 shrink-0" strokeWidth={2} />
                 <span className="truncate">{item.label}</span>
               </Link>
             );
@@ -143,7 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="px-4 pb-4">
-          <div className="rounded-2xl bg-gradient-soft border border-border/60 p-5 mb-3">
+          <div className="rounded-xl bg-muted border border-border p-5 mb-3">
             <Sprout className="h-6 w-6 text-primary mb-3" />
             <div className="font-display font-bold leading-snug">Daha yaxşı bir sən üçün</div>
             <div className="text-xs text-muted-foreground mt-1">Öyrən. İnkişaf et. Gələcəyini qur.</div>
@@ -161,18 +161,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {open && (
         <div
-          className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-30 lg:hidden"
+          className="fixed inset-0 bg-gray-950/70 backdrop-blur-[4px] z-30 lg:hidden"
           onClick={() => setOpen(false)}
         />
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile header */}
-        <header className="lg:hidden h-16 flex items-center px-4 border-b bg-card/90 backdrop-blur sticky top-0 z-20">
+        <header className="lg:hidden h-16 flex items-center px-4 border-b bg-card sticky top-0 z-20">
           <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="ml-3 font-display font-extrabold">{t.brand}</div>
+          <div className="ml-3 font-display font-semibold">{t.brand}</div>
           <div className="ml-auto flex items-center gap-2">
             <NotificationBell />
             <Link to="/profile">{avatar}</Link>
@@ -180,7 +180,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         {/* Desktop top bar */}
-        <header className="hidden lg:flex h-16 shrink-0 items-center gap-4 px-7 sticky top-0 z-20 bg-card/90 border-b border-border/60 backdrop-blur">
+        <header className="hidden lg:flex h-16 shrink-0 items-center gap-4 px-7 sticky top-0 z-20 bg-card border-b border-border">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>{t.brand}</span><ChevronRight className="h-3 w-3" />
             <span className="font-medium text-foreground">{location.pathname.startsWith('/profile') ? 'Profil' : items.find((item) => location.pathname.startsWith(item.to))?.label ?? 'Təlim'}</span>

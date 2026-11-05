@@ -53,14 +53,14 @@ function LoginPage() {
       {/* Left: branded panel */}
       <div className="hidden lg:flex flex-col justify-between p-12 text-primary-foreground" style={{ background: "var(--gradient-hero)" }}>
         <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center">
+          <div className="h-11 w-11 rounded-xl bg-primary-foreground/15 flex items-center justify-center">
             <GraduationCap className="h-6 w-6" />
           </div>
           <div className="font-display font-bold text-xl">{t.brand}</div>
         </div>
         <div className="space-y-6 max-w-lg">
           <h1 className="font-display text-5xl font-bold leading-tight">
-            {t.login.heroTitle} <span className="text-white/95">{t.login.heroAccent}</span>
+            {t.login.heroTitle} <span className="text-primary-foreground">{t.login.heroAccent}</span>
           </h1>
           <p className="text-lg text-primary-foreground/85">
             {t.login.heroSubtitle}
@@ -73,7 +73,7 @@ function LoginPage() {
 
       {/* Right: form */}
       <div className="flex items-center justify-center p-6 sm:p-12 bg-background">
-        <Card className="w-full max-w-md p-8 shadow-[var(--shadow-elegant)] border-border/60">
+        <Card className="w-full max-w-md p-8 shadow-[var(--shadow-lg)] border-border/60">
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
               <GraduationCap className="h-5 w-5" />
