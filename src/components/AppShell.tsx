@@ -172,7 +172,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="ml-3 font-display font-extrabold">{t.brand}</div>
+          <div className="ml-3 font-display font-semibold">{t.brand}</div>
           <div className="ml-auto flex items-center gap-2">
             <NotificationBell />
             <Link to="/profile">{avatar}</Link>
