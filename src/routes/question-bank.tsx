@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 
 import { toast } from "sonner";
+import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/question-bank")({
   head: () => ({ meta: [
@@ -195,16 +196,10 @@ function QuestionBankPage() {
 
   return (
     <div className="bento-page">
-      <div className="flex items-start justify-between gap-4 mb-8">
-        <div>
-          <h1 className="font-display text-3xl font-bold mb-1 flex items-center gap-2">
-            <Library className="h-7 w-7 text-primary" /> Sual Bankı
-          </h1>
-          <p className="text-muted-foreground">
-            Bütün imtahanlar üçün mərkəzi sual repozitorisi.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Sual Bankı"
+        description="Bütün imtahanlar üçün mərkəzi sual repozitorisi."
+      />
 
       {loading ? (
         <div className="flex justify-center py-16">

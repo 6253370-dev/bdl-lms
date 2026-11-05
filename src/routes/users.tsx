@@ -34,6 +34,7 @@ import { StatusChip } from "@/components/design/StatusChip";
 import { UserAvatar } from "@/components/design/UserAvatar";
 import { RowActions, TableCard, TablePagination } from "@/components/design/DataTable";
 import { usePagination } from "@/lib/design";
+import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/users")({
   head: () => ({ meta: [
@@ -124,17 +125,21 @@ function UsersPage() {
 
   return (
     <div className="bento-page">
-      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-        <div>
-          <h1 className="font-display text-3xl font-bold">{t.users.title}</h1>
-          <p className="text-muted-foreground mt-1">
-            {isSuperAdmin ? "Bütün istifadəçiləri yarat və idarə et." : "İstifadəçi məlumatlarına bax və redaktə et."}
-          </p>
-        </div>
-        {isSuperAdmin && (
-          <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={load} />
-        )}
-      </div>
+      <PageHeader
+        title={t.users.title}
+        description={
+          isSuperAdmin
+            ? "Bütün istifadəçiləri yarat və idarə et."
+            : "İstifadəçi məlumatlarına bax və redaktə et."
+        }
+        actions={
+          <>
+            {isSuperAdmin && (
+              <CreateUserDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={load} />
+            )}
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
         <StatCard
@@ -312,7 +317,9 @@ function CreateUserDialog({ open, onOpenChange, onCreated }: { open: boolean; on
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button size="lg"><Plus className="h-4 w-4 mr-2" /> {t.users.new}</Button>
+        <Button>
+          <Plus className="h-4 w-4" /> {t.users.new}
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>Yeni istifadəçi yarat</DialogTitle></DialogHeader>

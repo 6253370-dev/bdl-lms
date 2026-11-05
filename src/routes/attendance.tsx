@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { StatCard } from "@/components/design/StatCard";
 import { RowActions, TableCard } from "@/components/design/DataTable";
 import { ExportButton } from "@/components/design/ExportButton";
+import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/attendance")({
   head: () => ({
@@ -160,20 +161,25 @@ function AttendancePage() {
 
   return (
     <div className="bento-page space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold flex items-center gap-2">
-            <CalendarCheck className="h-7 w-7 text-primary" />
-            Davamiyyət
-          </h1>
-          <p className="text-sm text-muted-foreground">Offline dərslər üzrə iştirak qeydiyyatı.</p>
-        </div>
-        {isSuperAdmin && (
-          <Button onClick={() => { setEditing(null); setCreatorOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" />Yeni dərs
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Davamiyyət"
+        description="Offline dərslər üzrə iştirak qeydiyyatı."
+        actions={
+          <>
+            {isSuperAdmin && (
+              <Button
+                onClick={() => {
+                  setEditing(null);
+                  setCreatorOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Yeni dərs
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <StatCard icon={CalendarCheck} label="Offline dərslər" value={lessons.length} />

@@ -10,6 +10,7 @@ import { Award, Download, Eye, Loader2 } from "lucide-react";
 import { downloadCertificateSmart, previewCertificateSmart, type CertificateData } from "@/lib/certificate";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/certificates/my")({
   head: () => ({ meta: [
@@ -111,10 +112,7 @@ function MyCertificatesPage() {
 
   return (
     <div className="bento-page">
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-bold">{t.cert.myCerts}</h1>
-        <p className="text-muted-foreground mt-1">{t.cert.title}</p>
-      </div>
+      <PageHeader title={t.cert.myCerts} description={t.cert.title} />
 
       {loading ? (
         <p className="text-muted-foreground">{t.common.loading}</p>

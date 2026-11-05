@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/champions")({
   head: () => ({ meta: [
@@ -304,20 +305,22 @@ function GamificationPage() {
 
   return (
     <div className="bento-page space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold flex items-center gap-2">
-            <Trophy className="h-7 w-7 text-warning" /> Gamification Center
-          </h1>
-          <p className="text-muted-foreground">Öyrən, yarış, qazan və lider ol.</p>
-        </div>
-        {isAdmin && (
-          <Button variant="outline" onClick={() => setXpOpen(true)}>XP tənzimləmələri</Button>
-        )}
-        <Button onClick={() => setCreateOpen(true)} size="lg">
-          <Swords className="h-4 w-4 mr-2" /> Duel başlat
-        </Button>
-      </div>
+      <PageHeader
+        title="Gamification Center"
+        description="Öyrən, yarış, qazan və lider ol."
+        actions={
+          <>
+            {isAdmin && (
+              <Button variant="outline" onClick={() => setXpOpen(true)}>
+                XP tənzimləmələri
+              </Button>
+            )}
+            <Button onClick={() => setCreateOpen(true)}>
+              <Swords className="h-4 w-4 mr-2" /> Duel başlat
+            </Button>
+          </>
+        }
+      />
 
       {/* personal stats */}
       <Card className="p-6 border-0 bg-accent/50">

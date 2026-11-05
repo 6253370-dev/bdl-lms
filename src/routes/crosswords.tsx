@@ -15,6 +15,7 @@ import { cellsOf, generateCrossword, normalizeWord, type GeneratedCrossword, typ
 import { Grid3x3, Plus, Trash2, Pencil, Wand2, Loader2, ArrowLeft, CheckCircle2, Clock, BarChart3, PlayCircle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/design/PageHeader";
 
 const fmtSecs = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
@@ -107,15 +108,24 @@ function CrosswordsPage() {
 
   return (
     <div className="bento-page space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold">Krossvordlar</h1>
-          <p className="text-muted-foreground text-sm">
-            {isAdmin ? "Sözləri və sualları yaz — sistem krossvordu avtomatik qursun." : "Krossvordları həll et və biliyini yoxla."}
-          </p>
-        </div>
-        {isAdmin && <Button onClick={() => setEditing("new")}><Plus className="h-4 w-4 mr-2" />Yeni krossvord</Button>}
-      </div>
+      <PageHeader
+        title="Krossvordlar"
+        description={
+          isAdmin
+            ? "Sözləri və sualları yaz — sistem krossvordu avtomatik qursun."
+            : "Krossvordları həll et və biliyini yoxla."
+        }
+        actions={
+          <>
+            {isAdmin && (
+              <Button onClick={() => setEditing("new")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Yeni krossvord
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {!loading && draftItems.length > 0 && (
         <Card className="p-4 border-warning/50 bg-warning/10 space-y-3">

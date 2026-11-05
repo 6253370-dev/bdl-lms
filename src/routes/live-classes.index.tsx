@@ -5,6 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/design/PageHeader";
+import { PillTabs } from "@/components/design/PillTabs";
+import { StatusChip } from "@/components/design/StatusChip";
+import { TableCard } from "@/components/design/DataTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,13 +92,15 @@ const DURATIONS = [30, 45, 60, 90, 120];
 export function statusBadge(status: RoomStatus) {
   if (status === "live")
     return (
-      <Badge className="bg-destructive text-destructive-foreground gap-1">
-        <Radio className="h-3 w-3" /> {t.live.liveNow}
-      </Badge>
+      <StatusChip tone="live">{t.live.liveNow}</StatusChip>
     );
-  if (status === "scheduled") return <Badge variant="secondary">{t.live.scheduled}</Badge>;
-  if (status === "ended") return <Badge variant="outline">{t.live.ended}</Badge>;
-  return <Badge variant="outline" className="text-muted-foreground">{t.live.cancelled}</Badge>;
+  if (status === "scheduled") return <StatusChip tone="brand">{t.live.scheduled}</StatusChip>;
+  if (status === "ended") return <StatusChip tone="gray">{t.live.ended}</StatusChip>;
+  return (
+    <StatusChip tone="gray" className="text-muted-foreground">
+      {t.live.cancelled}
+    </StatusChip>
+  );
 }
 
 export function roomStartDate(r: Pick<LiveRoom, "scheduled_date" | "scheduled_start_time">) {
@@ -292,52 +298,107 @@ function LiveClassesPage() {
     toast.success(t.common.delete);
   };
 
+  const primaryAction = (r: LiveRoom, className = "w-full") => {
+    if (r.status === "live")
+      return (
+        <Button
+          size="sm"
+          className={className}
+          onClick={() => navigate({ to: "/live-classes/$roomId/room", params: { roomId: r.id } })}
+        >
+          <Radio /> {t.live.enterRoom}
+        </Button>
+      );
+    if (r.status === "scheduled")
+      return (
+        <Button size="sm" variant="outline" className={className} onClick={() => startRoom(r)}>
+          {t.live.startLesson}
+        </Button>
+      );
+    return null;
+  };
+
+  // Həmişə 4 yer: ləğv edilə bilməyən otaqda boş yer saxlanır ki, ikonlar sütun-sütun düzülsün.
+  const iconActions = (r: LiveRoom) => (
+    <>
+      <Button size="icon" variant="ghost" className="h-9 w-9" asChild aria-label={t.live.details}>
+        <Link to="/live-classes/$roomId" params={{ roomId: r.id }}>
+          <Eye className="h-4 w-4" />
+        </Link>
+      </Button>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-9 w-9"
+        aria-label={t.live.edit}
+        onClick={() => {
+          setEditing(r);
+          setFormOpen(true);
+        }}
+      >
+        <Pencil className="h-4 w-4" />
+      </Button>
+      {r.status !== "ended" && r.status !== "cancelled" ? (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-9 w-9"
+          aria-label={t.live.cancel}
+          onClick={() => cancelRoom(r)}
+        >
+          <Ban className="h-4 w-4" />
+        </Button>
+      ) : (
+        <span className="h-9 w-9 shrink-0" aria-hidden="true" />
+      )}
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-9 w-9 hover:bg-[var(--error-50)] hover:text-[var(--error-600)]"
+        aria-label={t.common.delete}
+        onClick={() => deleteRoom(r)}
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </>
+  );
+
   return (
     <div className="bento-page space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Video className="h-6 w-6 text-primary" /> {t.live.title}
-          </h1>
-          <p className="text-sm text-muted-foreground">{t.live.subtitle}</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => setJoinOpen(true)}>
-            <KeyRound className="h-4 w-4 mr-2" /> {t.live.joinByCode}
-          </Button>
-          {isAdmin && (
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" /> {t.live.create}
+      <PageHeader
+        title={t.live.title}
+        description={t.live.subtitle}
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setJoinOpen(true)}>
+              <KeyRound className="h-4 w-4" /> {t.live.joinByCode}
             </Button>
-          )}
-        </div>
-      </div>
+            {isAdmin && (
+              <Button
+                onClick={() => {
+                  setEditing(null);
+                  setFormOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4" /> {t.live.create}
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      <div className="bento-toolbar">
-        {(
-          [
-            ["all", t.live.all],
-            ["scheduled", t.live.scheduled],
-            ["live", t.live.liveNow],
-            ["ended", t.live.ended],
-            ["cancelled", t.live.cancelled],
-          ] as const
-        ).map(([key, label]) => (
-          <Button
-            key={key}
-            size="sm"
-            variant={filter === key ? "default" : "outline"}
-            onClick={() => setFilter(key)}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
+      <PillTabs
+        ariaLabel="Status üzrə filtr"
+        value={filter}
+        onValueChange={setFilter}
+        items={[
+          { value: "all", label: t.live.all },
+          { value: "scheduled", label: t.live.scheduled },
+          { value: "live", label: t.live.liveNow },
+          { value: "ended", label: t.live.ended },
+          { value: "cancelled", label: t.live.cancelled },
+        ]}
+      />
 
       {loading ? (
         <div className="py-16 flex justify-center">
@@ -346,93 +407,86 @@ function LiveClassesPage() {
       ) : filtered.length === 0 ? (
         <Card className="p-10 text-center text-muted-foreground">{t.live.noRooms}</Card>
       ) : isAdmin ? (
-        <Card className="bento-table border-0">
-          <table className="w-full text-sm min-w-[820px]">
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th className="p-3 font-medium">{t.live.lessonName}</th>
-                <th className="p-3 font-medium">{t.live.teacher}</th>
-                <th className="p-3 font-medium">{t.live.date}</th>
-                <th className="p-3 font-medium">{t.live.startTime}</th>
-                <th className="p-3 font-medium">{t.live.participants}</th>
-                <th className="p-3 font-medium">Status</th>
-                <th className="p-3 font-medium text-right">—</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => (
-                <tr key={r.id} className="border-t">
-                  <td className="p-3">
-                    <div className="font-medium">{r.title}</div>
-                    <div className="text-xs text-muted-foreground font-mono">{r.room_code}</div>
-                  </td>
-                  <td className="p-3">{teacherName(r.teacher_id)}</td>
-                  <td className="p-3">{fmtDate(r.scheduled_date)}</td>
-                  <td className="p-3">{fmtTime(r.scheduled_start_time)}</td>
-                  <td className="p-3">{counts[r.id] ?? 0}</td>
-                  <td className="p-3">{statusBadge(r.status)}</td>
-                  <td className="p-3">
-                    <div className="flex gap-1 justify-end flex-wrap">
-                      {r.status === "live" && (
-                        <Button
-                          size="sm"
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          onClick={() =>
-                            navigate({
-                              to: "/live-classes/$roomId/room",
-                              params: { roomId: r.id },
-                            })
-                          }
-                        >
-                          <Radio className="h-3.5 w-3.5 mr-1" /> {t.live.enterRoom}
-                        </Button>
-                      )}
-                      {r.status === "scheduled" && (
-                        <Button size="sm" onClick={() => startRoom(r)}>
-                          {t.live.startLesson}
-                        </Button>
-                      )}
-                      <Button size="sm" variant="ghost" asChild aria-label={t.live.details}>
-                        <Link to="/live-classes/$roomId" params={{ roomId: r.id }}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        aria-label={t.live.edit}
-                        onClick={() => {
-                          setEditing(r);
-                          setFormOpen(true);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {r.status !== "ended" && r.status !== "cancelled" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          aria-label={t.live.cancel}
-                          onClick={() => cancelRoom(r)}
-                        >
-                          <Ban className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        aria-label={t.common.delete}
-                        onClick={() => deleteRoom(r)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </td>
+        <>
+          {/* Masaüstü (lg+): cədvəl */}
+          <TableCard className="hidden lg:block">
+            <table className="w-full text-sm">
+              <thead className="bg-muted text-left text-xs text-muted-foreground">
+                <tr>
+                  <th className="h-11 px-4 font-medium whitespace-nowrap">{t.live.lessonName}</th>
+                  <th className="h-11 px-4 font-medium whitespace-nowrap">{t.live.teacher}</th>
+                  <th className="h-11 px-4 font-medium whitespace-nowrap">{t.live.date}</th>
+                  <th className="h-11 px-4 font-medium whitespace-nowrap">{t.live.startTime}</th>
+                  <th className="h-11 px-4 font-medium text-center whitespace-nowrap">
+                    {t.live.participants}
+                  </th>
+                  <th className="h-11 px-4 font-medium whitespace-nowrap">Status</th>
+                  <th className="h-11 px-4 font-medium w-[1%]">
+                    <span className="sr-only">Əməliyyatlar</span>
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+              </thead>
+              <tbody>
+                {filtered.map((r) => (
+                  <tr key={r.id} className="border-t border-border hover:bg-muted/60">
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{r.title}</div>
+                      <div className="text-xs text-muted-foreground font-mono">{r.room_code}</div>
+                    </td>
+                    <td className="px-4 py-3">{teacherName(r.teacher_id)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap tabular-nums">
+                      {fmtDate(r.scheduled_date)}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap tabular-nums">
+                      {fmtTime(r.scheduled_start_time)}
+                    </td>
+                    <td className="px-4 py-3 text-center tabular-nums">{counts[r.id] ?? 0}</td>
+                    <td className="px-4 py-3">{statusBadge(r.status)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                        {/* Sabit enli yer: ikonlar bütün sətirlərdə eyni sütunda qalır */}
+                        <div className="flex w-[148px] justify-end">{primaryAction(r)}</div>
+                        {iconActions(r)}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableCard>
+
+          {/* Planşet və mobil: kartlar (üfüqi sürüşmə olmadan) */}
+          <ul className="grid gap-3 sm:grid-cols-2 lg:hidden">
+            {filtered.map((r) => (
+              <li
+                key={r.id}
+                className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium break-words">{r.title}</div>
+                    <div className="text-xs text-muted-foreground font-mono">{r.room_code}</div>
+                  </div>
+                  {statusBadge(r.status)}
+                </div>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                  <dt className="text-muted-foreground">{t.live.teacher}</dt>
+                  <dd className="text-right truncate">{teacherName(r.teacher_id)}</dd>
+                  <dt className="text-muted-foreground">{t.live.date}</dt>
+                  <dd className="text-right tabular-nums">
+                    {fmtDate(r.scheduled_date)} · {fmtTime(r.scheduled_start_time)}
+                  </dd>
+                  <dt className="text-muted-foreground">{t.live.participants}</dt>
+                  <dd className="text-right tabular-nums">{counts[r.id] ?? 0}</dd>
+                </dl>
+                <div className="mt-auto flex items-center gap-1 border-t border-border pt-3">
+                  <div className="flex-1">{primaryAction(r, "w-full sm:w-auto")}</div>
+                  {iconActions(r)}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : (
         <div className="space-y-6">
           {liveRooms.length > 0 && (

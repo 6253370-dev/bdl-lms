@@ -19,6 +19,7 @@ import {
 import { Award, Eye, FileText, Loader2, Plus, Trash2, Pencil } from "lucide-react";
 import { previewCertificateSmart } from "@/lib/certificate";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/certificates/")({
   head: () => ({
@@ -132,26 +133,22 @@ function TemplatesPage() {
 
   return (
     <div className="bento-page">
-      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
-        <div>
-          <h1 className="font-display text-3xl font-bold flex items-center gap-2">
-            <Award className="h-7 w-7 text-primary" /> Sertifikat Şablonları
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Şablonlar kurs imtahanlarında və müstəqil imtahanlarda istifadə oluna bilər.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/certificates/my">
-              <Award className="h-4 w-4" /> Sertifikatlarım
-            </Link>
-          </Button>
-          <Button onClick={() => setEditor({ name: "", file_url: null })}>
-            <Plus className="h-4 w-4" /> Yeni şablon
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Sertifikat Şablonları"
+        description="Şablonlar kurs imtahanlarında və müstəqil imtahanlarda istifadə oluna bilər."
+        actions={
+          <>
+            <Button variant="outline" asChild>
+              <Link to="/certificates/my">
+                <Award className="h-4 w-4" /> Sertifikatlarım
+              </Link>
+            </Button>
+            <Button onClick={() => setEditor({ name: "", file_url: null })}>
+              <Plus className="h-4 w-4" /> Yeni şablon
+            </Button>
+          </>
+        }
+      />
 
       {loading ? (
         <p className="text-muted-foreground">Yüklənir…</p>

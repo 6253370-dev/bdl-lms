@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { ClipboardCheck, CheckCircle2, Loader2 } from "lucide-react";
 import { StatCard } from "@/components/design/StatCard";
 import { PillTabsList, PillTabsTrigger } from "@/components/design/PillTabs";
+import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/grading")({
   head: () => ({
@@ -141,14 +142,10 @@ function GradingInner() {
 
   return (
     <div className="bento-page space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-bold flex items-center gap-2">
-          <ClipboardCheck className="h-7 w-7 text-primary" /> İmtahan yoxlaması
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Açıq tipli sualları qiymətləndirin (0–1). Yekun nəticə verdiyiniz qiymətlər əsasında hesablanır.
-        </p>
-      </div>
+      <PageHeader
+        title="İmtahan yoxlaması"
+        description="Açıq tipli sualları qiymətləndirin (0–1). Yekun nəticə verdiyiniz qiymətlər əsasında hesablanır."
+      />
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <StatCard

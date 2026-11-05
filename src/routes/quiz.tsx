@@ -24,6 +24,7 @@ import { FileUpload } from "@/components/FileUpload";
 import { Music } from "lucide-react";
 import { toast } from "sonner";
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
+import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/quiz")({
   head: () => ({ meta: [
@@ -111,12 +112,10 @@ function QuizHub() {
 
   return (
     <div className="bento-page space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-bold mb-2">Live Quiz</h1>
-        <p className="text-muted-foreground">
-          Real vaxtda çoxlu istifadəçi ilə yarış. Otaq parolu ilə qoşul.
-        </p>
-      </div>
+      <PageHeader
+        title="Live Quiz"
+        description="Real vaxtda çoxlu istifadəçi ilə yarış. Otaq parolu ilə qoşul."
+      />
 
       <Card className="p-6 max-w-xl border-0">
         <div className="flex items-center gap-2 mb-3">

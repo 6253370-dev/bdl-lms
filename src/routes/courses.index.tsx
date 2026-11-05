@@ -22,6 +22,7 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { downloadCertificateSmart } from "@/lib/certificate";
 import { StarRating } from "@/components/StarRating";
+import { PageHeader } from "@/components/design/PageHeader";
 
 
 export const Route = createFileRoute("/courses/")({
@@ -303,58 +304,79 @@ function CoursesPage() {
 
   return (
     <div className="bento-page">
-      <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
-        <div>
-          <h1 className="font-display text-3xl font-bold">{t.courses.title}</h1>
-          <p className="text-muted-foreground mt-1">{t.courses.subtitle}</p>
-        </div>
-        <div className="flex gap-2">
-          {isAdmin && (
-            <Button variant="outline" onClick={() => setFolderDialog({ mode: "create", name: "" })}>
-              <FolderPlus className="h-4 w-4 mr-2" /> {t.folders.new}
-            </Button>
-          )}
-          {isAdmin && (
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button size="lg"><Plus className="h-4 w-4 mr-2" /> {t.courses.newCourse}</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>{t.courses.createNew}</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>{t.courses.title_field}</Label>
-                    <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Məs. Müştəri xidməti" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{t.courses.description}</Label>
-                    <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Qısa təsvir" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{t.folders.moveTo}</Label>
-                    <Select value={createFolderId} onValueChange={setCreateFolderId}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={UNCAT}>{t.folders.uncategorized}</SelectItem>
-                        {folders.map((f) => (
-                          <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setOpen(false)}>{t.common.cancel}</Button>
-                  <Button onClick={handleCreate} disabled={creating}>
-                    {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    {t.common.create}
+      <PageHeader
+        title={t.courses.title}
+        description={t.courses.subtitle}
+        actions={
+          <>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                onClick={() => setFolderDialog({ mode: "create", name: "" })}
+              >
+                <FolderPlus className="h-4 w-4 mr-2" /> {t.folders.new}
+              </Button>
+            )}
+            {isAdmin && (
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4" /> {t.courses.newCourse}
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
-      </div>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{t.courses.createNew}</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>{t.courses.title_field}</Label>
+                      <Input
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Məs. Müştəri xidməti"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t.courses.description}</Label>
+                      <Input
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Qısa təsvir"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t.folders.moveTo}</Label>
+                      <Select value={createFolderId} onValueChange={setCreateFolderId}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={UNCAT}>{t.folders.uncategorized}</SelectItem>
+                          {folders.map((f) => (
+                            <SelectItem key={f.id} value={f.id}>
+                              {f.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>
+                      {t.common.cancel}
+                    </Button>
+                    <Button onClick={handleCreate} disabled={creating}>
+                      {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {t.common.create}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+          </>
+        }
+      />
 
       {/* Search + folder dropdown */}
       <div className="bento-toolbar">
