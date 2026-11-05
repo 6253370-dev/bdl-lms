@@ -12,11 +12,12 @@
  */
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
+  /* D1 (DESIGN-BRIEF 3.3): düymə/input 10px (lg), kart/modal/popover 16px (xl) */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -54,7 +55,7 @@
   --font-display: "Inter", system-ui, sans-serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --color-primary-hover: var(--primary-hover);
-  --color-brand-25: var(--brand-25); --color-brand-50: var(--brand-50); --color-brand-100: var(--brand-100); --color-brand-200: var(--brand-200); --color-brand-500: var(--brand-500); --color-brand-600: var(--brand-600); --color-brand-700: var(--brand-700); --color-brand-800: var(--brand-800);
+  --color-brand-25: var(--brand-25); --color-brand-50: var(--brand-50); --color-brand-100: var(--brand-100); --color-brand-200: var(--brand-200); --color-brand-300: var(--brand-300); --color-brand-400: var(--brand-400); --color-brand-500: var(--brand-500); --color-brand-600: var(--brand-600); --color-brand-700: var(--brand-700); --color-brand-800: var(--brand-800);
   --color-gray-950: var(--gray-950);
   --text-xs: 0.75rem; --text-xs--line-height: 1.125rem;
   --text-sm: 0.875rem; --text-sm--line-height: 1.25rem;
@@ -69,12 +70,12 @@
 
 :root {
   /* IKTex Design System (Untitled UI-derived) */
-  --radius: 0.75rem;
+  --radius: 0.625rem;
   --brand-25:#F5F8FF;--brand-50:#EFF4FF;--brand-100:#D1E0FF;--brand-200:#B2CCFF;--brand-300:#84ADFF;--brand-400:#528BFF;--brand-500:#2970FF;--brand-600:#155EEF;--brand-700:#004EEB;--brand-800:#0040C1;--brand-900:#00359E;
   --gray-25:#FCFCFD;--gray-50:#F8FAFC;--gray-100:#EEF2F6;--gray-200:#E3E8EF;--gray-300:#CDD5DF;--gray-400:#9AA4B2;--gray-500:#697586;--gray-600:#4B5565;--gray-700:#364152;--gray-800:#202939;--gray-900:#121926;--gray-950:#0D121C;
-  --success-50:#ECFDF3;--success-500:#17B26A;--success-600:#079455;--success-700:#067647;
-  --warning-50:#FFFAEB;--warning-500:#F79009;--warning-600:#DC6803;--warning-700:#B54708;
-  --error-50:#FEF3F2;--error-500:#F04438;--error-600:#D92D20;--error-700:#B42318;
+  --success-50:#ECFDF3;--success-200:#ABEFC6;--success-500:#17B26A;--success-600:#079455;--success-700:#067647;
+  --warning-50:#FFFAEB;--warning-200:#FEDF89;--warning-500:#F79009;--warning-600:#DC6803;--warning-700:#B54708;
+  --error-50:#FEF3F2;--error-200:#FECDCA;--error-500:#F04438;--error-600:#D92D20;--error-700:#B42318;
 
   --background:#FFFFFF; --foreground:var(--gray-900);
   --card:#FFFFFF; --card-foreground:var(--gray-900);
@@ -155,13 +156,9 @@
 .bento-page h2 { letter-spacing: 0; }
 .bento-panel { border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: var(--shadow-card); }
 .bento-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding-block: 8px 20px; }
-.bento-section-title { font-size: 15px; font-weight: 700; }
 .bento-course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 16px; }
 .bento-course-card { border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-card); }
 .bento-course-card:hover { box-shadow: var(--shadow-elegant); }
-.learning-banner { color: var(--foreground); }
-.dashboard-section { margin-top: 0; padding: 20px; background: var(--card); border-radius: 12px; box-shadow: var(--shadow-card); }
-.dashboard-section article { box-shadow: none; border: 0; padding: 0; }
 .module-tabs { width: 100%; justify-content: flex-start; height: auto; min-height: 42px; flex-wrap: wrap; gap: 4px; background: transparent; padding: 0 0 12px; border-bottom: 1px solid var(--border); border-radius: 0; }
 .module-tabs [role=tab] { padding: 8px 4px; margin-right: 12px; border-radius: 0; box-shadow: none; background: transparent; border-bottom: 2px solid transparent; color: var(--gray-500); font-weight: 600; }
 .module-tabs [role=tab][data-state=active] { background: transparent; color: var(--brand-700); border-bottom-color: var(--brand-600); box-shadow: none; }
@@ -209,6 +206,5 @@
   .profile-identity { position: static; flex-direction: row; text-align: left; flex-wrap: wrap; padding: 20px; }
   .profile-identity > div:first-child > div:first-child { width: 64px; height: 64px; font-size: 22px; }
   .calendar-agenda { display: block; }
-  .dashboard-section { padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }

@@ -18,10 +18,22 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import {
-  CalendarCheck, Plus, Trash2, Pencil, Download, Loader2, Users, Search, UserPlus, ArrowLeft,
+  CalendarCheck,
+  CalendarDays,
+  Plus,
+  Trash2,
+  Loader2,
+  Users,
+  Search,
+  UserPlus,
+  ArrowLeft,
+  Percent,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { MetricTile } from "@/components/design/MetricTile";
+import { StatCard } from "@/components/design/StatCard";
+import { RowActions, TableCard } from "@/components/design/DataTable";
+import { ExportButton } from "@/components/design/ExportButton";
 
 export const Route = createFileRoute("/attendance")({
   head: () => ({
@@ -163,11 +175,15 @@ function AttendancePage() {
         )}
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <MetricTile icon={CalendarCheck} label="Offline dərslər" value={lessons.length} />
-        <MetricTile icon={Users} label="İştirak qeydiyyatları" value={Array.from(counts.values()).reduce((sum, count) => sum + count, 0)} tone="info" />
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <StatCard icon={CalendarCheck} label="Offline dərslər" value={lessons.length} />
+        <StatCard
+          icon={Users}
+          label="İştirak qeydiyyatları"
+          value={Array.from(counts.values()).reduce((sum, count) => sum + count, 0)}
+        />
       </div>
-      <Card className="bento-table border-0">
+      <TableCard>
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : lessons.length === 0 ? (
@@ -197,13 +213,21 @@ function AttendancePage() {
                     <TableCell>{profiles.get(l.created_by ?? "")?.full_name ?? "-"}</TableCell>
                     <TableCell>{formatDate(l.created_at.slice(0, 10))}</TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => setOpenLesson(l)}>Aç</Button>
-                        <Button variant="ghost" size="icon" onClick={() => { setEditing(l); setCreatorOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                        {isSuperAdmin && (
-                          <Button variant="ghost" size="icon" onClick={() => remove(l)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                        )}
-                      </div>
+                      <RowActions
+                        subject={l.title}
+                        extra={
+                          <Button variant="ghost" size="sm" onClick={() => setOpenLesson(l)}>
+                            Aç
+                          </Button>
+                        }
+                        edit={{
+                          onClick: () => {
+                            setEditing(l);
+                            setCreatorOpen(true);
+                          },
+                        }}
+                        remove={isSuperAdmin ? { onClick: () => remove(l) } : undefined}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -211,7 +235,7 @@ function AttendancePage() {
             </Table>
           </div>
         )}
-      </Card>
+      </TableCard>
 
       {creatorOpen && (
         <LessonEditor
@@ -505,16 +529,22 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportExcel}><Download className="h-4 w-4 mr-2" />Excel</Button>
+          <ExportButton format="excel" onExport={exportExcel}>
+            Excel
+          </ExportButton>
           <Button onClick={() => setAddOpen(true)}><UserPlus className="h-4 w-4 mr-2" />İştirakçı əlavə et</Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="İştirakçılar" value={participants.length} />
-        <StatCard label="Dərs günləri" value={dates.length} />
-        <StatCard label="İştirak %" value={`${stats.rate}%`} />
-        <StatCard label="İştirak / Qeyri" value={`${stats.present} / ${stats.absent}`} />
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard icon={Users} label="İştirakçılar" value={participants.length} />
+        <StatCard icon={CalendarDays} label="Dərs günləri" value={dates.length} />
+        <StatCard icon={Percent} label="İştirak %" value={`${stats.rate}%`} tone="success" />
+        <StatCard
+          icon={CheckCircle2}
+          label="İştirak / Qeyri"
+          value={`${stats.present} / ${stats.absent}`}
+        />
       </div>
 
       <Card className="p-2 md:p-4">
@@ -584,15 +614,6 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
         />
       )}
     </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <Card className="p-4">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-2xl font-bold mt-1">{value}</div>
-    </Card>
   );
 }
 

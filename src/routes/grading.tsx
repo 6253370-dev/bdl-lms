@@ -15,10 +15,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ClipboardCheck, Loader2 } from "lucide-react";
-import { MetricTile } from "@/components/design/MetricTile";
+import { ClipboardCheck, CheckCircle2, Loader2 } from "lucide-react";
+import { StatCard } from "@/components/design/StatCard";
+import { PillTabsList, PillTabsTrigger } from "@/components/design/PillTabs";
 
 export const Route = createFileRoute("/grading")({
   head: () => ({
@@ -149,12 +150,27 @@ function GradingInner() {
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4"><MetricTile icon={ClipboardCheck} label="Yoxlama gözləyir" value={pending.length} tone="warning" /><MetricTile icon={ClipboardCheck} label="Son yoxlanılan nəticələr" value={done.length} tone="success" /></div>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <StatCard
+          icon={ClipboardCheck}
+          label="Yoxlama gözləyir"
+          value={pending.length}
+          tone="warning"
+        />
+        <StatCard
+          icon={CheckCircle2}
+          label="Son yoxlanılan nəticələr"
+          value={done.length}
+          tone="success"
+        />
+      </div>
       <Tabs defaultValue="pending">
-        <TabsList className="module-tabs">
-          <TabsTrigger value="pending">Gözləyən ({pending.length})</TabsTrigger>
-          <TabsTrigger value="done">Yoxlanılmış</TabsTrigger>
-        </TabsList>
+        <PillTabsList aria-label="Yoxlama statusu">
+          <PillTabsTrigger value="pending" count={pending.length}>
+            Gözləyən
+          </PillTabsTrigger>
+          <PillTabsTrigger value="done">Yoxlanılmış</PillTabsTrigger>
+        </PillTabsList>
         <TabsContent value="pending" className="mt-4">
           <AttemptList loading={loading} rows={pending} onOpen={setActive} emptyText="Yoxlanılası imtahan yoxdur." />
         </TabsContent>

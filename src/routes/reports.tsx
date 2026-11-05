@@ -44,6 +44,13 @@ import { t } from "@/lib/i18n";
 import { jsPDF } from "jspdf";
 import { applyAzerbaijaniFont } from "@/lib/pdfFont";
 import { toast } from "sonner";
+import { StatCard, type StatTrend } from "@/components/design/StatCard";
+import { StatusChip } from "@/components/design/StatusChip";
+import { DateRangePicker } from "@/components/design/DateRangePicker";
+import { ExportButton } from "@/components/design/ExportButton";
+import { AreaChartCard } from "@/components/design/AreaChartCard";
+import { DonutChart } from "@/components/design/DonutChart";
+import { isoToDate } from "@/lib/design";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({ meta: [
@@ -181,6 +188,55 @@ function ReportsPage() {
     return { total: all.length, passed, failed: all.length - passed, avg };
   }, [filteredCourseAttempts, filteredExamAttempts]);
 
+  // Trend: hər iki tarix seçiləndə eyni uzunluqlu əvvəlki dövrlə müqayisə (yalnız mövcud məlumatla, müştəri tərəfində).
+  const trends = useMemo(() => {
+    const f = isoToDate(from);
+    const tt = isoToDate(to);
+    if (!f || !tt || tt < f) return null;
+    const days = Math.round((tt.getTime() - f.getTime()) / 86400000) + 1;
+    const prevTo = new Date(f.getFullYear(), f.getMonth(), f.getDate() - 1, 23, 59, 59);
+    const prevFrom = new Date(f.getFullYear(), f.getMonth(), f.getDate() - days);
+    const inPrev = (a: { user_id: string; passed: boolean; created_at: string }) => {
+      if (userFilter !== "all" && a.user_id !== userFilter) return false;
+      if (statusFilter === "passed" && !a.passed) return false;
+      if (statusFilter === "failed" && a.passed) return false;
+      const d = new Date(a.created_at);
+      return d >= prevFrom && d <= prevTo;
+    };
+    const prev = [...courseAttempts.filter(inPrev), ...examAttempts.filter(inPrev)];
+    const pct = (now: number, before: number): StatTrend | null =>
+      before > 0 ? { value: Math.round(((now - before) / before) * 100) } : null;
+    return {
+      total: pct(totals.total, prev.length),
+      passed: pct(totals.passed, prev.filter((a) => a.passed).length),
+    };
+  }, [from, to, userFilter, statusFilter, courseAttempts, examAttempts, totals]);
+
+  // Aylıq aktivlik: seçilmiş aralıqdakı (yoxdursa son 12 ay) ayların cəhd sayı.
+  const monthly = useMemo(() => {
+    const all = [...filteredCourseAttempts, ...filteredExamAttempts];
+    const end = isoToDate(to) ?? new Date();
+    const startRaw = isoToDate(from) ?? new Date(end.getFullYear(), end.getMonth() - 11, 1);
+    let cur = new Date(startRaw.getFullYear(), startRaw.getMonth(), 1);
+    const last = new Date(end.getFullYear(), end.getMonth(), 1);
+    const months: { key: string; label: string; value: number }[] = [];
+    while (cur <= last && months.length < 36) {
+      months.push({
+        key: `${cur.getFullYear()}-${cur.getMonth()}`,
+        label: cur.toLocaleDateString("az-AZ", { month: "short", year: "2-digit" }),
+        value: 0,
+      });
+      cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    }
+    const idx = new Map(months.map((m, i) => [m.key, i]));
+    for (const a of all) {
+      const d = new Date(a.created_at);
+      const i = idx.get(`${d.getFullYear()}-${d.getMonth()}`);
+      if (i !== undefined) months[i].value++;
+    }
+    return months.map(({ label, value }) => ({ label, value }));
+  }, [filteredCourseAttempts, filteredExamAttempts, from, to]);
+
   const exportExcel = async () => {
     const XLSX = await import("xlsx");
     const header = ["Tip", "Başlıq", "Əməkdaş ID", "Ad", "Bal %", "Status", "Müddət (san)", "Tarix"];
@@ -237,20 +293,25 @@ function ReportsPage() {
           </h1>
           <p className="text-muted-foreground">{t.reports.subtitle}</p>
         </div>
-        <Button onClick={exportExcel}>
-          <Download className="h-4 w-4" /> {t.reports.exportCsv}
-        </Button>
+        <ExportButton format="excel" variant="default" onExport={exportExcel}>
+          {t.reports.exportCsv}
+        </ExportButton>
       </div>
 
-      <Card className="p-5 border-0">
-        <div className="grid gap-3 md:grid-cols-4">
+      <Card className="p-5">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <div className="grid gap-1.5">
-            <Label className="text-xs">{t.reports.from}</Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          </div>
-          <div className="grid gap-1.5">
-            <Label className="text-xs">{t.reports.to}</Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            <Label className="text-xs" htmlFor="reports-range">
+              {t.reports.from} – {t.reports.to}
+            </Label>
+            <DateRangePicker
+              id="reports-range"
+              value={{ from, to }}
+              onChange={(v) => {
+                setFrom(v.from);
+                setTo(v.to);
+              }}
+            />
           </div>
           <div className="grid gap-1.5">
             <Label className="text-xs">{t.reports.user}</Label>
@@ -299,15 +360,52 @@ function ReportsPage() {
         </div>
       </Card>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Kpi icon={TrendingUp} label={t.reports.attempts} value={totals.total} tone="primary" />
-        <Kpi icon={CheckCircle2} label={t.reports.passed} value={totals.passed} tone="success" />
-        <Kpi icon={XCircle} label={t.reports.failed} value={totals.failed} tone="destructive" />
-        <Kpi icon={BarChart3} label={t.reports.avgScore} value={`${totals.avg}%`} tone="accent" />
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard
+          icon={TrendingUp}
+          label={t.reports.attempts}
+          value={totals.total.toLocaleString("az-AZ")}
+          trend={trends?.total}
+        />
+        <StatCard
+          icon={CheckCircle2}
+          label={t.reports.passed}
+          value={totals.passed.toLocaleString("az-AZ")}
+          tone="success"
+          trend={trends?.passed}
+        />
+        <StatCard
+          icon={XCircle}
+          label={t.reports.failed}
+          value={totals.failed.toLocaleString("az-AZ")}
+          tone="error"
+        />
+        <StatCard icon={BarChart3} label={t.reports.avgScore} value={`${totals.avg}%`} />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <AreaChartCard
+          title="Aylıq aktivlik"
+          description="Hər ay edilən kurs və imtahan cəhdlərinin sayı"
+          data={monthly}
+          valueLabel={t.reports.attempts}
+        />
+        <section className="min-w-0 rounded-xl border border-border bg-card p-5 shadow-card">
+          <h2 className="mb-4 font-display text-base font-semibold">Nəticələrin paylanması</h2>
+          <DonutChart
+            ariaLabel={`${t.reports.passed}: ${totals.passed}, ${t.reports.failed}: ${totals.failed}`}
+            centerValue={`${totals.total ? Math.round((totals.passed / totals.total) * 100) : 0}%`}
+            centerLabel="keçmə faizi"
+            data={[
+              { key: "passed", label: t.reports.passed, value: totals.passed, color: "success" },
+              { key: "failed", label: t.reports.failed, value: totals.failed, color: "error" },
+            ]}
+          />
+        </section>
       </div>
 
       <div className="grid xl:grid-cols-2 gap-5 items-start">
-      <Card className="p-5 border-0">
+        <Card className="p-5">
         <h2 className="font-display font-semibold flex items-center gap-2 mb-3">
           <BookOpen className="h-4 w-4 text-primary" /> {t.reports.courses}
         </h2>
@@ -331,7 +429,7 @@ function ReportsPage() {
         )}
       </Card>
 
-      <Card className="p-5 border-0">
+        <Card className="p-5">
         <h2 className="font-display font-semibold flex items-center gap-2 mb-3">
           <ClipboardList className="h-4 w-4 text-primary" /> {t.reports.standaloneExams}
         </h2>
@@ -360,34 +458,6 @@ function ReportsPage() {
         <AttemptDetailDialog detailRef={detail} onClose={() => setDetail(null)} />
       )}
     </div>
-  );
-}
-
-function Kpi({
-  icon: Icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: typeof BarChart3;
-  label: string;
-  value: number | string;
-  tone: "primary" | "success" | "destructive" | "accent";
-}) {
-  const toneMap = {
-    primary: "bg-primary/10 text-primary",
-    success: "bg-success/10 text-success",
-    destructive: "bg-destructive/10 text-destructive",
-    accent: "bg-accent/15 text-accent-foreground",
-  };
-  return (
-    <Card className="p-5">
-      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${toneMap[tone]}`}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="mt-4 text-3xl font-display font-bold">{value}</div>
-      <div className="text-sm text-muted-foreground">{label}</div>
-    </Card>
   );
 }
 
@@ -551,9 +621,9 @@ function AttemptsTable({
               <td className="p-2">{r.user?.full_name ?? "—"}</td>
               <td className="p-2 text-right font-medium">{r.score}%</td>
               <td className="p-2">
-                <Badge variant={r.passed ? "default" : "destructive"}>
+                <StatusChip tone={r.passed ? "success" : "error"}>
                   {r.passed ? t.reports.passed : t.reports.failed}
-                </Badge>
+                </StatusChip>
               </td>
               <td className="p-2 text-right text-xs text-muted-foreground">
                 {Math.round(r.duration / 60)}d
@@ -694,9 +764,9 @@ export function AttemptDetailDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2 pr-6">
             <span>{ref.title}</span>
-            <Badge variant={ref.passed ? "default" : "destructive"}>
+            <StatusChip tone={ref.passed ? "success" : "error"}>
               {ref.passed ? t.reports.passed : t.reports.failed} · {ref.score}%
-            </Badge>
+            </StatusChip>
           </DialogTitle>
         </DialogHeader>
 
