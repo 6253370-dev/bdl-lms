@@ -102,44 +102,44 @@ Rustam şəkilləri `docs/design-reference/` qovluğuna qoyur (adları dəyişm�
 
 ## 5. Maddələr
 
-`[G]` yalnız görünüş. `[B]` baza/backend dəyişikliyi də lazımdır (7-ci bölməyə bax). `~` mövcud kodda yoxla, bəlkə artıq var.
+`[G]` yalnız görünüş. `[B]` baza/backend dəyişikliyi də lazımdır (7-ci bölməyə bax). `~` mövcud kodda yoxla, bəlkə artıq var. `✅` hazırdır və canlıdadır (`⚠️` qalan hissəni göstərir).
 
 ### A. Çərçivə (`AppShell.tsx`)
-1. Başlıqda qlobal axtarış (kurs, mövzu, krossvord) `[G+B]`
-2. İstifadəçi menyusu: ad yanında açılan siyahı (profil, ayarlar, çıxış) `[G]`
-3. Yan menyuda say nişanları (oxunmamış bildiriş, yeni şərh) `[G]`
-4. Yan menyunun aşağısında istifadəçi kartı və "Dəstək mərkəzi" kartı `[G]`
-5. Səhifə başlığının üstündə breadcrumb `[G]`
+1. ✅ Başlıqda qlobal axtarış (kurs, mövzu, krossvord) `[G+B]`
+2. ✅ İstifadəçi menyusu: ad yanında açılan siyahı (profil, ayarlar, çıxış) `[G]`
+3. ✅ Yan menyuda say nişanları (oxunmamış bildiriş, yeni şərh) `[G]`
+4. ✅ Yan menyunun aşağısında istifadəçi kartı və "Dəstək mərkəzi" kartı `[G]`
+5. ✅ Səhifə başlığının üstündə breadcrumb `[G]`
 
 ### B. Ortaq komponentlər (`src/components/design/`)
-6. KPI kartı + trend göstəricisi ("↑ +12% keçən dövrlə") `[G+B]`
-7. Say göstərən pill tablar ("Hamısı (244)") `[G]`
-8. Vahid status çipi (Aktiv/Qeyri-aktiv, Keçdi/Keçmədi, Asan/Orta/Çətin, Yarımçıq, LIVE) `[G]`
-9. Avatar: şəkil, onlayn nöqtəsi, avatar yığını ("+12") `[G]`
-10. Dairəvi proqres (kurs faizi, taymer, səviyyə) `[G]`
-11. Donut diaqram + leyend `[G]`
-12. Area diaqram (aylıq aktivlik) `[G]`
+6. ✅ KPI kartı + trend göstəricisi ("↑ +12% keçən dövrlə") `[G+B]`
+7. ✅ Say göstərən pill tablar ("Hamısı (244)") `[G]`
+8. ✅ Vahid status çipi (Aktiv/Qeyri-aktiv, Keçdi/Keçmədi, Asan/Orta/Çətin, Yarımçıq, LIVE) `[G]`
+9. ✅ Avatar: şəkil, onlayn nöqtəsi, avatar yığını ("+12") `[G]`
+10. ✅ Dairəvi proqres (kurs faizi, taymer, səviyyə) `[G]`
+11. ✅ Donut diaqram + leyend `[G]`
+12. ✅ Area diaqram (aylıq aktivlik) `[G]`
 13. Aktivlik istilik xəritəsi + ardıcıl gün (streak) `[B]`
 14. Podium (top 3), reytinq cədvəli, "Sizin yeriniz 6/124" `[G+B]`
 15. Səviyyə pillələri (1–10) və XP-yə görə səviyyə sistemi `[B]`
-16. Master-detal düzülüşü: solda siyahı, sağda detal paneli (3 sütunlu variant da) `[G]`
-17. Cədvəl: seçim qutusu, sətirdə redaktə/kopya/sil ikonları, nömrəli səhifələmə, "1–8 / 1 240 nəticə" `[G]`
-18. Tarix aralığı seçicisi `[G]`
-19. PDF/Excel ixrac düymələri `[G+B]`
-20. Pastel ikon çipləri və motivasiya zolağı `[G]`
+16. ✅ Master-detal düzülüşü: solda siyahı, sağda detal paneli (3 sütunlu variant da) `[G]`
+17. ✅ Cədvəl: seçim qutusu, sətirdə redaktə/kopya/sil ikonları, nömrəli səhifələmə, "1–8 / 1 240 nəticə" `[G]`
+18. ✅ Tarix aralığı seçicisi `[G]`
+19. ✅ PDF/Excel ixrac düymələri `[G+B]`
+20. ✅ Pastel ikon çipləri və motivasiya zolağı `[G]`
 
 ### C. Ekranlar
 **Dərs pleyeri**
 21. Bölmələrə bölünmüş (akkordeon) proqram paneli: müddət, tamamlanma işarəsi, cari dərs vurğusu `[B]` (bölmə/modul anlayışı bazada yoxdur)
 22. "Şəxsi qeydlər" tabı `[B]`
-23. İcmal: dərs metası (müddət, növ, səviyyə), "Əvvəlki/Növbəti dərs" `[G]`
-24. Video pleyer: sürət, subtitr `~` `[G]`
+23. ✅ İcmal: dərs metası (müddət, növ, səviyyə), "Əvvəlki/Növbəti dərs" `[G]`
+24. ✅ Video pleyer: sürət, subtitr `~` `[G]` ⚠️ Sürət hazırdır, subtitr hissəsi edilməyib.
 
 **Kurs redaktoru**
 25. Dərsə baxış limiti ("Limitsiz", "3 dəfə") `[B]`
 26. Dərs siyahısında sürüklə-burax sıralama `~` `[G]`
-27. Şəkil yükləmə zonası, simvol sayğacı (71/500), "Nələr öyrənəcəksiniz" teqləri `[G]`
-28. Dərs tipi ikonları, müddət/ölçü göstəricisi `[G]`
+27. ✅ Şəkil yükləmə zonası, simvol sayğacı (71/500), "Nələr öyrənəcəksiniz" teqləri `[G]`
+28. ✅ Dərs tipi ikonları, müddət/ölçü göstəricisi `[G]`
 
 **İmtahan və quiz**
 29. Sual naviqasiyası (nömrəli dairələr: cavablanıb / hazırkı / boş) `[G]`
@@ -201,30 +201,30 @@ Rustam şəkilləri `docs/design-reference/` qovluğuna qoyur (adları dəyişm�
 61. Master-detal: filtr (Yeni/Cavablanmış/Gizlədilmiş), "Cavab yaz", "Gizlət", sağda cavab zənciri və cavab redaktoru `[B]`
 
 ### D. Ana səhifə (`dashboard.tsx`, `bento-dashboard-mockup.jpg`)
-62. "Davam et" kartında proqres (dairəvi və xətti), "16 / 24 dərs tamamlanıb", qaldığı dərsə qayıdan düymə `[G]`
+62. ✅ "Davam et" kartında proqres (dairəvi və xətti), "16 / 24 dərs tamamlanıb", qaldığı dərsə qayıdan düymə `[G]` ⚠️ Səviyyə çipi edilməyib.
 63. Həftəlik öyrənmə aktivliyi sütun diaqramı, cəmi saat, keçən həftəyə görə % `[B]` (öyrənmə vaxtı izlənmir)
 64. Səviyyə kartı (səviyyə, XP, növbəti səviyyəyə qalan XP) `[B]` (15 ilə eynidir)
-65. Üç mini göstərici: Sertifikatlar, Keçilən imtahanlar, Orta bal `[G]`
-66. "Yaxınlaşan imtahan" kartı (təqvim hadisələrindən) `[G]`
-67. Başlıqda şüar sətri `[G]`
-68. "Ən populyar kurslar": "Populyar" nişanı, müəllif avatarı, reytinq, dərs sayı `[G]`
-69. "Liderlər cədvəli" vidceti (dövr seçimi, öz sətri vurğulu) `[G]`
-70. Admin ana səhifəsində siyahıların yerinə diaqramlar `[G]`
+65. ✅ Üç mini göstərici: Sertifikatlar, Keçilən imtahanlar, Orta bal `[G]`
+66. ✅ "Yaxınlaşan imtahan" kartı (təqvim hadisələrindən) `[G]`
+67. ✅ Başlıqda şüar sətri `[G]`
+68. ✅ "Ən populyar kurslar": "Populyar" nişanı, müəllif avatarı, reytinq, dərs sayı `[G]`
+69. ✅ "Liderlər cədvəli" vidceti (dövr seçimi, öz sətri vurğulu) `[G]`
+70. ✅ Admin ana səhifəsində siyahıların yerinə diaqramlar `[G]`
 
 ### E. Kurslar kataloqu (`courses.index.tsx`, `01-kurslar.jpg`)
-71. Tablar: Hamısı / Davam edən / Tamamlanan `[G]`
-72. Qovluq filtrini üfüqi kateqoriya çiplərinə çevirmək `[G]`
-73. Sıralama seçimi (Ən populyar, Ən yeni, Reytinq) `[G]`
-74. Kartda şəxsi proqres xətti (%), kateqoriya çipi, müəllim, reytinq `[G]`
+71. ✅ Tablar: Hamısı / Davam edən / Tamamlanan `[G]`
+72. ✅ Qovluq filtrini üfüqi kateqoriya çiplərinə çevirmək `[G]`
+73. ✅ Sıralama seçimi (Ən populyar, Ən yeni, Reytinq) `[G]`
+74. ✅ Kartda şəxsi proqres xətti (%), kateqoriya çipi, müəllim, reytinq `[G]`
 75. "Seçilmiş kurs" hero kartı, admin seçir `[B]`
 
 ### F. Kurs səhifəsi (`courses.$courseId.index.tsx`, `02-kurs-sehifesi.jpg`)
 Məzmunun çoxu artıq var (reytinq, "Nələr öyrənəcəksiniz", "Kursa daxildir", proqram, müəllim, rəylər). Əsas iş düzülüşdür.
-76. Mövcud bölmələri 3 sütunlu bento düzülüşünə keçirmək `[G]`
-77. Reytinq paylanması (5★ 72%, 4★ 20%…) `[G]`
+76. ✅ Mövcud bölmələri 3 sütunlu bento düzülüşünə keçirmək `[G]`
+77. ✅ Reytinq paylanması (5★ 72%, 4★ 20%…) `[G]`
 78. "Siyahıya əlavə et" (kursu işarələmək) `[B]`
-79. "Oxşar kurslar" bloku `[G]`
-80. Müəllim kartında statistika (tələbə sayı, kurs sayı, reytinq) `[G]`
+79. ✅ "Oxşar kurslar" bloku `[G]`
+80. ✅ Müəllim kartında statistika (tələbə sayı, kurs sayı, reytinq) `[G]`
 81. Proqramın bölmələrə bölünməsi, hər birində dərs sayı `[B]` (21 ilə eyni modul işi)
 
 ### G. Əhatədən kənar (etmə)
