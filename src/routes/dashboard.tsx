@@ -12,7 +12,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { t } from "@/lib/i18n";
 import { DEFAULT_COURSE_VIEW, popularCourses, recentAllowedCourses, type CourseView, type DashboardCourse } from "@/lib/dashboard-courses";
-import { LearningBanner } from "@/components/design/LearningBanner";
+import { MotivationStrip } from "@/components/design/MotivationStrip";
+import { StatCard } from "@/components/design/StatCard";
+import { RingProgress } from "@/components/design/RingProgress";
+import summit from "@/assets/learning-summit.jpg";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight } from "lucide-react";
 
@@ -174,21 +177,45 @@ function Dashboard() {
 
       {isAdmin && adminStats ? (
         <>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={BookOpen} label={t.dashboard.courses} value={`${adminStats.publishedCourses}/${adminStats.courses}`} tone="primary" />
-            <StatCard icon={ClipboardList} label={t.dashboard.exams} value={adminStats.exams} tone="accent" />
-            <StatCard icon={FileQuestion} label={t.dashboard.quizzes} value={adminStats.quizzes} tone="primary" />
-            <StatCard icon={Users} label={t.dashboard.totalUsers} value={adminStats.users} tone="success" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <StatCard
+              icon={BookOpen}
+              label={t.dashboard.courses}
+              value={`${adminStats.publishedCourses}/${adminStats.courses}`}
+            />
+            <StatCard icon={ClipboardList} label={t.dashboard.exams} value={adminStats.exams} />
+            <StatCard icon={FileQuestion} label={t.dashboard.quizzes} value={adminStats.quizzes} />
+            <StatCard icon={Users} label={t.dashboard.totalUsers} value={adminStats.users} />
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-            <StatCard icon={TrendingUp} label={t.dashboard.attempts} value={adminStats.attempts} tone="primary" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-4">
+            <StatCard icon={TrendingUp} label={t.dashboard.attempts} value={adminStats.attempts} />
             <StatCard icon={CheckCircle2} label={t.reports.passed} value={adminStats.passed} tone="success" />
-            <StatCard icon={BarChart3} label={t.dashboard.avgScore} value={`${adminStats.avgScore}%`} tone="accent" />
-            <StatCard icon={Trophy} label={t.dashboard.certificates} value={adminStats.certificates} tone="success" />
+            <StatCard
+              icon={BarChart3}
+              label={t.dashboard.avgScore}
+              value={`${adminStats.avgScore}%`}
+            />
+            <StatCard
+              icon={Trophy}
+              label={t.dashboard.certificates}
+              value={adminStats.certificates}
+            />
           </div>
 
           <div className="grid lg:grid-cols-[1.2fr_1fr] gap-5 mt-6">
-            <div className="lg:col-span-2"><LearningBanner /></div>
+            <div className="lg:col-span-2">
+              <MotivationStrip
+                image={summit}
+                title={
+                  <>
+                    Hər yeni bilik
+                    <br />
+                    səni daha güclü edir!
+                  </>
+                }
+                text="Öyrənmək bir vərdişdir, həyat tərzidir."
+              />
+            </div>
             <Card className="p-5">
               <h3 className="font-display font-semibold mb-3 flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-primary" /> {t.dashboard.topCourses}
@@ -234,7 +261,7 @@ function Dashboard() {
       ) : userStats ? (
         <>
           <div className="grid lg:grid-cols-[1.5fr_1fr] gap-5 mb-5">
-            <div className="bg-card rounded-lg shadow-card p-5">
+            <div className="bg-card rounded-xl border border-border shadow-card p-5">
               <div className="flex items-center justify-between mb-4"><h2 className="font-display font-bold">Öyrənməyə davam et</h2><Button asChild variant="ghost" size="sm"><Link to="/courses">Kurslar <ArrowUpRight className="h-4 w-4" /></Link></Button></div>
               {userStats.recent[0] ? (
                 <Link to="/courses/$courseId" params={{ courseId: userStats.recent[0].id }} className="flex flex-col sm:flex-row gap-5 items-start">
@@ -243,12 +270,43 @@ function Dashboard() {
                 </Link>
               ) : <p className="text-sm text-muted-foreground py-8">{t.dashboard.noRecent}</p>}
             </div>
-            <LearningBanner />
+            <MotivationStrip
+              className="min-h-36"
+              image={summit}
+              title={
+                <>
+                  Hər yeni bilik
+                  <br />
+                  səni daha güclü edir!
+                </>
+              }
+              text="Öyrənmək bir vərdişdir, həyat tərzidir."
+            />
           </div>
-          <div className="grid sm:grid-cols-3 gap-4 mb-5">
-            <StatCard icon={TrendingUp} label={t.dashboard.attempts} value={userStats.attempts} tone="primary" />
-            <StatCard icon={CheckCircle2} label={t.reports.passed} value={userStats.passed} tone="success" />
-            <StatCard icon={Trophy} label={t.dashboard.certificates} value={userStats.certificates} tone="accent" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-5">
+            <StatCard icon={TrendingUp} label={t.dashboard.attempts} value={userStats.attempts} />
+            <StatCard
+              icon={CheckCircle2}
+              label={t.reports.passed}
+              value={userStats.passed}
+              tone="success"
+              aside={
+                userStats.attempts > 0 ? (
+                  <RingProgress
+                    value={(userStats.passed / userStats.attempts) * 100}
+                    size={56}
+                    stroke={5}
+                    tone="success"
+                    label="Keçmə faizi"
+                  />
+                ) : undefined
+              }
+            />
+            <StatCard
+              icon={Trophy}
+              label={t.dashboard.certificates}
+              value={userStats.certificates}
+            />
           </div>
 
           <CourseSection
@@ -275,7 +333,10 @@ function CourseSection({ title, icon: Icon, courses, view, onViewChange, emptyTe
     ? `${t.dashboard.lastViewed}: ${new Date(course.viewed_at).toLocaleDateString("az-AZ")}`
     : `${course.viewers} ${t.dashboard.courseViewers}`;
   return (
-    <section className="dashboard-section mb-5" aria-label={title}>
+    <section
+      className="mb-5 rounded-xl border border-border bg-card p-4 shadow-card sm:p-5"
+      aria-label={title}
+    >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-display font-semibold flex items-center gap-2">
           <Icon className="h-4 w-4 text-primary" /> {title}
@@ -328,22 +389,3 @@ function CourseSection({ title, icon: Icon, courses, view, onViewChange, emptyTe
   );
 }
 
-function StatCard({
-  icon: Icon, label, value, tone,
-}: { icon: typeof BookOpen; label: string; value: number | string; tone: "primary" | "accent" | "success" }) {
-  const toneMap = {
-    primary: "bg-primary/10 text-primary",
-    accent: "bg-accent/15 text-accent-foreground",
-    success: "bg-success/10 text-success",
-  };
-  return (
-    <Card className="p-5 flex items-center gap-4 border-0">
-      <div>
-      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${toneMap[tone]}`}>
-        <Icon className="h-5 w-5" />
-      </div>
-      </div>
-      <div><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 text-2xl font-display font-bold">{value}</div></div>
-    </Card>
-  );
-}

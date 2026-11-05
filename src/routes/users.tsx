@@ -15,11 +15,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Loader2, Trash2, Pencil, ShieldCheck, Search, Eye, Folder, BookOpen, Unlock } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  ShieldCheck,
+  Search,
+  Eye,
+  Folder,
+  BookOpen,
+  Unlock,
+  Users as UsersIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { saveCourseAccess } from "@/components/CourseAccessEditor";
-import { MetricTile } from "@/components/design/MetricTile";
+import { StatCard } from "@/components/design/StatCard";
+import { StatusChip } from "@/components/design/StatusChip";
+import { UserAvatar } from "@/components/design/UserAvatar";
+import { RowActions, TableCard, TablePagination } from "@/components/design/DataTable";
+import { usePagination } from "@/lib/design";
 
 export const Route = createFileRoute("/users")({
   head: () => ({ meta: [
@@ -102,6 +116,11 @@ function UsersPage() {
         (u.phone ?? "").toLowerCase().includes(q),
     );
   }, [users, search]);
+  const pager = usePagination(filtered, 10);
+  const { setPage } = pager;
+  useEffect(() => {
+    setPage(1);
+  }, [search, setPage]);
 
   return (
     <div className="bento-page">
@@ -117,10 +136,25 @@ function UsersPage() {
         )}
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        <MetricTile icon={ShieldCheck} label="İstifadəçilər" value={users.length} tone="info" />
-        <MetricTile icon={ShieldCheck} label="Adminlər" value={users.filter((u) => u.roles.includes('admin') || u.roles.includes('super_admin')).length} />
-        <MetricTile icon={Unlock} label="İmtahandan bloklanmış" value={users.filter((u) => u.is_exam_blocked).length} tone="warning" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+        <StatCard
+          icon={UsersIcon}
+          label="İstifadəçilər"
+          value={users.length.toLocaleString("az-AZ")}
+        />
+        <StatCard
+          icon={ShieldCheck}
+          label="Adminlər"
+          value={
+            users.filter((u) => u.roles.includes("admin") || u.roles.includes("super_admin")).length
+          }
+        />
+        <StatCard
+          icon={Unlock}
+          label="İmtahandan bloklanmış"
+          value={users.filter((u) => u.is_exam_blocked).length}
+          tone="warning"
+        />
       </div>
       <div className="mb-4 relative max-w-md">
         <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -132,7 +166,7 @@ function UsersPage() {
         />
       </div>
 
-      <Card className="bento-table border-0">
+      <TableCard>
         {loading ? (
           <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : (
@@ -148,56 +182,89 @@ function UsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((u) => (
+              {pager.pageRows.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell className="font-mono">{u.employee_id}</TableCell>
+                  <TableCell className="font-mono text-muted-foreground">{u.employee_id}</TableCell>
                   <TableCell className="font-medium">
-                    {u.full_name}
-                    {u.is_exam_blocked && (
-                      <div className="text-xs font-normal text-destructive mt-0.5">
-                        İmtahandan bloklanıb: {u.exam_blocked_reason ?? "—"}
+                    <div className="flex items-center gap-3">
+                      <UserAvatar name={u.full_name} size="md" />
+                      <div className="min-w-0">
+                        {u.full_name}
+                        {u.is_exam_blocked && (
+                          <div className="text-xs font-normal text-destructive mt-0.5">
+                            İmtahandan bloklanıb: {u.exam_blocked_reason ?? "—"}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{u.email}</TableCell>
                   <TableCell className="text-muted-foreground">{u.phone ?? "—"}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
                       {u.roles.map((r) => (
-                        <span key={r} className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          r === "super_admin" ? "bg-accent/20 text-accent-foreground" :
-                          r === "admin" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-                        }`}>
-                          {r === "super_admin" && <ShieldCheck className="h-3 w-3 inline mr-0.5" />}
+                        <StatusChip key={r} tone={r === "user" ? "gray" : "brand"}>
+                          {r === "super_admin" && (
+                            <ShieldCheck className="h-3 w-3" aria-hidden="true" />
+                          )}
                           {r.replace("_", " ")}
-                        </span>
+                        </StatusChip>
                       ))}
                     </div>
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
-                    {u.is_exam_blocked && (
-                      <Button variant="destructive" size="sm" className="mr-1" onClick={() => handleUnblock(u)} title={u.exam_blocked_reason ?? ""}>
-                        <Unlock className="h-4 w-4 mr-1" /> Blokdan çıxar
-                      </Button>
-                    )}
-                    {isSuperAdmin && (
-                      <Button variant="ghost" size="icon" onClick={() => setViewing(u)} title={t.users.view}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="icon" onClick={() => setEditing(u)} title={t.users.edit}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(u.id)} disabled={u.id === currentUser?.id} title={t.users.delete}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <RowActions
+                      subject={u.full_name}
+                      extra={
+                        <>
+                          {u.is_exam_blocked && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="mr-1"
+                              onClick={() => handleUnblock(u)}
+                              title={u.exam_blocked_reason ?? ""}
+                            >
+                              <Unlock className="h-4 w-4" /> Blokdan çıxar
+                            </Button>
+                          )}
+                          {isSuperAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9"
+                              onClick={() => setViewing(u)}
+                              title={t.users.view}
+                              aria-label={`${t.users.view}: ${u.full_name}`}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </>
+                      }
+                      edit={{ onClick: () => setEditing(u), label: t.users.edit }}
+                      remove={{
+                        onClick: () => handleDelete(u.id),
+                        label: t.users.delete,
+                        disabled: u.id === currentUser?.id,
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
-      </Card>
+      </TableCard>
+      {!loading && (
+        <TablePagination
+          page={pager.page}
+          pageCount={pager.pageCount}
+          pageSize={pager.pageSize}
+          total={pager.total}
+          onPageChange={pager.setPage}
+        />
+      )}
 
       {editing && (
         <EditUserDialog

@@ -15,7 +15,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-import { Loader2, MessageSquare, Send, Trash2, ArrowLeft, BookOpen } from "lucide-react";
+import { Loader2, MessageSquare, Send, Trash2, BookOpen } from "lucide-react";
+import { MasterDetail } from "@/components/design/MasterDetail";
+import { UserAvatar, AvatarStack } from "@/components/design/UserAvatar";
+import { StatusChip } from "@/components/design/StatusChip";
+import { isThreadUnanswered } from "@/lib/commentThreads";
+import { invalidateUnansweredComments } from "@/lib/useUnansweredComments";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
@@ -57,6 +62,7 @@ interface ThreadInfo extends ThreadKey {
   count: number;
   lastAt: string;
   lastBody: string;
+  lastAuthorId: string;
 }
 
 function AdminCommentsPage() {
@@ -127,6 +133,7 @@ function AdminCommentsPage() {
         if (c.created_at > existing.lastAt) {
           existing.lastAt = c.created_at;
           existing.lastBody = c.body;
+          existing.lastAuthorId = c.author_id;
         }
       } else {
         map.set(key, {
@@ -138,6 +145,7 @@ function AdminCommentsPage() {
           count: 1,
           lastAt: c.created_at,
           lastBody: c.body,
+          lastAuthorId: c.author_id,
         });
       }
     }
@@ -185,6 +193,15 @@ function AdminCommentsPage() {
       .sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
   }, [active, comments]);
 
+  const activeParticipants = useMemo(
+    () =>
+      Array.from(new Set(activeMessages.map((c) => c.author_id))).map((id) => ({
+        id,
+        name: profiles[id]?.full_name ?? null,
+      })),
+    [activeMessages, profiles],
+  );
+
   const sendReply = async () => {
     if (!user || !active || !reply.trim()) return;
     setSending(true);
@@ -198,6 +215,7 @@ function AdminCommentsPage() {
     if (error) toast.error(error.message);
     else {
       setReply("");
+      invalidateUnansweredComments();
       await load();
     }
     setSending(false);
@@ -206,7 +224,10 @@ function AdminCommentsPage() {
   const removeMsg = async (id: string) => {
     const { error } = await supabase.from("lesson_comments").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else setComments((cs) => cs.filter((c) => c.id !== id));
+    else {
+      invalidateUnansweredComments();
+      setComments((cs) => cs.filter((c) => c.id !== id));
+    }
   };
 
   if (authLoading) {
@@ -282,119 +303,149 @@ function AdminCommentsPage() {
           <p className="text-muted-foreground">{t.comments.adminEmpty}</p>
         </Card>
       ) : (
-        <div className="grid lg:grid-cols-[300px_minmax(0,1fr)] gap-5">
-          {/* Threads list */}
-          <Card className="p-2 max-h-[70vh] overflow-y-auto border-0">
-            {threads.map((th) => {
-              const isActive = active?.userId === th.userId && active?.blockId === th.blockId;
-              return (
-                <Button variant="ghost"
-                  key={`${th.userId}-${th.blockId}`}
-                  onClick={() => setActive({ userId: th.userId, blockId: th.blockId })}
-                  className={cn(
-                    "block h-auto w-full text-left p-3 rounded-lg whitespace-normal transition-colors",
-                    isActive ? "bg-accent text-accent-foreground" : "hover:bg-muted",
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="font-semibold text-sm truncate">{th.user?.full_name ?? "—"}</div>
-                    <span className={cn(
-                      "text-[10px] px-1.5 py-0.5 rounded-full",
-                      isActive ? "bg-primary/10" : "bg-muted-foreground/15",
-                    )}>{th.count}</span>
-                  </div>
-                  <div className={cn(
-                    "text-xs flex items-center gap-1 mb-1",
-                    "text-muted-foreground",
-                  )}>
-                    <BookOpen className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{th.course?.title ?? "—"} · {th.block?.title ?? "—"}</span>
-                  </div>
-                  <div className={cn(
-                    "text-xs truncate",
-                    "text-muted-foreground",
-                  )}>{th.lastBody}</div>
-                </Button>
-              );
-            })}
-          </Card>
-
-          {/* Active thread */}
-          <Card className="p-5 flex flex-col min-h-[60vh]">
-            {!active ? (
-              <div className="m-auto text-center text-muted-foreground">
-                <MessageSquare className="h-10 w-10 mx-auto mb-3" />
-                <p className="text-sm">{t.comments.selectThread}</p>
-              </div>
-            ) : (
-              <>
-                <div className="border-b pb-3 mb-4">
-                  <button
-                    className="lg:hidden text-xs text-muted-foreground inline-flex items-center gap-1 mb-2"
-                    onClick={() => setActive(null)}
+        <MasterDetail
+          className="lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.6fr)]"
+          detailOpen={!!active}
+          onBack={() => setActive(null)}
+          backLabel="Geri"
+          list={
+            <Card className="p-2 max-h-[70vh] overflow-y-auto">
+              {threads.map((th) => {
+                const isActive = active?.userId === th.userId && active?.blockId === th.blockId;
+                return (
+                  <Button
+                    variant="ghost"
+                    key={`${th.userId}-${th.blockId}`}
+                    onClick={() => setActive({ userId: th.userId, blockId: th.blockId })}
+                    className={cn(
+                      "block h-auto w-full text-left p-3 rounded-lg whitespace-normal transition-colors",
+                      isActive ? "bg-accent text-accent-foreground" : "hover:bg-muted",
+                    )}
                   >
-                    <ArrowLeft className="h-3.5 w-3.5" /> Geri
-                  </button>
-                  <div className="font-display font-semibold">
-                    {profiles[active.userId]?.full_name ?? "—"}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {t.comments.course}: {courses[blocks[active.blockId]?.course_id ?? ""]?.title ?? "—"} · {t.comments.lesson}: {blocks[active.blockId]?.title ?? "—"}
-                  </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-                  {activeMessages.map((c) => {
-                    const isAdminMsg = adminIds.has(c.author_id);
-                    return (
-                      <div
-                        key={c.id}
+                    <div className="flex items-center gap-3 mb-1">
+                      <UserAvatar name={th.user?.full_name} size="sm" />
+                      <div className="font-semibold text-sm truncate flex-1 min-w-0">
+                        {th.user?.full_name ?? "—"}
+                      </div>
+                      {isThreadUnanswered(th.lastAuthorId, adminIds) && (
+                        <StatusChip tone="warning" dot>
+                          Cavabsız
+                        </StatusChip>
+                      )}
+                      <span
                         className={cn(
-                          "rounded-lg p-3 text-sm max-w-[85%]",
-                          isAdminMsg
-                            ? "bg-primary/10 border border-primary/20 ml-auto"
-                            : "bg-muted",
+                          "text-[10px] px-1.5 py-0.5 rounded-full",
+                          isActive ? "bg-primary/10" : "bg-muted-foreground/15",
                         )}
                       >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-semibold">
-                            {isAdminMsg ? t.comments.admin : (profiles[c.author_id]?.full_name ?? "—")}
-                            <span className="ml-2 font-normal text-muted-foreground">
-                              {new Date(c.created_at).toLocaleString("az-AZ", { dateStyle: "short", timeStyle: "short" })}
-                            </span>
-                          </span>
-                          <button
-                            onClick={() => removeMsg(c.id)}
-                            className="text-muted-foreground hover:text-destructive"
-                            aria-label={t.comments.delete}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                        <p className="whitespace-pre-wrap leading-relaxed">{c.body}</p>
+                        {th.count}
+                      </span>
+                    </div>
+                    <div
+                      className={cn(
+                        "text-xs flex items-center gap-1 mb-1",
+                        "text-muted-foreground",
+                      )}
+                    >
+                      <BookOpen className="h-3 w-3 shrink-0" />
+                      <span className="truncate">
+                        {th.course?.title ?? "—"} · {th.block?.title ?? "—"}
+                      </span>
+                    </div>
+                    <div className={cn("text-xs truncate", "text-muted-foreground")}>
+                      {th.lastBody}
+                    </div>
+                  </Button>
+                );
+              })}
+            </Card>
+          }
+          detail={
+            <Card className="p-5 flex flex-col min-h-[60vh]">
+              {!active ? (
+                <div className="m-auto text-center text-muted-foreground">
+                  <MessageSquare className="h-10 w-10 mx-auto mb-3" />
+                  <p className="text-sm">{t.comments.selectThread}</p>
+                </div>
+              ) : (
+                <>
+                  <div className="border-b pb-3 mb-4 flex items-start gap-3">
+                    <UserAvatar name={profiles[active.userId]?.full_name} size="md" />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-display font-semibold">
+                        {profiles[active.userId]?.full_name ?? "—"}
                       </div>
-                    );
-                  })}
-                </div>
-
-                <div className="space-y-2">
-                  <Textarea
-                    value={reply}
-                    onChange={(e) => setReply(e.target.value)}
-                    placeholder={t.comments.replyPlaceholder}
-                    rows={3}
-                  />
-                  <div className="flex justify-end">
-                    <Button size="sm" onClick={sendReply} disabled={!reply.trim() || sending}>
-                      {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                      {t.comments.send}
-                    </Button>
+                      <div className="text-xs text-muted-foreground">
+                        {t.comments.course}:{" "}
+                        {courses[blocks[active.blockId]?.course_id ?? ""]?.title ?? "—"} ·{" "}
+                        {t.comments.lesson}: {blocks[active.blockId]?.title ?? "—"}
+                      </div>
+                    </div>
+                    <AvatarStack people={activeParticipants} max={4} size="sm" />
                   </div>
-                </div>
-              </>
-            )}
-          </Card>
-        </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+                    {activeMessages.map((c) => {
+                      const isAdminMsg = adminIds.has(c.author_id);
+                      return (
+                        <div
+                          key={c.id}
+                          className={cn(
+                            "rounded-lg p-3 text-sm max-w-[85%]",
+                            isAdminMsg
+                              ? "bg-primary/10 border border-primary/20 ml-auto"
+                              : "bg-muted",
+                          )}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-semibold">
+                              {isAdminMsg
+                                ? t.comments.admin
+                                : (profiles[c.author_id]?.full_name ?? "—")}
+                              <span className="ml-2 font-normal text-muted-foreground">
+                                {new Date(c.created_at).toLocaleString("az-AZ", {
+                                  dateStyle: "short",
+                                  timeStyle: "short",
+                                })}
+                              </span>
+                            </span>
+                            <button
+                              onClick={() => removeMsg(c.id)}
+                              className="text-muted-foreground hover:text-destructive"
+                              aria-label={t.comments.delete}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          <p className="whitespace-pre-wrap leading-relaxed">{c.body}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Textarea
+                      value={reply}
+                      onChange={(e) => setReply(e.target.value)}
+                      placeholder={t.comments.replyPlaceholder}
+                      rows={3}
+                    />
+                    <div className="flex justify-end">
+                      <Button size="sm" onClick={sendReply} disabled={!reply.trim() || sending}>
+                        {sending ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4 mr-2" />
+                        )}
+                        {t.comments.send}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </Card>
+          }
+        />
       )}
     </div>
   );
