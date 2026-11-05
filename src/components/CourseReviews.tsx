@@ -49,20 +49,28 @@ export function CourseReviews({
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    // `course_reviews` ilə `profiles` arasında xarici açar yoxdur, ona görə PostgREST
+    // embed-i (`profiles(...)`) 400 qaytarırdı. Rəylər və profillər ayrıca oxunur.
+    const { data, error } = await supabase
       .from("course_reviews")
-      .select("id,user_id,rating,comment,created_at,profiles(full_name,avatar_url)")
+      .select("id,user_id,rating,comment,created_at")
       .eq("course_id", courseId)
       .order("created_at", { ascending: false });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows = ((data ?? []) as any[]).map((r) => ({
-      id: r.id as string,
-      user_id: r.user_id as string,
-      rating: r.rating as number,
-      comment: (r.comment ?? null) as string | null,
-      created_at: r.created_at as string,
-      full_name: (r.profiles?.full_name ?? "—") as string,
-      avatar_url: (r.profiles?.avatar_url ?? null) as string | null,
+    if (error) console.error("Unable to load course reviews", error.message);
+    const reviewRows = data ?? [];
+    const userIds = [...new Set(reviewRows.map((r) => r.user_id))];
+    const { data: profs } = userIds.length
+      ? await supabase.from("profiles").select("id,full_name,avatar_url").in("id", userIds)
+      : { data: [] as { id: string; full_name: string; avatar_url: string | null }[] };
+    const profileById = new Map((profs ?? []).map((p) => [p.id, p]));
+    const rows: ReviewRow[] = reviewRows.map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      rating: r.rating,
+      comment: r.comment ?? null,
+      created_at: r.created_at,
+      full_name: profileById.get(r.user_id)?.full_name ?? "—",
+      avatar_url: profileById.get(r.user_id)?.avatar_url ?? null,
     }));
     setReviews(rows);
     const mine = rows.find((r) => r.user_id === user?.id);
