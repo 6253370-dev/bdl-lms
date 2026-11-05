@@ -9,32 +9,72 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  ArrowLeft, Plus, Loader2, Trash2, BookOpen, Dumbbell, FileQuestion,
-  GraduationCap, Save, Video, FileText, FileType, Link as LinkIcon, Pencil, Play, Library, GripVertical,
+  ArrowLeft,
+  Plus,
+  Loader2,
+  Trash2,
+  BookOpen,
+  Dumbbell,
+  FileQuestion,
+  GraduationCap,
+  Save,
+  Video,
+  FileText,
+  FileType,
+  Link as LinkIcon,
+  Pencil,
+  Play,
+  Library,
+  GripVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
 import { CertificateTemplateSelect } from "@/components/CertificateTemplateSelect";
 import { t } from "@/lib/i18n";
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
+import { ImageDropzone } from "@/components/design/ImageDropzone";
+import { TagInput } from "@/components/design/TagInput";
+import { IconChip } from "@/components/design/IconChip";
+import { cn } from "@/lib/utils";
+import { LESSON_KIND, formatMinutes, lessonKind } from "@/lib/lesson-kind";
+
+/** "Qısa təsvir" üçün tövsiyə olunan uzunluq (sayğac göstərir, yazmanı bloklamır). */
+const SHORT_DESC_LIMIT = 500;
 
 export const Route = createFileRoute("/courses/$courseId/edit")({
-  head: () => ({ meta: [
-    { title: "Kursun redaktəsi | Baku Digital Lab" },
-    { name: "description", content: "Kurs məlumatları, dərslər və təlim materiallarının idarəsi." },
-    { property: "og:title", content: "Kursun redaktəsi | Baku Digital Lab" },
-    { property: "og:description", content: "Kurs məlumatları, dərslər və təlim materiallarının idarəsi." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary" },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Kursun redaktəsi | Baku Digital Lab" },
+      {
+        name: "description",
+        content: "Kurs məlumatları, dərslər və təlim materiallarının idarəsi.",
+      },
+      { property: "og:title", content: "Kursun redaktəsi | Baku Digital Lab" },
+      {
+        property: "og:description",
+        content: "Kurs məlumatları, dərslər və təlim materiallarının idarəsi.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedRoute>
       <CourseBuilderPage />
@@ -114,24 +154,38 @@ function CourseBuilderPage() {
     ]);
     const course = c as Course | null;
     if (course) {
-      course.what_you_will_learn = Array.isArray(course.what_you_will_learn) ? course.what_you_will_learn : [];
+      course.what_you_will_learn = Array.isArray(course.what_you_will_learn)
+        ? course.what_you_will_learn
+        : [];
       course.requirements = Array.isArray(course.requirements) ? course.requirements : [];
     }
     setCourse(course);
     setBlocks((b ?? []) as Block[]);
-    const adminIds = Array.from(new Set(((roleRows ?? []) as { user_id: string }[]).map((r) => r.user_id)));
+    const adminIds = Array.from(
+      new Set(((roleRows ?? []) as { user_id: string }[]).map((r) => r.user_id)),
+    );
     let adminList: AdminProfile[] = [];
     if (adminIds.length) {
-      const { data: profs } = await supabase.from("profiles").select("id,full_name").in("id", adminIds).order("full_name");
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id,full_name")
+        .in("id", adminIds)
+        .order("full_name");
       adminList = (profs ?? []) as AdminProfile[];
       setAdmins(adminList);
     }
     const names = new Set(adminList.map((p) => p.full_name));
-    setInstructorMode(course?.instructor_name && !names.has(course.instructor_name) ? CUSTOM_INSTRUCTOR : (course?.instructor_name ?? ""));
+    setInstructorMode(
+      course?.instructor_name && !names.has(course.instructor_name)
+        ? CUSTOM_INSTRUCTOR
+        : (course?.instructor_name ?? ""),
+    );
     setLoading(false);
   }, [courseId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const updateCourseField = (patch: Partial<Course>) => {
     setCourse((c) => (c ? { ...c, ...patch } : c));
@@ -146,7 +200,8 @@ function CourseBuilderPage() {
         title: course.title,
         description: course.description,
         short_description: course.short_description,
-        instructor_name: instructorMode === CUSTOM_INSTRUCTOR ? course.instructor_name : (instructorMode || null),
+        instructor_name:
+          instructorMode === CUSTOM_INSTRUCTOR ? course.instructor_name : instructorMode || null,
         language: course.language,
         what_you_will_learn: course.what_you_will_learn.filter((s) => s.trim()),
         requirements: course.requirements.filter((s) => s.trim()),
@@ -168,13 +223,22 @@ function CourseBuilderPage() {
       quiz: { title: "Yeni quiz", time_limit_seconds: 30 },
       final_exam: { title: "Son imtahan", passing_score: 60 },
     };
-    const insertRow = { course_id: courseId, block_type: type, position, title: defaults[type].title ?? "Adsız", ...defaults[type] };
+    const insertRow = {
+      course_id: courseId,
+      block_type: type,
+      position,
+      title: defaults[type].title ?? "Adsız",
+      ...defaults[type],
+    };
     const { data, error } = await supabase
       .from("course_blocks")
       .insert(insertRow as any)
       .select()
       .single();
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setBlocks((b) => [...b, data as Block]);
     toast.success(`${blockMeta[type].label} əlavə olundu`);
   };
@@ -229,7 +293,10 @@ function CourseBuilderPage() {
 
   const deleteBlock = async (id: string) => {
     const { error } = await supabase.from("course_blocks").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setBlocks((bs) => bs.filter((b) => b.id !== id));
     toast.success("Silindi");
   };
@@ -249,7 +316,8 @@ function CourseBuilderPage() {
 
   return (
     <div className="bento-page">
-      <Button variant="ghost"
+      <Button
+        variant="ghost"
         onClick={() => navigate({ to: "/courses/$courseId", params: { courseId } })}
         className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1"
       >
@@ -272,7 +340,10 @@ function CourseBuilderPage() {
               onClick={async () => {
                 if (!confirm(t.courseExtras.confirmDelete)) return;
                 const { error } = await supabase.from("courses").delete().eq("id", course.id);
-                if (error) { toast.error(error.message); return; }
+                if (error) {
+                  toast.error(error.message);
+                  return;
+                }
                 toast.success("Silindi");
                 navigate({ to: "/courses" });
               }}
@@ -297,145 +368,197 @@ function CourseBuilderPage() {
         </TabsList>
 
         {/* DETAILS */}
-        <TabsContent value="details" className="space-y-4">
-          <div className="course-editor-details">
-            <div className="space-y-2">
-              <Label>{t.courses.title_field}</Label>
-              <Input
-                value={course.title}
-                onChange={(e) => updateCourseField({ title: e.target.value })}
-                disabled={!isAdmin}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Qısa təsvir (kurs kartında və başlıqda görünür)</Label>
-              <Textarea
-                value={course.short_description ?? ""}
-                onChange={(e) => updateCourseField({ short_description: e.target.value })}
-                rows={2}
-                placeholder="1-2 cümləlik cəlbedici təsvir"
-                disabled={!isAdmin}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{t.courses.description} (ətraflı — "Haqqında" bölməsi)</Label>
-              <Textarea
-                value={course.description ?? ""}
-                onChange={(e) => updateCourseField({ description: e.target.value })}
-                rows={6}
-                disabled={!isAdmin}
-              />
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
+        <TabsContent value="details">
+          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]">
+            <section
+              className="min-w-0 space-y-5 rounded-xl border border-border bg-card p-5 shadow-card sm:p-6"
+              aria-label="Əsas məlumat"
+            >
               <div className="space-y-2">
-                <Label>Müəllim</Label>
-                <Select
-                  value={instructorMode}
-                  onValueChange={(v) => {
-                    setInstructorMode(v);
-                    if (v !== CUSTOM_INSTRUCTOR) updateCourseField({ instructor_name: v || null });
-                  }}
-                  disabled={!isAdmin}
-                >
-                  <SelectTrigger><SelectValue placeholder="Müəllim seçin" /></SelectTrigger>
-                  <SelectContent>
-                    {admins.map((a) => (
-                      <SelectItem key={a.id} value={a.full_name}>{a.full_name}</SelectItem>
-                    ))}
-                    <SelectItem value={CUSTOM_INSTRUCTOR}>Digər (əl ilə yaz)</SelectItem>
-                  </SelectContent>
-                </Select>
-                {instructorMode === CUSTOM_INSTRUCTOR && (
-                  <Input
-                    value={course.instructor_name ?? ""}
-                    onChange={(e) => updateCourseField({ instructor_name: e.target.value })}
-                    placeholder="Müəllimin adı"
-                    disabled={!isAdmin}
-                  />
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Müəllimin təfərrüatları onun profil səhifəsindəki "Vəzifə / Haqqımda" sahələrindən götürülür. Seçilməyibsə kursu yaradan şəxsin adı göstərilir.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>Kursun dili</Label>
+                <Label htmlFor="course-title">{t.courses.title_field}</Label>
                 <Input
-                  value={course.language ?? ""}
-                  onChange={(e) => updateCourseField({ language: e.target.value })}
-                  placeholder="Azərbaycan dili"
+                  id="course-title"
+                  value={course.title}
+                  onChange={(e) => updateCourseField({ title: e.target.value })}
                   disabled={!isAdmin}
                 />
               </div>
-            </div>
-            <StringListEditor
-              label="Kursda nələr öyrənəcəksiniz"
-              placeholder="məs. Satış texnikalarının əsasları"
-              values={course.what_you_will_learn}
-              onChange={(v) => updateCourseField({ what_you_will_learn: v })}
-              disabled={!isAdmin}
-            />
-            <StringListEditor
-              label="Tələblər (boş buraxsanız bölmə gizlənir)"
-              placeholder="məs. Kompüter və internet bağlantısı"
-              values={course.requirements}
-              onChange={(v) => updateCourseField({ requirements: v })}
-              disabled={!isAdmin}
-            />
-            <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{t.courses.passingScore}</Label>
+                <Label htmlFor="course-short">
+                  Qısa təsvir (kurs kartında və başlıqda görünür)
+                </Label>
+                <Textarea
+                  id="course-short"
+                  value={course.short_description ?? ""}
+                  onChange={(e) => updateCourseField({ short_description: e.target.value })}
+                  rows={2}
+                  placeholder="1-2 cümləlik cəlbedici təsvir"
+                  aria-describedby="course-short-count"
+                  disabled={!isAdmin}
+                />
+                {/* Maddə 27: simvol sayğacı (tövsiyə, yazmanı bloklamır) */}
+                <p
+                  id="course-short-count"
+                  aria-live="polite"
+                  className={cn(
+                    "text-right text-xs tabular-nums",
+                    (course.short_description ?? "").length > SHORT_DESC_LIMIT
+                      ? "font-medium text-[var(--warning-700)]"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {(course.short_description ?? "").length}/{SHORT_DESC_LIMIT}
+                  {(course.short_description ?? "").length > SHORT_DESC_LIMIT &&
+                    " · tövsiyə olunan həddi keçir"}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="course-description">
+                  {t.courses.description} (ətraflı — "Haqqında" bölməsi)
+                </Label>
+                <Textarea
+                  id="course-description"
+                  value={course.description ?? ""}
+                  onChange={(e) => updateCourseField({ description: e.target.value })}
+                  rows={6}
+                  disabled={!isAdmin}
+                />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Müəllim</Label>
+                  <Select
+                    value={instructorMode}
+                    onValueChange={(v) => {
+                      setInstructorMode(v);
+                      if (v !== CUSTOM_INSTRUCTOR)
+                        updateCourseField({ instructor_name: v || null });
+                    }}
+                    disabled={!isAdmin}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Müəllim seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {admins.map((a) => (
+                        <SelectItem key={a.id} value={a.full_name}>
+                          {a.full_name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value={CUSTOM_INSTRUCTOR}>Digər (əl ilə yaz)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {instructorMode === CUSTOM_INSTRUCTOR && (
+                    <Input
+                      value={course.instructor_name ?? ""}
+                      onChange={(e) => updateCourseField({ instructor_name: e.target.value })}
+                      placeholder="Müəllimin adı"
+                      disabled={!isAdmin}
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Müəllimin təfərrüatları onun profil səhifəsindəki "Vəzifə / Haqqımda"
+                    sahələrindən götürülür. Seçilməyibsə kursu yaradan şəxsin adı göstərilir.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Kursun dili</Label>
+                  <Input
+                    value={course.language ?? ""}
+                    onChange={(e) => updateCourseField({ language: e.target.value })}
+                    placeholder="Azərbaycan dili"
+                    disabled={!isAdmin}
+                  />
+                </div>
+              </div>
+              {/* Maddə 27: "Nələr öyrənəcəksiniz" teqlər kimi */}
+              <TagInput
+                id="course-learn"
+                label="Kursda nələr öyrənəcəksiniz"
+                placeholder="məs. Satış texnikalarının əsasları"
+                values={course.what_you_will_learn}
+                onChange={(v) => updateCourseField({ what_you_will_learn: v })}
+                disabled={!isAdmin}
+              />
+              <StringListEditor
+                label="Tələblər (boş buraxsanız bölmə gizlənir)"
+                placeholder="məs. Kompüter və internet bağlantısı"
+                values={course.requirements}
+                onChange={(v) => updateCourseField({ requirements: v })}
+                disabled={!isAdmin}
+              />
+            </section>
+
+            <aside className="min-w-0 space-y-5 rounded-xl border border-border bg-card p-5 shadow-card sm:p-6 lg:sticky lg:top-20">
+              {/* Maddə 27: şəkil yükləmə zonası */}
+              <ImageDropzone
+                label="Üz şəkli (kart şəkli)"
+                value={course.cover_image_url}
+                onChange={(v) => updateCourseField({ cover_image_url: v })}
+                folder="covers"
+                disabled={!isAdmin}
+              />
+              <div className="space-y-2">
+                <Label htmlFor="course-passing">{t.courses.passingScore}</Label>
                 <Input
-                  type="number" min={0} max={100}
+                  id="course-passing"
+                  type="number"
+                  min={0}
+                  max={100}
                   value={course.passing_score}
                   onChange={(e) => updateCourseField({ passing_score: Number(e.target.value) })}
                   disabled={!isAdmin}
                 />
               </div>
-              <div className="flex items-center gap-3 pt-7">
+              <div className="flex items-center gap-3 rounded-lg border border-border px-4 py-3">
                 <Switch
+                  id="course-published"
                   checked={course.is_published}
                   onCheckedChange={(v) => updateCourseField({ is_published: v })}
                   disabled={!isAdmin}
                 />
-                <Label>{t.courses.publishedSwitch}</Label>
+                <Label htmlFor="course-published">{t.courses.publishedSwitch}</Label>
               </div>
-            </div>
-            <FileUpload
-              label="Üz şəkli (kart şəkli)"
-              icon={FileText}
-              value={course.cover_image_url}
-              onChange={(v) => updateCourseField({ cover_image_url: v })}
-              accept="image/*"
-              folder="covers"
-              disabled={!isAdmin}
-            />
-            {isAdmin && (
-              <div className="flex justify-end pt-2">
-                <Button onClick={saveDetails} disabled={savingDetails}>
-                  {savingDetails ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              {isAdmin && (
+                <Button onClick={saveDetails} disabled={savingDetails} className="w-full">
+                  {savingDetails ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
                   {t.courses.saveDetails}
                 </Button>
-              </div>
-            )}
+              )}
+            </aside>
           </div>
         </TabsContent>
 
         {/* LESSONS & PRACTICE */}
-        <TabsContent value="lessons" className="course-editor-lessons">
+        <TabsContent value="lessons" className="mx-auto max-w-4xl space-y-3">
           {lessonBlocks.length === 0 && (
             <Card className="p-10 text-center border-dashed">
               <p className="text-sm text-muted-foreground">{t.courses.noLessons}</p>
             </Card>
           )}
           {isAdmin && lessonBlocks.length > 1 && (
-            <p className="text-xs text-muted-foreground">Sıranı dəyişmək üçün kartı tutub sürüşdürün</p>
+            <p className="text-xs text-muted-foreground">
+              Sıranı dəyişmək üçün kartı tutub sürüşdürün
+            </p>
           )}
           {lessonBlocks.map((b, i) => (
             <div
               key={b.id}
               draggable={isAdmin}
-              onDragStart={(e) => { dragId.current = b.id; e.dataTransfer.effectAllowed = "move"; }}
-              onDragOver={(e) => { if (isAdmin && dragId.current && dragId.current !== b.id) { e.preventDefault(); setDragOverId(b.id); } }}
+              onDragStart={(e) => {
+                dragId.current = b.id;
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(e) => {
+                if (isAdmin && dragId.current && dragId.current !== b.id) {
+                  e.preventDefault();
+                  setDragOverId(b.id);
+                }
+              }}
               onDragLeave={() => setDragOverId((v) => (v === b.id ? null : v))}
               onDrop={(e) => {
                 e.preventDefault();
@@ -443,7 +566,10 @@ function CourseBuilderPage() {
                 if (dragId.current) reorderLessons(dragId.current, b.id);
                 dragId.current = null;
               }}
-              onDragEnd={() => { dragId.current = null; setDragOverId(null); }}
+              onDragEnd={() => {
+                dragId.current = null;
+                setDragOverId(null);
+              }}
               className={dragOverId === b.id ? "rounded-xl ring-2 ring-primary" : undefined}
             >
               <BlockCard
@@ -468,7 +594,6 @@ function CourseBuilderPage() {
           )}
         </TabsContent>
 
-
         {/* FINAL EXAM */}
         <TabsContent value="exam" className="space-y-3">
           {!examBlock ? (
@@ -481,7 +606,13 @@ function CourseBuilderPage() {
               )}
             </Card>
           ) : (
-            <BlockCard block={examBlock} isAdmin={isAdmin} onChange={(p) => updateBlock(examBlock.id, p)} onSave={() => saveBlock(examBlock)} onDelete={() => deleteBlock(examBlock.id)} />
+            <BlockCard
+              block={examBlock}
+              isAdmin={isAdmin}
+              onChange={(p) => updateBlock(examBlock.id, p)}
+              onSave={() => saveBlock(examBlock)}
+              onDelete={() => deleteBlock(examBlock.id)}
+            />
           )}
         </TabsContent>
 
@@ -529,7 +660,12 @@ function CourseBuilderPage() {
 }
 
 function BlockCard({
-  block, isAdmin, onChange, onSave, onDelete, index,
+  block,
+  isAdmin,
+  onChange,
+  onSave,
+  onDelete,
+  index,
 }: {
   block: Block;
   index?: number;
@@ -539,7 +675,9 @@ function BlockCard({
   onDelete: () => void;
 }) {
   const meta = blockMeta[block.block_type];
-  const Icon = meta.icon;
+  // Maddə 28: dərs tipi ikonu və müddət göstəricisi (minimum baxış vaxtı)
+  const kind = LESSON_KIND[lessonKind(block)];
+  const minutes = formatMinutes(block.min_view_seconds);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -554,24 +692,55 @@ function BlockCard({
     <Card className="overflow-hidden">
       <div className="flex items-center gap-3 p-4">
         {isAdmin && index !== undefined && (
-          <div className="flex items-center gap-1 text-muted-foreground cursor-grab active:cursor-grabbing shrink-0">
-            <GripVertical className="h-4 w-4" />
-            <span className="text-xs tabular-nums">{index + 1}</span>
+          <div
+            className="flex items-center gap-1.5 text-muted-foreground cursor-grab active:cursor-grabbing shrink-0"
+            title="Sıranı dəyişmək üçün sürüşdürün"
+          >
+            <GripVertical className="h-4 w-4" aria-hidden="true" />
+            <span className="w-4 text-sm font-medium tabular-nums">{index + 1}</span>
           </div>
         )}
-        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${meta.tone}`}>
-          <Icon className="h-5 w-5" />
-        </div>
+        <IconChip
+          icon={kind.icon}
+          tone={
+            block.block_type === "final_exam"
+              ? "success"
+              : block.block_type === "lesson"
+                ? "brand"
+                : "gray"
+          }
+        />
         <div className="flex-1 min-w-0">
-          <div className="text-xs uppercase tracking-wide text-muted-foreground">{meta.label}</div>
-          <div className="font-medium truncate">{block.title}</div>
+          <div className="font-medium break-words">{block.title}</div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+            <span>{block.block_type === "lesson" ? kind.label : meta.label}</span>
+            {minutes && (
+              <>
+                <span aria-hidden="true">•</span>
+                <span className="tabular-nums">{minutes}</span>
+              </>
+            )}
+          </div>
         </div>
         {isAdmin && (
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" onClick={() => setEditing((e) => !e)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setEditing((e) => !e)}
+              aria-label={`${block.title}: redaktə et`}
+              aria-expanded={editing}
+              title="Redaktə et"
+            >
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={onDelete}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              aria-label={`${block.title}: sil`}
+              title="Sil"
+            >
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </div>
@@ -580,11 +749,11 @@ function BlockCard({
       {editing && (
         <div className="border-t px-4 py-5 space-y-4 bg-muted/30">
           <div className="space-y-2">
-            <Label>Title</Label>
+            <Label>Ad</Label>
             <Input value={block.title} onChange={(e) => onChange({ title: e.target.value })} />
           </div>
           <div className="space-y-2">
-            <Label>Description</Label>
+            <Label>Təsvir</Label>
             <Textarea
               value={block.description ?? ""}
               onChange={(e) => onChange({ description: e.target.value })}
@@ -593,11 +762,44 @@ function BlockCard({
           </div>
           {block.block_type === "lesson" && (
             <div className="grid sm:grid-cols-2 gap-3">
-              <FileField label="External video URL (YouTube, Vimeo)" icon={LinkIcon} value={block.external_video_url} onChange={(v) => onChange({ external_video_url: v })} />
-              <FileUpload label="Video" icon={Video} value={block.video_url} onChange={(v) => onChange({ video_url: v })} accept="video/*" folder="videos" />
-              <FileUpload label="PDF" icon={FileText} value={block.pdf_url} onChange={(v) => onChange({ pdf_url: v })} accept="application/pdf" folder="pdfs" />
-              <FileUpload label="PPTX" icon={FileType} value={block.pptx_url} onChange={(v) => onChange({ pptx_url: v })} accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" folder="pptx" />
-              <FileUpload label="DOCX" icon={FileType} value={block.docx_url} onChange={(v) => onChange({ docx_url: v })} accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" folder="docx" />
+              <FileField
+                label="Xarici video linki (YouTube, Vimeo)"
+                icon={LinkIcon}
+                value={block.external_video_url}
+                onChange={(v) => onChange({ external_video_url: v })}
+              />
+              <FileUpload
+                label="Video"
+                icon={Video}
+                value={block.video_url}
+                onChange={(v) => onChange({ video_url: v })}
+                accept="video/*"
+                folder="videos"
+              />
+              <FileUpload
+                label="PDF"
+                icon={FileText}
+                value={block.pdf_url}
+                onChange={(v) => onChange({ pdf_url: v })}
+                accept="application/pdf"
+                folder="pdfs"
+              />
+              <FileUpload
+                label="PPTX"
+                icon={FileType}
+                value={block.pptx_url}
+                onChange={(v) => onChange({ pptx_url: v })}
+                accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                folder="pptx"
+              />
+              <FileUpload
+                label="DOCX"
+                icon={FileType}
+                value={block.docx_url}
+                onChange={(v) => onChange({ docx_url: v })}
+                accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                folder="docx"
+              />
             </div>
           )}
           <div className="grid sm:grid-cols-2 gap-3">
@@ -618,7 +820,7 @@ function BlockCard({
           {(block.block_type === "practice" || block.block_type === "quiz") && (
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Time per question (seconds)</Label>
+                <Label>Sual üzrə vaxt (saniyə)</Label>
                 <Input
                   type="number"
                   value={block.time_limit_seconds ?? ""}
@@ -632,7 +834,9 @@ function BlockCard({
               <div className="space-y-2">
                 <Label>Keçid balı (%)</Label>
                 <Input
-                  type="number" min={0} max={100}
+                  type="number"
+                  min={0}
+                  max={100}
                   value={block.passing_score ?? 60}
                   onChange={(e) => onChange({ passing_score: Number(e.target.value) })}
                 />
@@ -647,14 +851,20 @@ function BlockCard({
               </label>
             </div>
           )}
-          {(block.block_type === "practice" || block.block_type === "quiz" || block.block_type === "final_exam") && (
-            <QuestionsEditor blockId={block.id} />
-          )}
+          {(block.block_type === "practice" ||
+            block.block_type === "quiz" ||
+            block.block_type === "final_exam") && <QuestionsEditor blockId={block.id} />}
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+            <Button variant="outline" size="sm" onClick={() => setEditing(false)}>
+              Ləğv et
+            </Button>
             <Button size="sm" onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-              Save
+              {saving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Yadda saxla
             </Button>
           </div>
         </div>
@@ -664,7 +874,11 @@ function BlockCard({
 }
 
 function StringListEditor({
-  label, placeholder, values, onChange, disabled,
+  label,
+  placeholder,
+  values,
+  onChange,
+  disabled,
 }: {
   label: string;
   placeholder: string;
@@ -682,9 +896,18 @@ function StringListEditor({
       <Label>{label}</Label>
       {values.map((v, i) => (
         <div key={i} className="flex gap-2">
-          <Input value={v} onChange={(e) => update(i, e.target.value)} placeholder={placeholder} disabled={disabled} />
+          <Input
+            value={v}
+            onChange={(e) => update(i, e.target.value)}
+            placeholder={placeholder}
+            disabled={disabled}
+          />
           {!disabled && (
-            <Button variant="ghost" size="icon" onClick={() => onChange(values.filter((_, j) => j !== i))}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onChange(values.filter((_, j) => j !== i))}
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
           )}
@@ -700,11 +923,21 @@ function StringListEditor({
 }
 
 function FileField({
-  label, icon: Icon, value, onChange,
-}: { label: string; icon: typeof Video; value: string | null; onChange: (v: string | null) => void }) {
+  label,
+  icon: Icon,
+  value,
+  onChange,
+}: {
+  label: string;
+  icon: typeof Video;
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
   return (
     <div className="space-y-2">
-      <Label className="flex items-center gap-1.5"><Icon className="h-3.5 w-3.5" /> {label}</Label>
+      <Label className="flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5" /> {label}
+      </Label>
       <Input
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value || null)}
@@ -735,44 +968,87 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
 
   const load = useCallback(async () => {
     const { data: qs } = await supabase
-      .from("questions").select("id,text,position").eq("block_id", blockId).order("position");
-    if (!qs) { setQuestions([]); return; }
+      .from("questions")
+      .select("id,text,position")
+      .eq("block_id", blockId)
+      .order("position");
+    if (!qs) {
+      setQuestions([]);
+      return;
+    }
     const ids = qs.map((q) => q.id);
     const { data: ans } = ids.length
-      ? await supabase.from("answers").select("id,text,is_correct,position,question_id").in("question_id", ids).order("position")
+      ? await supabase
+          .from("answers")
+          .select("id,text,is_correct,position,question_id")
+          .in("question_id", ids)
+          .order("position")
       : { data: [] };
-    setQuestions(qs.map((q) => ({
-      ...q,
-      answers: (ans ?? []).filter((a: { question_id: string }) => a.question_id === q.id) as Question["answers"],
-    })));
+    setQuestions(
+      qs.map((q) => ({
+        ...q,
+        answers: (ans ?? []).filter(
+          (a: { question_id: string }) => a.question_id === q.id,
+        ) as Question["answers"],
+      })),
+    );
   }, [blockId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const addQuestion = async () => {
-    if (!text.trim()) { toast.error("Sual mətni tələb olunur"); return; }
+    if (!text.trim()) {
+      toast.error("Sual mətni tələb olunur");
+      return;
+    }
     if (!isOpenEnded) {
       if (answers.filter((a) => a.text.trim()).length < 2) {
-        toast.error("Ən az 2 cavab tələb olunur"); return;
+        toast.error("Ən az 2 cavab tələb olunur");
+        return;
       }
       if (!answers.some((a) => a.is_correct)) {
-        toast.error("Ən az bir doğru cavab seçin"); return;
+        toast.error("Ən az bir doğru cavab seçin");
+        return;
       }
     }
     const { data: q, error } = await supabase
-      .from("questions").insert({ block_id: blockId, text: text.trim(), position: questions.length, is_open_ended: isOpenEnded })
-      .select().single();
-    if (error || !q) { toast.error(error?.message ?? "Xəta"); return; }
+      .from("questions")
+      .insert({
+        block_id: blockId,
+        text: text.trim(),
+        position: questions.length,
+        is_open_ended: isOpenEnded,
+      })
+      .select()
+      .single();
+    if (error || !q) {
+      toast.error(error?.message ?? "Xəta");
+      return;
+    }
     if (!isOpenEnded) {
       const valid = answers.filter((a) => a.text.trim());
       const { error: aErr } = await supabase.from("answers").insert(
-        valid.map((a, i) => ({ question_id: q.id, text: a.text.trim(), is_correct: a.is_correct, position: i })),
+        valid.map((a, i) => ({
+          question_id: q.id,
+          text: a.text.trim(),
+          is_correct: a.is_correct,
+          position: i,
+        })),
       );
-      if (aErr) { toast.error(aErr.message); return; }
+      if (aErr) {
+        toast.error(aErr.message);
+        return;
+      }
     }
     toast.success("Sual əlavə olundu");
-    setText(""); setIsOpenEnded(false); setAnswers([
-      { text: "", is_correct: true }, { text: "", is_correct: false }, { text: "", is_correct: false },
+    setText("");
+    setIsOpenEnded(false);
+    setAnswers([
+      { text: "", is_correct: true },
+      { text: "", is_correct: false },
+      { text: "", is_correct: false },
     ]);
     setOpen(false);
     load();
@@ -783,9 +1059,18 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
     for (const item of items) {
       const { data: q, error } = await supabase
         .from("questions")
-        .insert({ block_id: blockId, text: item.text, position: pos++, is_open_ended: item.is_open_ended })
-        .select().single();
-      if (error || !q) { toast.error(error?.message ?? "Xəta"); continue; }
+        .insert({
+          block_id: blockId,
+          text: item.text,
+          position: pos++,
+          is_open_ended: item.is_open_ended,
+        })
+        .select()
+        .single();
+      if (error || !q) {
+        toast.error(error?.message ?? "Xəta");
+        continue;
+      }
       if (item.answers.length) {
         await supabase.from("answers").insert(
           item.answers.map((a) => ({
@@ -816,10 +1101,14 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
           </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" /> Yeni sual</Button>
+              <Button size="sm" variant="outline">
+                <Plus className="h-3.5 w-3.5 mr-1" /> Yeni sual
+              </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>Yeni sual</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Yeni sual</DialogTitle>
+              </DialogHeader>
               <div className="space-y-3">
                 <div className="space-y-2">
                   <Label>Sual mətni</Label>
@@ -838,40 +1127,54 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
                   </Label>
                 </div>
                 {!isOpenEnded && (
-                <div className="space-y-2">
-                  <Label>Cavablar (doğru olanları işarələyin)</Label>
-                  {answers.map((a, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={a.is_correct}
-                        onChange={(e) => {
-                          const next = [...answers]; next[idx] = { ...a, is_correct: e.target.checked }; setAnswers(next);
-                        }}
-                        className="h-4 w-4"
-                      />
-                      <Input
-                        value={a.text}
-                        onChange={(e) => {
-                          const next = [...answers]; next[idx] = { ...a, text: e.target.value }; setAnswers(next);
-                        }}
-                        placeholder={`Cavab ${idx + 1}`}
-                      />
-                      {answers.length > 2 && (
-                        <Button variant="ghost" size="icon" onClick={() => setAnswers(answers.filter((_, i) => i !== idx))}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  <Button variant="ghost" size="sm" onClick={() => setAnswers([...answers, { text: "", is_correct: false }])}>
-                    <Plus className="h-3.5 w-3.5 mr-1" /> Variant əlavə et
-                  </Button>
-                </div>
+                  <div className="space-y-2">
+                    <Label>Cavablar (doğru olanları işarələyin)</Label>
+                    {answers.map((a, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={a.is_correct}
+                          onChange={(e) => {
+                            const next = [...answers];
+                            next[idx] = { ...a, is_correct: e.target.checked };
+                            setAnswers(next);
+                          }}
+                          className="h-4 w-4"
+                        />
+                        <Input
+                          value={a.text}
+                          onChange={(e) => {
+                            const next = [...answers];
+                            next[idx] = { ...a, text: e.target.value };
+                            setAnswers(next);
+                          }}
+                          placeholder={`Cavab ${idx + 1}`}
+                        />
+                        {answers.length > 2 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setAnswers(answers.filter((_, i) => i !== idx))}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAnswers([...answers, { text: "", is_correct: false }])}
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Variant əlavə et
+                    </Button>
+                  </div>
                 )}
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>Ləğv et</Button>
+                <Button variant="outline" onClick={() => setOpen(false)}>
+                  Ləğv et
+                </Button>
                 <Button onClick={addQuestion}>Sualı yadda saxla</Button>
               </DialogFooter>
             </DialogContent>
@@ -882,15 +1185,22 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
         {questions.map((q, i) => (
           <div key={q.id} className="rounded-md border bg-background p-3">
             <div className="flex items-start justify-between gap-2">
-              <div className="text-sm"><span className="text-muted-foreground mr-1.5">Q{i + 1}.</span>{q.text}</div>
+              <div className="text-sm">
+                <span className="text-muted-foreground mr-1.5">Q{i + 1}.</span>
+                {q.text}
+              </div>
               <Button variant="ghost" size="icon" onClick={() => removeQuestion(q.id)}>
                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
               </Button>
             </div>
             <div className="mt-2 space-y-1">
               {q.answers.map((a) => (
-                <div key={a.id} className={`text-xs px-2 py-1 rounded ${a.is_correct ? "bg-success/10 text-success" : "text-muted-foreground"}`}>
-                  {a.is_correct ? "✓ " : "○ "}{a.text}
+                <div
+                  key={a.id}
+                  className={`text-xs px-2 py-1 rounded ${a.is_correct ? "bg-success/10 text-success" : "text-muted-foreground"}`}
+                >
+                  {a.is_correct ? "✓ " : "○ "}
+                  {a.text}
                 </div>
               ))}
             </div>
@@ -898,11 +1208,7 @@ function QuestionsEditor({ blockId }: { blockId: string }) {
         ))}
       </div>
       {bankOpen && (
-        <BankPicker
-          open={bankOpen}
-          onClose={() => setBankOpen(false)}
-          onImport={importFromBank}
-        />
+        <BankPicker open={bankOpen} onClose={() => setBankOpen(false)} onImport={importFromBank} />
       )}
     </div>
   );
