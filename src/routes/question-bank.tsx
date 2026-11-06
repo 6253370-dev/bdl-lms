@@ -34,10 +34,18 @@ import {
   Library,
   ChevronRight,
   ChevronDown,
+  Copy,
+  FileText,
+  ListChecks,
+  MessageSquareText,
 } from "lucide-react";
 
 import { toast } from "sonner";
 import { PageHeader } from "@/components/design/PageHeader";
+import { StatCard } from "@/components/design/StatCard";
+import { StatusChip } from "@/components/design/StatusChip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/question-bank")({
   head: () => ({ meta: [
@@ -101,6 +109,18 @@ function QuestionBankPage() {
   const [search, setSearch] = useState("");
   const [gamifFilter, setGamifFilter] = useState<"all" | "on" | "off">("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [typeCounts, setTypeCounts] = useState({ total: 0, mc: 0, open: 0 });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [openRows, setOpenRows] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const { user } = useAuth();
+  const toggleIn = (setter: typeof setSelected, id: string) =>
+    setter((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
   const toggleExpanded = (id: string) => {
     setExpanded((s) => {
       const n = new Set(s);
@@ -121,12 +141,17 @@ function QuestionBankPage() {
 
     const { data: qs } = await supabase
       .from("bank_questions")
-      .select("folder_id");
+      .select("folder_id,question_type");
     const counts: Record<string, number> = {};
-    (qs ?? []).forEach((r: any) => {
+    const byType = { total: 0, mc: 0, open: 0 };
+    (qs ?? []).forEach((r: { folder_id: string; question_type: string }) => {
       counts[r.folder_id] = (counts[r.folder_id] ?? 0) + 1;
+      byType.total++;
+      if (r.question_type === "multiple_choice") byType.mc++;
+      if (r.question_type === "open_ended") byType.open++;
     });
     setFolderCounts(counts);
+    setTypeCounts(byType);
   };
 
 
@@ -166,7 +191,54 @@ function QuestionBankPage() {
 
   useEffect(() => {
     loadQuestions(activeFolder);
+    setSelected(new Set());
+    setOpenRows(new Set());
   }, [activeFolder]);
+
+  // Maddə 51: sualı cavabları ilə birlikdə eyni mövzuda kopyalamaq (redaktorun insert sorğuları ilə eyni sütunlar).
+  const copyQuestion = async (q: BankQuestion) => {
+    const { data, error } = await supabase
+      .from("bank_questions")
+      .insert({
+        folder_id: q.folder_id,
+        text: `${q.text} (kopya)`,
+        question_type: q.question_type,
+        difficulty: q.difficulty,
+        time_limit_seconds: q.time_limit_seconds,
+        is_gamification_enabled: q.is_gamification_enabled,
+        created_by: user?.id ?? null,
+      })
+      .select("id")
+      .single();
+    if (error || !data) return toast.error(error?.message ?? "Kopyalanmadı");
+    const rows = (q.answers ?? []).map((a, idx) => ({
+      question_id: data.id,
+      text: a.text,
+      is_correct: a.is_correct,
+      position: idx,
+    }));
+    if (rows.length) {
+      const { error: aErr } = await supabase.from("bank_answers").insert(rows);
+      if (aErr) return toast.error(aErr.message);
+    }
+    toast.success("Sual kopyalandı");
+    loadQuestions(activeFolder);
+    loadFolders();
+  };
+
+  // Maddə 51: seçilmiş sualları silmək (tək-tək silmə ilə eyni sorğu).
+  const deleteSelected = async () => {
+    const ids = [...selected];
+    if (!ids.length || !confirm(`${ids.length} sual silinsin?`)) return;
+    setBulkBusy(true);
+    const { error } = await supabase.from("bank_questions").delete().in("id", ids);
+    setBulkBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Silindi");
+    setSelected(new Set());
+    setQuestions((qs) => qs.filter((q) => !ids.includes(q.id)));
+    loadFolders();
+  };
 
   const filteredQs = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -206,153 +278,204 @@ function QuestionBankPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="question-workspace">
-          {/* Folders */}
-          <Card className="p-4 h-fit">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-sm">Mövzular</h2>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setFolderDialog({ open: true, folder: null })}
-              >
-                <FolderPlus className="h-4 w-4" />
-              </Button>
-            </div>
-            {folders.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">
-                Hələ mövzu yoxdur
-              </p>
-            ) : (
-              <div className="space-y-1">
-                <FolderTree
-                  folders={folders}
-                  counts={folderCounts}
-                  parentId={null}
-                  depth={0}
-                  activeFolder={activeFolder}
-                  onSelect={setActiveFolder}
-                  onEdit={(f) => setFolderDialog({ open: true, folder: f })}
-                  onDelete={deleteFolder}
-                  expanded={expanded}
-                  onToggle={toggleExpanded}
-                />
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+            <StatCard icon={FileText} label="Cəmi sual" value={typeCounts.total.toLocaleString("az-AZ")} />
+            <StatCard icon={ListChecks} label="Test sualları" value={typeCounts.mc.toLocaleString("az-AZ")} />
+            <StatCard icon={MessageSquareText} label="Açıq suallar" value={typeCounts.open.toLocaleString("az-AZ")} />
+            <StatCard icon={FolderIcon} label="Mövzular" value={folders.length.toLocaleString("az-AZ")} />
+          </div>
+
+          <div className="grid items-start gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
+            {/* Folders */}
+            <section aria-labelledby="qb-folders" className="rounded-2xl border border-border bg-card p-4 shadow-card">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 id="qb-folders" className="font-display font-semibold">Mövzular</h2>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  aria-label="Yeni mövzu"
+                  onClick={() => setFolderDialog({ open: true, folder: null })}
+                >
+                  <FolderPlus className="h-4 w-4" />
+                </Button>
               </div>
-            )}
-          </Card>
-
-
-          {/* Questions */}
-          <div>
-            {!activeFolder ? (
-              <Card className="p-12 text-center border-dashed">
-                <Library className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                <h3 className="font-display font-semibold">Mövzu seçin</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Sual əlavə etmək üçün soldan qovluq seçin və ya yeni qovluq yaradın.
+              {folders.length === 0 ? (
+                <p className="py-4 text-center text-xs text-muted-foreground">
+                  Hələ mövzu yoxdur
                 </p>
-              </Card>
-            ) : (
-              <>
-                <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <div className="relative flex-1">
-                    <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Sual axtar..."
-                      className="pl-9"
-                    />
-                  </div>
-                  <Select value={gamifFilter} onValueChange={(v) => setGamifFilter(v as any)}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Hamısı</SelectItem>
-                      <SelectItem value="on">🟢 Gamification</SelectItem>
-                      <SelectItem value="off">⚪ Gamification deaktiv</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button onClick={() => setQuestionDialog({ open: true, question: null })}>
-                    <Plus className="h-4 w-4" /> Yeni sual
-                  </Button>
+              ) : (
+                <div className="space-y-0.5">
+                  <FolderTree
+                    folders={folders}
+                    counts={folderCounts}
+                    parentId={null}
+                    depth={0}
+                    activeFolder={activeFolder}
+                    onSelect={setActiveFolder}
+                    onEdit={(f) => setFolderDialog({ open: true, folder: f })}
+                    onDelete={deleteFolder}
+                    expanded={expanded}
+                    onToggle={toggleExpanded}
+                  />
                 </div>
+              )}
+            </section>
 
-                {filteredQs.length === 0 ? (
-                  <Card className="p-10 text-center border-dashed">
-                    <p className="text-sm text-muted-foreground">
+            {/* Questions */}
+            <section className="min-w-0">
+              {!activeFolder ? (
+                <Card className="p-12 text-center border-dashed">
+                  <Library className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                  <h3 className="font-display font-semibold">Mövzu seçin</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Sual əlavə etmək üçün soldan qovluq seçin və ya yeni qovluq yaradın.
+                  </p>
+                </Card>
+              ) : (
+                <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+                  <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
+                    <div className="relative min-w-[12rem] flex-1">
+                      <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Sual axtar..."
+                        aria-label="Sual axtar"
+                        className="pl-9"
+                      />
+                    </div>
+                    <Select value={gamifFilter} onValueChange={(v) => setGamifFilter(v as typeof gamifFilter)}>
+                      <SelectTrigger className="w-44" aria-label="Gamification filtri">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Hamısı</SelectItem>
+                        <SelectItem value="on">🟢 Gamification</SelectItem>
+                        <SelectItem value="off">⚪ Gamification deaktiv</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={() => setQuestionDialog({ open: true, question: null })}>
+                      <Plus className="h-4 w-4" /> Yeni sual
+                    </Button>
+                  </div>
+
+                  {selected.size > 0 && (
+                    <div className="flex flex-wrap items-center gap-3 border-b border-border bg-brand-50 px-4 py-2.5 text-sm dark:bg-brand-600/15" role="status">
+                      <span className="font-medium text-brand-700 dark:text-brand-300">{selected.size} sual seçilib</span>
+                      <Button size="sm" variant="destructive" disabled={bulkBusy} onClick={deleteSelected}>
+                        {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        Seçilənləri sil
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+                        Seçimi ləğv et
+                      </Button>
+                    </div>
+                  )}
+
+                  {filteredQs.length === 0 ? (
+                    <p className="p-10 text-center text-sm text-muted-foreground">
                       Bu qovluqda hələ sual yoxdur
                     </p>
-                  </Card>
-                ) : (
-                  <div className="question-rows">
-                    {filteredQs.map((q) => (
-                      <Card key={q.id} className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2 mb-2">
-                              <Badge variant="outline">{TYPE_LABEL[q.question_type]}</Badge>
-                              <Badge
-                                variant={
-                                  q.difficulty === "easy"
-                                    ? "secondary"
-                                    : q.difficulty === "hard"
-                                    ? "destructive"
-                                    : "default"
-                                }
-                              >
-                                {DIFF_LABEL[q.difficulty]}
-                              </Badge>
-                              <Badge variant="outline" title="Gamification">
-                                {q.is_gamification_enabled ? "🟢 Aktiv" : "⚪ Aktiv deyil"}
-                              </Badge>
-                              {q.time_limit_seconds && (
-                                <span className="text-xs text-muted-foreground">
-                                  {q.time_limit_seconds}s
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3 border-b border-border bg-muted/50 px-4 py-2 text-xs font-medium text-muted-foreground">
+                        <Checkbox
+                          aria-label="Hamısını seç"
+                          checked={
+                            filteredQs.every((q) => selected.has(q.id))
+                              ? true
+                              : filteredQs.some((q) => selected.has(q.id))
+                                ? "indeterminate"
+                                : false
+                          }
+                          onCheckedChange={(v) =>
+                            setSelected(v === true ? new Set(filteredQs.map((q) => q.id)) : new Set())
+                          }
+                        />
+                        <span className="hidden w-8 sm:inline">#</span>
+                        <span className="flex-1">Sual</span>
+                        <span className="hidden w-[7.5rem] sm:block">Əməliyyatlar</span>
+                      </div>
+                      <ul className="divide-y divide-border">
+                        {filteredQs.map((q, idx) => {
+                          const open = openRows.has(q.id);
+                          const hasAnswers = q.question_type !== "open_ended" && (q.answers?.length ?? 0) > 0;
+                          return (
+                            <li key={q.id} className={cn("px-4 py-3", selected.has(q.id) && "bg-brand-25 dark:bg-brand-600/10")}>
+                              <div className="flex items-start gap-3">
+                                <Checkbox
+                                  className="mt-0.5"
+                                  aria-label={`Sual ${idx + 1} seç`}
+                                  checked={selected.has(q.id)}
+                                  onCheckedChange={() => toggleIn(setSelected, q.id)}
+                                />
+                                <span className="hidden w-8 shrink-0 pt-0.5 text-sm tabular-nums text-muted-foreground sm:inline">
+                                  {String(idx + 1).padStart(3, "0")}
                                 </span>
-                              )}
-                            </div>
-                            <p className="text-sm">{q.text}</p>
-                            {q.question_type !== "open_ended" && q.answers && q.answers.length > 0 && (
-                              <ul className="mt-2 space-y-1">
-                                {q.answers.map((a) => (
-                                  <li
-                                    key={a.id}
-                                    className={`text-xs flex items-center gap-2 ${
-                                      a.is_correct ? "text-success font-medium" : "text-muted-foreground"
-                                    }`}
+                                <div className="min-w-0 flex-1">
+                                  <button
+                                    type="button"
+                                    className="flex w-full items-start gap-1.5 rounded text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
+                                    aria-expanded={hasAnswers ? open : undefined}
+                                    onClick={() => hasAnswers && toggleIn(setOpenRows, q.id)}
                                   >
-                                    <span className="inline-block w-3">{a.is_correct ? "✓" : "•"}</span>
-                                    {a.text}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => setQuestionDialog({ open: true, question: q })}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => deleteQuestionWithRefresh(q.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
+                                    {hasAnswers && (
+                                      <ChevronRight className={cn("mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} aria-hidden="true" />
+                                    )}
+                                    <span className="min-w-0 flex-1 break-words">{q.text}</span>
+                                  </button>
+                                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                    <StatusChip tone={q.question_type === "open_ended" ? "brand" : "gray"}>{TYPE_LABEL[q.question_type]}</StatusChip>
+                                    <StatusChip tone={q.difficulty === "easy" ? "success" : q.difficulty === "hard" ? "error" : "warning"}>
+                                      {DIFF_LABEL[q.difficulty]}
+                                    </StatusChip>
+                                    <span className="text-xs text-muted-foreground" title="Gamification">
+                                      {q.is_gamification_enabled ? "🟢 Aktiv" : "⚪ Aktiv deyil"}
+                                    </span>
+                                    {q.time_limit_seconds && (
+                                      <span className="text-xs text-muted-foreground tabular-nums">{q.time_limit_seconds}s</span>
+                                    )}
+                                  </div>
+                                  {hasAnswers && open && (
+                                    <ul className="mt-2 space-y-1">
+                                      {q.answers!.map((a) => (
+                                        <li
+                                          key={a.id}
+                                          className={cn(
+                                            "flex items-start gap-2 text-xs",
+                                            a.is_correct ? "font-medium text-[var(--success-700)] dark:text-[var(--success-500)]" : "text-muted-foreground",
+                                          )}
+                                        >
+                                          <span className="inline-block w-3 shrink-0">{a.is_correct ? "✓" : "•"}</span>
+                                          <span className="min-w-0 break-words">{a.text}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
+                                <div className="flex shrink-0 gap-0.5">
+                                  <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Redaktə et" onClick={() => setQuestionDialog({ open: true, question: q })}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Kopyala" onClick={() => copyQuestion(q)}>
+                                    <Copy className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-[var(--error-50)] hover:text-[var(--error-600)]" aria-label="Sil" onClick={() => deleteQuestionWithRefresh(q.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              )}
+            </section>
           </div>
         </div>
       )}
