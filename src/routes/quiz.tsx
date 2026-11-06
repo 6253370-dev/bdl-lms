@@ -25,6 +25,22 @@ import { Music } from "lucide-react";
 import { toast } from "sonner";
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 import { PageHeader } from "@/components/design/PageHeader";
+import { RingProgress } from "@/components/design/RingProgress";
+import { StatusChip, type StatusTone } from "@/components/design/StatusChip";
+import { IconChip } from "@/components/design/IconChip";
+import { cn } from "@/lib/utils";
+
+const ANSWER_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+function formatSeconds(totalSeconds: number) {
+  return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
+function percentTone(percent: number): StatusTone {
+  if (percent >= 80) return "success";
+  if (percent >= 50) return "warning";
+  return "error";
+}
 
 export const Route = createFileRoute("/quiz")({
   head: () => ({ meta: [
@@ -117,26 +133,132 @@ function QuizHub() {
         description="Real vaxtda çoxlu istifadəçi ilə yarış. Otaq parolu ilə qoşul."
       />
 
-      <Card className="p-6 max-w-xl border-0">
-        <div className="flex items-center gap-2 mb-3">
-          <KeyRound className="h-5 w-5 text-primary" />
-          <div className="font-display font-semibold">Otağa qoşul</div>
-        </div>
-        <div className="flex gap-2">
-          <Input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="6 rəqəmli kod"
-            onKeyDown={(e) => e.key === "Enter" && join()}
-          />
-          <Button onClick={join} disabled={joining}>
-            {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : "Qoşul"}
-          </Button>
-        </div>
-      </Card>
+      <div className={cn("grid items-start gap-6", !isAdmin && "lg:grid-cols-[minmax(0,1fr)_400px]")}>
+        <Card className={cn("p-6 border-0", isAdmin && "max-w-xl")}>
+          <div className="flex items-center gap-3 mb-4">
+            <IconChip icon={KeyRound} />
+            <div className="font-display font-semibold">Otağa qoşul</div>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="6 rəqəmli kod"
+              aria-label="Otaq kodu"
+              onKeyDown={(e) => e.key === "Enter" && join()}
+            />
+            <Button onClick={join} disabled={joining}>
+              {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : "Qoşul"}
+            </Button>
+          </div>
+        </Card>
+        {!isAdmin && <QuizHistoryPanel />}
+      </div>
 
       {isAdmin && <AdminPanel onEnterRoom={(r) => setActiveRoom(r)} />}
     </div>
+  );
+}
+
+/* =========================================================
+   Tələbənin quiz tarixçəsi (maddə 31, görünüş hissəsi)
+========================================================= */
+type QuizHistoryRow = {
+  roomId: string;
+  title: string;
+  total: number;
+  percent: number;
+  finishedAt: string | null;
+};
+
+function QuizHistoryPanel() {
+  const { user } = useAuth();
+  const [rows, setRows] = useState<QuizHistoryRow[] | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data: parts } = await supabase
+        .from("room_participants").select("room_id").eq("user_id", user.id);
+      const roomIds = [...new Set((parts ?? []).map((p) => p.room_id))];
+      const { data: rooms } = roomIds.length
+        ? await supabase
+            .from("quiz_rooms").select("id,quiz_id,finished_at")
+            .in("id", roomIds).eq("status", "finished")
+            .order("finished_at", { ascending: false }).limit(5)
+        : { data: [] };
+      const finished = rooms ?? [];
+      if (finished.length === 0) {
+        if (!cancelled) setRows([]);
+        return;
+      }
+      const quizIds = [...new Set(finished.map((r) => r.quiz_id))];
+      const [{ data: quizzes }, { data: qs }, { data: answers }] = await Promise.all([
+        supabase.from("quizzes").select("id,title").in("id", quizIds),
+        supabase.from("quiz_questions").select("id,quiz_id").in("quiz_id", quizIds),
+        supabase.from("room_answers").select("room_id,is_correct")
+          .eq("user_id", user.id).in("room_id", finished.map((r) => r.id)),
+      ]);
+      const titles = new Map((quizzes ?? []).map((q) => [q.id, q.title]));
+      const totals = new Map<string, number>();
+      for (const q of qs ?? []) totals.set(q.quiz_id, (totals.get(q.quiz_id) ?? 0) + 1);
+      const correct = new Map<string, number>();
+      for (const a of answers ?? []) {
+        if (a.is_correct) correct.set(a.room_id, (correct.get(a.room_id) ?? 0) + 1);
+      }
+      if (cancelled) return;
+      setRows(finished.map((r) => {
+        const total = totals.get(r.quiz_id) ?? 0;
+        const right = correct.get(r.id) ?? 0;
+        return {
+          roomId: r.id,
+          title: titles.get(r.quiz_id) ?? "Quiz",
+          total,
+          percent: total ? Math.round((right / total) * 100) : 0,
+          finishedAt: r.finished_at,
+        };
+      }));
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  return (
+    <Card className="p-5 border-0">
+      <div className="flex items-center gap-3 mb-2">
+        <IconChip icon={History} />
+        <h2 className="font-display font-semibold">Quiz tarixçəsi</h2>
+      </div>
+      {rows === null ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : rows.length === 0 ? (
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          Hələ bitmiş quiz yoxdur. Otağa qoşulun, nəticələriniz burada görünəcək.
+        </p>
+      ) : (
+        <ul className="divide-y">
+          {rows.map((r) => (
+            <li key={r.roomId} className="flex items-center gap-3 py-3">
+              <IconChip icon={FileQuestion} tone="gray" size="sm" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{r.title}</p>
+                <p className="text-xs text-muted-foreground">{r.total} sual</p>
+              </div>
+              <StatusChip tone={percentTone(r.percent)} className="tabular-nums">
+                {r.percent}%
+              </StatusChip>
+              <span className="w-24 shrink-0 text-right text-xs text-muted-foreground">
+                {r.finishedAt
+                  ? new Date(r.finishedAt).toLocaleDateString("az-AZ", { day: "2-digit", month: "short", year: "numeric" })
+                  : "—"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }
 
@@ -916,38 +1038,72 @@ function ActiveView({
 
   return (
     <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-      <Card className="p-6 space-y-5">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Sual {room.current_question_index + 1} / {totalQuestions}</span>
-          <span className="font-mono">{Math.ceil(remaining / 1000)}s</span>
-        </div>
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-          <div className="h-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+      <Card className="p-5 sm:p-6 space-y-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="font-display text-lg font-semibold tabular-nums sm:text-xl">
+              Sual {room.current_question_index + 1} / {totalQuestions}
+            </div>
+            <div
+              className="mt-3 h-2 w-full max-w-sm overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-label="Quiz irəliləyişi"
+              aria-valuemin={0}
+              aria-valuemax={totalQuestions}
+              aria-valuenow={room.current_question_index + 1}
+            >
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${((room.current_question_index + 1) / totalQuestions) * 100}%` }}
+              />
+            </div>
+          </div>
+          <RingProgress
+            value={100 - progress}
+            size={72}
+            stroke={6}
+            tone={remaining <= 5000 ? "warning" : "brand"}
+            label="Sual üçün qalan vaxt"
+          >
+            <span className="text-base font-semibold tabular-nums">
+              {formatSeconds(Math.ceil(remaining / 1000))}
+            </span>
+          </RingProgress>
         </div>
 
-        <h2 className="font-display text-xl font-semibold leading-snug">{question.text}</h2>
+        <h2 className="font-display text-xl font-semibold leading-snug break-words sm:text-2xl">{question.text}</h2>
 
-        <div className="quiz-answers grid sm:grid-cols-2 gap-3">
-          {question.answers.map((a) => {
+        <div className="grid sm:grid-cols-2 gap-3">
+          {question.answers.map((a, i) => {
             const isSel = selected === a.id;
             const reveal = !!submitted;
             const isCorrect = a.is_correct;
             return (
-              <Button variant="outline"
+              <button
+                type="button"
                 key={a.id}
+                aria-pressed={isSel}
                 disabled={!!submitted || isAdmin || remaining <= 0}
                 onClick={() => { setSelected(a.id); submit(a.id); }}
-                className={[
-                  "w-full text-left px-4 py-3 rounded-lg border-2 transition-all",
-                  reveal && isCorrect ? "border-success bg-success/10" :
-                  reveal && isSel && !isCorrect ? "border-destructive bg-destructive/10" :
-                  isSel ? "border-primary bg-primary/5" :
-                  "border-border hover:border-primary/40",
-                  isAdmin ? "cursor-default opacity-90" : "",
-                ].join(" ")}
+                className={cn(
+                  "flex min-h-16 w-full items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left font-medium transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25 disabled:cursor-default",
+                  reveal && isCorrect
+                    ? "border-[var(--success-500)] bg-[var(--success-50)] dark:bg-[var(--success-600)]/15"
+                    : reveal && isSel
+                      ? "border-[var(--error-500)] bg-[var(--error-50)] dark:bg-[var(--error-600)]/15"
+                      : isSel
+                        ? "border-primary bg-brand-50 dark:bg-brand-600/15"
+                        : "border-transparent bg-brand-25 enabled:hover:border-brand-200 dark:bg-muted/50",
+                )}
               >
-                {a.text}
-              </Button>
+                <span
+                  aria-hidden="true"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-background text-sm font-bold text-primary shadow-[var(--elev-xs)]"
+                >
+                  {ANSWER_LETTERS[i] ?? i + 1}
+                </span>
+                <span className="min-w-0 break-words">{a.text}</span>
+              </button>
             );
           })}
         </div>
@@ -974,8 +1130,14 @@ function ActiveView({
         </div>
         <ol className="space-y-1 text-sm">
           {participants.map((p, i) => (
-            <li key={p.id} className="flex items-center justify-between px-2 py-1.5 rounded bg-muted/40">
-              <span className="truncate"><span className="text-muted-foreground mr-2">{i + 1}.</span>{p.full_name}</span>
+            <li
+              key={p.id}
+              className={cn(
+                "flex items-center justify-between gap-2 px-3 py-2 rounded-[10px]",
+                p.id === myParticipantId ? "bg-brand-50 text-brand-700 dark:bg-brand-600/15 dark:text-brand-300" : "bg-muted/40",
+              )}
+            >
+              <span className="truncate"><span className="text-muted-foreground mr-2 tabular-nums">{i + 1}.</span>{p.full_name}</span>
               <span className="font-mono font-semibold">{p.score}</span>
             </li>
           ))}
@@ -989,22 +1151,53 @@ function FinishedView({ participants, onLeave }: { participants: Participant[]; 
   const sorted = [...participants].sort((a, b) => b.score - a.score);
   return (
     <Card className="p-6">
-      <div className="font-display text-xl font-semibold mb-4">Final nəticələri</div>
-      <ol className="space-y-2">
-        {sorted.map((p, i) => (
-          <li key={p.id} className={[
-            "flex items-center justify-between px-4 py-3 rounded-lg",
-            i === 0 ? "bg-warning/15" : i === 1 ? "bg-muted" : i === 2 ? "bg-accent" : "bg-muted/30",
-          ].join(" ")}>
-            <div className="flex items-center gap-3">
-              <div className="font-display text-lg font-bold w-6 text-center">{i + 1}</div>
-              <div className="font-medium">{p.full_name}</div>
-            </div>
-            <div className="font-mono text-lg font-semibold">{p.score}</div>
-          </li>
-        ))}
-        {sorted.length === 0 && <div className="text-sm text-muted-foreground text-center py-6">İştirakçı yoxdur</div>}
-      </ol>
+      <div className="flex items-center gap-3 mb-6">
+        <IconChip icon={Trophy} />
+        <div className="font-display text-xl font-semibold">Final nəticələri</div>
+      </div>
+      {sorted.length === 0 ? (
+        <div className="text-sm text-muted-foreground text-center py-6">İştirakçı yoxdur</div>
+      ) : (
+        <>
+          <div className="mx-auto grid max-w-lg grid-cols-3 items-end gap-3" aria-label="İlk üç yer">
+            {[1, 0, 2].map((rank) => {
+              const p = sorted[rank];
+              if (!p) return <div key={rank} />;
+              return (
+                <div key={p.id} className="flex min-w-0 flex-col items-center gap-1 text-center">
+                  <span className="w-full truncate text-sm font-medium">{p.full_name}</span>
+                  <span className="font-mono text-sm font-semibold text-muted-foreground">{p.score}</span>
+                  <div
+                    className={cn(
+                      "mt-1 flex w-full items-start justify-center rounded-t-2xl pt-3 font-display text-2xl font-bold",
+                      rank === 0
+                        ? "h-32 bg-primary text-primary-foreground"
+                        : rank === 1
+                          ? "h-24 bg-brand-100 text-brand-700 dark:bg-brand-600/30 dark:text-brand-200"
+                          : "h-20 bg-brand-50 text-brand-700 dark:bg-brand-600/15 dark:text-brand-300",
+                    )}
+                  >
+                    {rank + 1}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {sorted.length > 3 && (
+            <ol className="mt-6 space-y-2">
+              {sorted.slice(3).map((p, i) => (
+                <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-[10px] bg-muted/40">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="font-display font-bold w-6 text-center tabular-nums text-muted-foreground">{i + 4}</div>
+                    <div className="truncate font-medium">{p.full_name}</div>
+                  </div>
+                  <div className="font-mono font-semibold">{p.score}</div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </>
+      )}
       <div className="mt-4">
         <Button variant="outline" className="w-full" onClick={onLeave}>Quiz bölməsinə qayıt</Button>
       </div>
