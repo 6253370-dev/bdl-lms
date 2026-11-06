@@ -12,10 +12,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cellsOf, generateCrossword, normalizeWord, type GeneratedCrossword, type PlacedWord } from "@/lib/crossword";
-import { Grid3x3, Plus, Trash2, Pencil, Wand2, Loader2, ArrowLeft, CheckCircle2, Clock, BarChart3, PlayCircle, RotateCcw } from "lucide-react";
+import { Grid3x3, Plus, Trash2, Pencil, Loader2, ArrowLeft, CheckCircle2, Clock, BarChart3, PlayCircle, RotateCcw, Star, Target, Bookmark, Lightbulb, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/design/PageHeader";
+import { StatCard } from "@/components/design/StatCard";
+import { RingProgress } from "@/components/design/RingProgress";
 
 const fmtSecs = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
@@ -207,19 +209,24 @@ function GridView({ rows, cols, layout, values, results, onCell, onKey, onFocusC
     }));
     return m;
   }, [layout]);
-  const size = cols > 14 ? "w-6 h-6 text-xs" : "w-8 h-8 md:w-9 md:h-9 text-sm";
+  const size = cols > 12 ? "w-7 h-7 text-xs" : "w-8 h-8 text-sm sm:w-9 sm:h-9 sm:text-base";
   return (
-    <div className="overflow-auto">
-      <div className="inline-grid gap-px" style={{ gridTemplateColumns: `repeat(${cols}, auto)` }}>
+    <div className="mx-auto w-fit max-w-full overflow-auto p-0.5">
+      <div className="inline-grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, auto)` }}>
         {Array.from({ length: rows * cols }, (_, idx) => {
           const r = Math.floor(idx / cols), c = idx % cols, k = `${r},${c}`;
           if (!cells.has(k)) return <div key={k} className={size} />;
           const num = cells.get(k);
           const res = results?.[k];
           return (
-            <div key={k} className={cn("relative border border-border bg-background", size,
-              active?.has(k) && "bg-accent", res === true && "bg-success/20", res === false && "bg-destructive/20")}>
-              {num != null && <span className="absolute top-0 left-0.5 text-[9px] leading-none text-muted-foreground">{num}</span>}
+            <div key={k} className={cn(
+              "relative rounded-[6px] border border-[var(--gray-300)] bg-background focus-within:ring-2 focus-within:ring-primary dark:border-[var(--gray-600)]",
+              size,
+              active?.has(k) && res === undefined && "border-brand-300 bg-brand-50 dark:border-brand-500 dark:bg-brand-600/15",
+              res === true && "border-[var(--success-500)] bg-[var(--success-50)] dark:bg-[var(--success-600)]/15",
+              res === false && "border-[var(--error-500)] bg-[var(--error-50)] dark:bg-[var(--error-600)]/15",
+            )}>
+              {num != null && <span className="absolute left-1 top-0.5 text-[10px] font-medium leading-none text-muted-foreground">{num}</span>}
               {onCell ? (
                 <input
                   ref={(el) => { if (inputsRef) inputsRef.current[k] = el; }}
@@ -229,8 +236,10 @@ function GridView({ rows, cols, layout, values, results, onCell, onKey, onFocusC
                   onKeyDown={(e) => onKey?.(e, r, c)}
                   onFocus={() => onFocusCell?.(r, c, false)}
                   onClick={(e) => { if (document.activeElement === e.currentTarget && e.detail > 0) onFocusCell?.(r, c, e.detail >= 2); }}
-                  className={cn("w-full h-full text-center font-semibold uppercase bg-transparent outline-none focus:bg-accent",
-                    res === true && "text-success", res === false && "text-destructive")}
+                  aria-label={`Sətir ${r + 1}, sütun ${c + 1}`}
+                  className={cn("w-full h-full rounded-[6px] text-center font-semibold uppercase bg-transparent outline-none",
+                    res === true && "text-[var(--success-700)] dark:text-[var(--success-500)]",
+                    res === false && "text-[var(--error-700)] dark:text-[var(--error-500)]")}
                 />
               ) : (
                 <span className="flex w-full h-full items-center justify-center font-semibold">{values?.[k]}</span>
@@ -243,23 +252,63 @@ function GridView({ rows, cols, layout, values, results, onCell, onKey, onFocusC
   );
 }
 
-function Clues({ layout, onPick, results }: { layout: PlacedWord[]; onPick?: (i: number) => void; results?: boolean[] }) {
-  const group = (d: "across" | "down") => layout.map((w, i) => ({ w, i })).filter((x) => x.w.direction === d);
+const byDirection = (layout: PlacedWord[], d: "across" | "down") =>
+  layout.map((w, i) => ({ w, i })).filter((x) => x.w.direction === d);
+
+function ClueList({ title, items, activeIndex, onPick, results }: {
+  title: string; items: { w: PlacedWord; i: number }[];
+  activeIndex?: number; onPick?: (i: number) => void; results?: boolean[];
+}) {
   return (
-    <div className="grid sm:grid-cols-2 gap-4 text-sm">
-      {(["across", "down"] as const).map((d) => (
-        <div key={d}>
-          <div className="font-semibold mb-2">{d === "across" ? "Üfüqi" : "Şaquli"}</div>
-          <ol className="space-y-1">
-            {group(d).map(({ w, i }) => (
-              <li key={i} onClick={() => onPick?.(i)} className={cn("cursor-pointer rounded px-1 hover:bg-muted flex gap-2",
-                results?.[i] === true && "text-success", results?.[i] === false && "text-destructive")}>
-                <span className="font-semibold">{w.number}.</span><span>{w.clue} <span className="text-muted-foreground">({w.length})</span></span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      ))}
+    <div>
+      <h3 className="mb-2 font-display font-semibold">{title}</h3>
+      <ol className="space-y-1">
+        {items.map(({ w, i }) => {
+          const res = results?.[i];
+          const rowClass = cn(
+            "flex w-full gap-3 rounded-[10px] px-3 py-2 text-left text-sm",
+            res === true
+              ? "bg-[var(--success-50)] text-[var(--success-700)] dark:bg-[var(--success-600)]/15 dark:text-[var(--success-500)]"
+              : res === false
+                ? "bg-[var(--error-50)] text-[var(--error-700)] dark:bg-[var(--error-600)]/15 dark:text-[var(--error-500)]"
+                : i === activeIndex
+                  ? "bg-brand-50 text-brand-700 dark:bg-brand-600/15 dark:text-brand-300"
+                  : onPick && "hover:bg-muted",
+          );
+          const body = (
+            <>
+              <span className="w-5 shrink-0 font-semibold tabular-nums">{w.number}</span>
+              <span className="min-w-0 flex-1 break-words">{w.clue}</span>
+              <span className="shrink-0 tabular-nums text-muted-foreground">({w.length})</span>
+            </>
+          );
+          return (
+            <li key={i}>
+              {onPick ? (
+                <button
+                  type="button"
+                  onClick={() => onPick(i)}
+                  aria-current={i === activeIndex ? "true" : undefined}
+                  className={cn(rowClass, "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25")}
+                >
+                  {body}
+                </button>
+              ) : (
+                <div className={rowClass}>{body}</div>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+function Clues({ layout }: { layout: PlacedWord[] }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <ClueList title="Üfüqi" items={byDirection(layout, "across")} />
+      <ClueList title="Şaquli" items={byDirection(layout, "down")} />
     </div>
   );
 }
@@ -403,6 +452,20 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
     toast.success(`${r.correct} / ${r.total} söz düzgündür${r.xp ? ` · +${r.xp} XP` : ""}`);
   };
 
+  const totalCellCount = useMemo(
+    () => new Set(cw.layout.flatMap((w) => cellsOf(w).map(({ r, c }) => `${r},${c}`))).size,
+    [cw],
+  );
+  const filledCount = Object.values(values).filter(Boolean).length;
+  const completion = totalCellCount ? Math.min(100, Math.round((filledCount / totalCellCount) * 100)) : 0;
+  const resultPercent = result ? Math.round((result.correct / Math.max(result.total, 1)) * 100) : 0;
+
+  const saveAndExit = () => {
+    saveProgress();
+    if (Object.values(values).some(Boolean)) toast.success("İrəliləmə yadda saxlanıldı");
+    onBack();
+  };
+
   const restart = () => { doneRef.current = false; clearProgress(); setValues({}); setResult(null); setRestored(false); started.current = Date.now(); setElapsed(0); };
   const resetDraft = () => {
     if (!confirm("Yazdığınız bütün hərflər silinəcək və saniyəölçən sıfırlanacaq. Davam edilsin?")) return;
@@ -411,53 +474,93 @@ function Solver({ cw, onBack }: { cw: Crossword; onBack: () => void }) {
 
   return (
     <div className="bento-page space-y-5">
-      <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-2" />Krossvordlar</Button>
+      <Button variant="ghost" size="sm" className="-ml-2" onClick={onBack}><ArrowLeft className="h-4 w-4 mr-2" />Krossvordlar</Button>
       {restored && !result && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-warning/50 bg-warning/10 p-3 text-sm">
-          <PlayCircle className="h-5 w-5 text-warning shrink-0" />
-          <span className="flex-1 min-w-0">Dayandığınız yerdən bərpa olundu — yazdığınız hərflər və vaxt yerindədir.</span>
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--warning-200)] bg-[var(--warning-50)] p-3 text-sm dark:border-transparent dark:bg-[var(--warning-600)]/15">
+          <PlayCircle className="h-5 w-5 text-[var(--warning-600)] shrink-0" />
+          <span className="min-w-[14rem] flex-1">Dayandığınız yerdən bərpa olundu — yazdığınız hərflər və vaxt yerindədir.</span>
           <Button size="sm" variant="outline" onClick={resetDraft}><RotateCcw className="h-4 w-4 mr-2" />Təmizlə və yenidən başla</Button>
         </div>
       )}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold">{cw.title}</h1>
-          {cw.description && <p className="text-muted-foreground text-sm">{cw.description}</p>}
+
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{cw.title}</h1>
+          {cw.description && <p className="mt-1 text-muted-foreground">{cw.description}</p>}
         </div>
-        <Badge variant="secondary" className="text-base gap-1.5 px-3 py-1"><Clock className="h-4 w-4" />{fmt(result ? result.seconds : elapsed)}</Badge>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:w-[640px] xl:shrink-0">
+          <StatCard icon={Clock} label="Vaxt" value={fmt(result ? result.seconds : elapsed)} />
+          <StatCard icon={Star} tone="warning" label="XP" value={result?.xp ? `+${result.xp}` : "—"} />
+          <StatCard icon={Target} label="Tamamlanma" value={`${completion}%`} className="col-span-2 sm:col-span-1" />
+        </div>
       </div>
-      <div className="grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-6 items-start">
-        <div className="p-4 sm:p-8 bg-card rounded-lg overflow-auto flex justify-center">
+
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <Card className="min-w-0 border-0 p-4 sm:p-6">
           <GridView rows={cw.rows} cols={cw.cols} layout={cw.layout} values={values} onCell={onCell} onKey={onKey} onFocusCell={onFocusCell} active={active} results={cellResults} inputsRef={inputs} />
-        </div>
-        <Card className="p-4 space-y-4">
+        </Card>
+        <div className="space-y-4">
           {cw.layout[activeWord] && !result && (
-            <div className="rounded-lg bg-accent p-3 text-sm"><b>{cw.layout[activeWord].number}. {cw.layout[activeWord].direction === "across" ? "Üfüqi" : "Şaquli"}:</b> {cw.layout[activeWord].clue}</div>
+            <div className="rounded-xl bg-brand-50 p-3 text-sm text-brand-700 dark:bg-brand-600/15 dark:text-brand-300" aria-live="polite">
+              <b>{cw.layout[activeWord].number}. {cw.layout[activeWord].direction === "across" ? "Üfüqi" : "Şaquli"}:</b> {cw.layout[activeWord].clue}
+            </div>
           )}
-          <Clues layout={cw.layout} onPick={pick} results={result?.results} />
           {result && (
-            <div className="rounded-lg bg-muted p-4 text-sm space-y-1">
-              <div className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-primary" />
-                Nəticə: <b>{result.correct} / {result.total}</b> ({Math.round((result.correct / Math.max(result.total, 1)) * 100)}%)</div>
-              <div>Vaxt: <b>{fmt(result.seconds)}</b></div>
-              <div className="text-primary font-semibold">{result.xp ? `+${result.xp} XP qazandınız` : "Bu nəticə üçün əlavə XP yoxdur (əvvəlki ən yaxşı nəticənizi keçin)."}</div>
+            <Card className="space-y-3 border-0 p-5">
+              <div className="flex items-center gap-4">
+                <RingProgress
+                  value={resultPercent}
+                  size={64}
+                  tone={resultPercent >= 80 ? "success" : resultPercent >= 50 ? "warning" : "error"}
+                  label="Krossvord nəticəsi"
+                />
+                <div>
+                  <div className="flex items-center gap-2 font-semibold"><CheckCircle2 className="h-5 w-5 text-primary" />Nəticə: {result.correct} / {result.total}</div>
+                  <div className="text-sm text-muted-foreground">Vaxt: <b className="text-foreground">{fmt(result.seconds)}</b></div>
+                </div>
+              </div>
+              <div className="text-sm font-semibold text-primary">{result.xp ? `+${result.xp} XP qazandınız` : "Bu nəticə üçün əlavə XP yoxdur (əvvəlki ən yaxşı nəticənizi keçin)."}</div>
               {result.results.some((r) => !r) && (
-                <div className="pt-2">
-                  <div className="font-semibold text-destructive">Səhv sözlər:</div>
-                  <ul className="list-disc pl-5 text-destructive">
+                <div className="text-sm">
+                  <div className="font-semibold text-[var(--error-700)] dark:text-[var(--error-500)]">Səhv sözlər:</div>
+                  <ul className="list-disc pl-5 text-[var(--error-700)] dark:text-[var(--error-500)]">
                     {cw.layout.map((w, i) => result.results[i] === false && (
                       <li key={i}>{w.number}. {w.direction === "across" ? "Üfüqi" : "Şaquli"} — {w.clue}</li>
                     ))}
                   </ul>
                 </div>
               )}
-            </div>
+            </Card>
           )}
-          <div className="flex gap-2">
-            {!result && <Button onClick={submit} disabled={busy}>{busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Yoxla</Button>}
-            {result && <Button variant="outline" onClick={restart}>Yenidən başla</Button>}
-          </div>
-        </Card>
+          <Card className="border-0 p-5">
+            <ClueList title="Üfüqi" items={byDirection(cw.layout, "across")} activeIndex={result ? undefined : activeWord} onPick={pick} results={result?.results} />
+          </Card>
+          <Card className="border-0 p-5">
+            <ClueList title="Şaquli" items={byDirection(cw.layout, "down")} activeIndex={result ? undefined : activeWord} onPick={pick} results={result?.results} />
+          </Card>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="flex flex-wrap gap-3">
+          {!result ? (
+            <>
+              <Button size="lg" onClick={submit} disabled={busy}>{busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Yoxla</Button>
+              <Button size="lg" variant="outline" onClick={saveAndExit}><Bookmark className="h-4 w-4 mr-2" />Yadda saxla və çıx</Button>
+            </>
+          ) : (
+            <>
+              <Button size="lg" variant="outline" onClick={restart}>Yenidən başla</Button>
+              <Button size="lg" onClick={onBack}>Krossvordlara qayıt</Button>
+            </>
+          )}
+        </div>
+        {!result && (
+          <p className="flex items-start gap-2 text-sm text-muted-foreground sm:ml-auto sm:max-w-md">
+            <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning-600)]" aria-hidden="true" />
+            <span><b className="font-medium text-foreground">İpucu:</b> Cavabdan əmin deyilsənsə, sonra qayıtmaq üçün irəliləməni yadda saxlaya bilərsən.</span>
+          </p>
+        )}
       </div>
     </div>
   );
@@ -470,40 +573,79 @@ function Builder({ initial, onClose, onSaved }: { initial: Crossword | null; onC
   const [rows, setRows] = useState<{ word: string; clue: string }[]>([{ word: "", clue: "" }, { word: "", clue: "" }, { word: "", clue: "" }]);
   const [gen, setGen] = useState<GeneratedCrossword | null>(null);
   const [saving, setSaving] = useState(false);
+  // Önizləmə yalnız istifadəçi sözləri redaktə edəndən sonra avtomatik qurulur (saxlanmış düzülüş açılışda dəyişmir).
+  const [dirty, setDirty] = useState(false);
+  const updateRow = (i: number, patch: Partial<{ word: string; clue: string }>) => {
+    setDirty(true);
+    setRows((s) => s.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  };
+  const removeRow = (i: number) => {
+    setDirty(true);
+    setRows((s) => s.filter((_, j) => j !== i));
+  };
+  const validEntries = useMemo(
+    () => rows.filter((r) => normalizeWord(r.word).length >= 2 && r.clue.trim()),
+    [rows],
+  );
+  const wordKey = validEntries.map((r) => normalizeWord(r.word)).join("|");
+  const builtKey = useRef<string | null>(null);
 
   useEffect(() => {
     if (!initial) return;
     void supabase.rpc("get_crossword_answers", { _id: initial.id }).then(({ data }) => {
       const ans = (data ?? []) as string[];
       if (ans.length) {
-        setRows(initial.layout.map((w, i) => ({ word: ans[i] ?? "", clue: w.clue })));
+        const loaded = initial.layout.map((w, i) => ({ word: ans[i] ?? "", clue: w.clue }));
+        builtKey.current = loaded
+          .filter((r) => normalizeWord(r.word).length >= 2 && r.clue.trim())
+          .map((r) => normalizeWord(r.word)).join("|");
+        setRows(loaded);
         setGen({ rows: initial.rows, cols: initial.cols, layout: initial.layout, answers: ans, skipped: [] });
       }
     });
   }, [initial]);
 
   const build = () => {
-    const valid = rows.filter((r) => normalizeWord(r.word).length >= 2 && r.clue.trim());
-    if (valid.length < 2) return toast.error("Ən azı 2 söz və sual daxil edin.");
-    const g = generateCrossword(valid);
+    if (validEntries.length < 2) return toast.error("Ən azı 2 söz və sual daxil edin.");
+    const g = generateCrossword(validEntries);
+    builtKey.current = wordKey;
     setGen(g);
     if (g.skipped.length) toast.warning(`Bu sözlər birləşdirilə bilmədi: ${g.skipped.join(", ")}`);
   };
 
+  // Avtomatik önizləmə (maddə 35): söz dəsti dəyişəndə qısa gözləmədən sonra yenidən qurulur.
+  useEffect(() => {
+    if (!dirty || wordKey === builtKey.current) return;
+    if (validEntries.length < 2) { builtKey.current = wordKey; setGen(null); return; }
+    const t = setTimeout(() => {
+      builtKey.current = wordKey;
+      setGen(generateCrossword(validEntries));
+    }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wordKey, dirty]);
+
+  // Yalnız sual mətni dəyişəndə düzülüşü saxla, sualları yenilə.
+  const shown = useMemo<GeneratedCrossword | null>(() => {
+    if (!gen) return null;
+    const clueOf = new Map(rows.map((r) => [normalizeWord(r.word), r.clue.trim()]));
+    return { ...gen, layout: gen.layout.map((w, i) => ({ ...w, clue: clueOf.get(gen.answers[i]) || w.clue })) };
+  }, [gen, rows]);
+
   const previewValues = useMemo(() => {
     const m: Record<string, string> = {};
-    gen?.layout.forEach((w, i) => cellsOf(w).forEach(({ r, c }, j) => { m[`${r},${c}`] = gen.answers[i][j]; }));
+    shown?.layout.forEach((w, i) => cellsOf(w).forEach(({ r, c }, j) => { m[`${r},${c}`] = shown.answers[i][j]; }));
     return m;
-  }, [gen]);
+  }, [shown]);
 
   const save = async () => {
     if (!title.trim()) return toast.error("Başlıq daxil edin.");
-    if (!gen || gen.layout.length < 2) return toast.error("Əvvəlcə krossvordu qurun.");
+    if (!shown || shown.layout.length < 2) return toast.error("Əvvəlcə krossvordu qurun.");
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
     const payload = {
       title: title.trim(), description: description.trim() || null, is_published: published,
-      rows: gen.rows, cols: gen.cols, layout: gen.layout as never, answers: gen.answers as never,
+      rows: shown.rows, cols: shown.cols, layout: shown.layout as never, answers: shown.answers as never,
     };
     const { error } = initial
       ? await supabase.from("crosswords").update(payload).eq("id", initial.id)
@@ -517,38 +659,52 @@ function Builder({ initial, onClose, onSaved }: { initial: Crossword | null; onC
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{initial ? "Krossvordu redaktə et" : "Yeni krossvord"}</DialogTitle></DialogHeader>
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="space-y-1.5"><Label>Başlıq</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
             <div className="space-y-1.5"><Label>Təsvir</Label><Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
             <div className="space-y-2">
-              <Label>Sözlər və suallar</Label>
-              {rows.map((r, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input className="w-36 uppercase" placeholder="Söz" value={r.word}
-                    onChange={(e) => setRows((s) => s.map((x, j) => j === i ? { ...x, word: e.target.value } : x))} />
-                  <Input className="flex-1" placeholder="Sual" value={r.clue}
-                    onChange={(e) => setRows((s) => s.map((x, j) => j === i ? { ...x, clue: e.target.value } : x))} />
-                  <Button size="icon" variant="ghost" onClick={() => setRows((s) => s.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
-                </div>
-              ))}
-              <div className="flex gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Sözlər və suallar</Label>
                 <Button variant="outline" size="sm" onClick={() => setRows((s) => [...s, { word: "", clue: "" }])}><Plus className="h-4 w-4 mr-1" />Söz əlavə et</Button>
-                <Button size="sm" onClick={build}><Wand2 className="h-4 w-4 mr-1" />Krossvordu qur</Button>
+              </div>
+              <div className="overflow-hidden rounded-[10px] border">
+                {rows.map((r, i) => (
+                  <div key={i} className="flex items-center gap-2 border-b px-2 py-1.5 last:border-b-0">
+                    <span className="w-6 shrink-0 text-center text-sm tabular-nums text-muted-foreground">{i + 1}</span>
+                    <Input aria-label={`${i + 1}. söz`} className="w-24 uppercase sm:w-36" placeholder="Söz" value={r.word}
+                      onChange={(e) => updateRow(i, { word: e.target.value })} />
+                    <Input aria-label={`${i + 1}. sual`} className="min-w-0 flex-1" placeholder="Sual" value={r.clue}
+                      onChange={(e) => updateRow(i, { clue: e.target.value })} />
+                    <Button size="icon" variant="ghost" aria-label={`${i + 1}. sözü sil`} title="Sil"
+                      className="shrink-0 text-[var(--error-600)] hover:text-[var(--error-700)]"
+                      onClick={() => removeRow(i)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                ))}
+                {rows.length === 0 && <p className="p-4 text-center text-sm text-muted-foreground">Söz yoxdur.</p>}
               </div>
             </div>
-            <div className="flex items-center gap-2"><Switch checked={published} onCheckedChange={setPublished} /><Label>Dərc olunsun</Label></div>
+            <div className="flex items-center gap-2"><Switch id="cw-published" checked={published} onCheckedChange={setPublished} /><Label htmlFor="cw-published">Dərc olunsun</Label></div>
           </div>
           <div className="space-y-3">
-            <Label>Önizləmə</Label>
-            {gen && gen.layout.length ? (
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1">
+                <Label>Önizləmə</Label>
+                {shown && (
+                  <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Başqa variant qur" title="Başqa variant qur" onClick={build}>
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground">Avtomatik yaradıldı</span>
+            </div>
+            {shown && shown.layout.length ? (
               <>
-                <Card className="p-3"><GridView rows={gen.rows} cols={gen.cols} layout={gen.layout} values={previewValues} /></Card>
-                <Clues layout={gen.layout} />
-                {gen.skipped.length > 0 && <p className="text-sm text-destructive">Yerləşdirilmədi: {gen.skipped.join(", ")} — başqa sözlərlə ortaq hərfi olan sözlər əlavə edin.</p>}
-                <Button variant="outline" size="sm" onClick={build}>Başqa variant qur</Button>
+                <Card className="flex justify-center overflow-auto p-3"><GridView rows={shown.rows} cols={shown.cols} layout={shown.layout} values={previewValues} /></Card>
+                <Clues layout={shown.layout} />
+                {shown.skipped.length > 0 && <p className="text-sm text-destructive">Yerləşdirilmədi: {shown.skipped.join(", ")} — başqa sözlərlə ortaq hərfi olan sözlər əlavə edin.</p>}
               </>
-            ) : <Card className="p-8 text-center text-sm text-muted-foreground">Sözləri yazıb "Krossvordu qur" düyməsini basın.</Card>}
+            ) : <Card className="p-8 text-center text-sm text-muted-foreground">Ən azı 2 söz və sual yazın — önizləmə avtomatik qurulacaq.</Card>}
           </div>
         </div>
         <DialogFooter>
