@@ -376,7 +376,7 @@ function LiveRoomPage() {
         </div>
 
         <Card className="flex h-[60dvh] shrink-0 flex-col overflow-hidden border-0 lg:h-auto lg:w-[360px]">
-          <div role="tablist" aria-label={t.live.chat} className="flex overflow-x-auto border-b border-border px-2">
+          <div role="tablist" aria-label={t.live.chat} className="flex overflow-x-auto overflow-y-hidden border-b border-border px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {tabs.map((x) => (
               <button
                 key={x.id}
@@ -387,7 +387,7 @@ function LiveRoomPage() {
                 aria-controls="room-tabpanel"
                 onClick={() => setTab(x.id)}
                 className={cn(
-                  "-mb-px flex-1 shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25",
+                  "-mb-px flex-1 shrink-0 whitespace-nowrap border-b-2 px-2 py-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25",
                   tab === x.id
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground",
