@@ -9,7 +9,7 @@ import {
   useConnectionState,
 } from "@livekit/components-react";
 import { Track, ConnectionState } from "livekit-client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/i18n";
 import {
@@ -118,69 +118,101 @@ function StageInner({
 
   return (
     <>
-      <div className="flex-1 min-h-0 p-2">
+      <div className="flex-1 min-h-0 p-2 sm:p-3 [&_.lk-participant-tile]:rounded-xl [&_.lk-participant-tile]:overflow-hidden">
         <GridLayout tracks={tracks} className="h-full">
           <ParticipantTile />
         </GridLayout>
       </div>
 
-      <div className="border-t border-sidebar-border p-3 flex items-center justify-center gap-2 flex-wrap">
-        <Button
-          variant={micOn ? "default" : "secondary"}
-          size="icon"
-          aria-label={t.live.mic}
+      <div className="flex flex-wrap items-end justify-center gap-x-3 gap-y-2 border-t border-sidebar-border px-3 py-3 sm:gap-x-5">
+        <ControlButton
+          label={t.live.mic}
+          active={micOn}
           disabled={forceMuted && !micOn}
           onClick={() => toggle("mic")}
         >
-          {micOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-        </Button>
-        <Button
-          variant={camOn ? "default" : "secondary"}
-          size="icon"
-          aria-label={t.live.camera}
-          onClick={() => toggle("cam")}
-        >
-          {camOn ? <VideoIcon className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-        </Button>
-        <Button
-          variant={screenOn ? "default" : "secondary"}
-          size="icon"
-          aria-label={t.live.screenShare}
-          onClick={() => toggle("screen")}
-        >
-          <MonitorUp className="h-4 w-4" />
-        </Button>
+          {micOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+        </ControlButton>
+        <ControlButton label={t.live.camera} active={camOn} onClick={() => toggle("cam")}>
+          {camOn ? <VideoIcon className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+        </ControlButton>
+        <ControlButton label={t.live.screenShare} active={screenOn} onClick={() => toggle("screen")}>
+          <MonitorUp className="h-5 w-5" />
+        </ControlButton>
         {!isHost && (
-          <Button
-            variant={handRaised ? "default" : "secondary"}
-            size="sm"
+          <ControlButton
+            label={handRaised ? t.live.lowerHand : t.live.raiseHand}
+            active={handRaised}
             onClick={onToggleHand}
           >
-            <Hand className="h-4 w-4 mr-2" />
-            {handRaised ? t.live.lowerHand : t.live.raiseHand}
-          </Button>
+            <Hand className="h-5 w-5" />
+          </ControlButton>
         )}
-        <Button variant="destructive" size="sm" onClick={isHost && onEnd ? onEnd : onLeave}>
-          <PhoneOff className="h-4 w-4 mr-2" />
-          {isHost ? t.live.endLesson : t.live.leave}
-        </Button>
-        <div
-          className={cn(
-            "ml-2 flex items-center gap-1 text-xs",
-            connState === ConnectionState.Connected ? "text-emerald-500" : "text-amber-500",
-          )}
-        >
-          {connState === ConnectionState.Connected ? (
-            <>
-              <Wifi className="h-3.5 w-3.5" /> {t.live.connGood}
-            </>
-          ) : (
-            <>
-              <WifiOff className="h-3.5 w-3.5" /> {t.live.reconnecting}
-            </>
-          )}
+        <div className="flex flex-col items-center gap-1.5">
+          <Button
+            variant="destructive"
+            className="h-12 rounded-full px-5"
+            onClick={isHost && onEnd ? onEnd : onLeave}
+          >
+            <PhoneOff className="h-5 w-5 mr-2" />
+            {isHost ? t.live.endLesson : t.live.leave}
+          </Button>
+          <div
+            role="status"
+            className={cn(
+              "flex items-center gap-1 text-xs",
+              connState === ConnectionState.Connected
+                ? "text-[var(--success-500)]"
+                : "text-[var(--warning-500)]",
+            )}
+          >
+            {connState === ConnectionState.Connected ? (
+              <>
+                <Wifi className="h-3.5 w-3.5" /> {t.live.connGood}
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-3.5 w-3.5" /> {t.live.reconnecting}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </>
+  );
+}
+
+function ControlButton({
+  label,
+  active,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex w-16 flex-col items-center gap-1.5 sm:w-20">
+      <button
+        type="button"
+        aria-label={label}
+        aria-pressed={active}
+        disabled={disabled}
+        onClick={onClick}
+        className={cn(
+          "flex h-12 w-12 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50",
+          active
+            ? "bg-primary text-primary-foreground hover:bg-[var(--primary-hover)]"
+            : "bg-muted text-foreground hover:bg-[var(--gray-200)] dark:hover:bg-[var(--gray-700)]",
+        )}
+      >
+        {children}
+      </button>
+      <span className="text-center text-[11px] leading-tight text-muted-foreground">{label}</span>
+    </div>
   );
 }

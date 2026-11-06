@@ -9,8 +9,11 @@ import { getLiveToken, muteLiveParticipant, closeLiveRoom } from "@/lib/live.fun
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, Hand, MicOff, Users, Radio, ArrowLeft, Check, X } from "lucide-react";
+import { StatusChip } from "@/components/design/StatusChip";
+import { IconChip } from "@/components/design/IconChip";
+import { UserAvatar } from "@/components/design/UserAvatar";
+import { cn } from "@/lib/utils";
+import { Loader2, Send, Hand, MicOff, Users, ArrowLeft, Check, X, Video, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 const LiveStage = lazy(() => import("@/components/live/LiveStage"));
@@ -84,11 +87,12 @@ function LiveRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [joinAttempt, setJoinAttempt] = useState(0);
   const [title, setTitle] = useState("");
+  const [startedAt, setStartedAt] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [hands, setHands] = useState<HandRow[]>([]);
   const [parts, setParts] = useState<Part[]>([]);
   const [text, setText] = useState("");
-  const [tab, setTab] = useState<"chat" | "people">("chat");
+  const [tab, setTab] = useState<"chat" | "people" | "hands">("chat");
   const joinedAt = useRef<number>(Date.now());
   const chatEnd = useRef<HTMLDivElement>(null);
 
@@ -128,9 +132,9 @@ function LiveRoomPage() {
     setConn(null);
     (async () => {
       try {
-      const { data: r } = await supabase.from("live_rooms").select("title").eq("id", roomId).maybeSingle();
+      const { data: r } = await supabase.from("live_rooms").select("title,started_at").eq("id", roomId).maybeSingle();
       if (cancelled) return;
-      if (r) setTitle(r.title);
+      if (r) { setTitle(r.title); setStartedAt(r.started_at); }
       const headers = await liveAuthHeaders();
       if (cancelled) return;
       const res = await fetchToken({ data: { roomId }, headers });
@@ -320,19 +324,38 @@ function LiveRoomPage() {
       </div>
     );
 
+  const tabs: { id: "chat" | "people" | "hands"; label: string }[] = [
+    { id: "chat", label: t.live.chat },
+    { id: "people", label: `${t.live.participants} (${parts.length})` },
+    ...(conn.isHost ? [{ id: "hands" as const, label: `${t.live.handsRaised} (${hands.length})` }] : []),
+  ];
+
   return (
-    <div className="p-2 sm:p-4 flex flex-col lg:flex-row gap-3 lg:h-[calc(100dvh-1rem)]">
-      <div className="flex-1 min-w-0 flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <Badge className="bg-destructive text-destructive-foreground gap-1">
-            <Radio className="h-3 w-3" /> {t.live.liveNow}
-          </Badge>
-          <h1 className="font-display font-bold truncate flex-1">{title}</h1>
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" /> {parts.length}
-          </span>
+    <div className="flex flex-col gap-4 p-2 sm:p-4 lg:h-[calc(100dvh-5rem)]">
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <IconChip icon={Video} size="lg" className="max-sm:hidden" />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-display text-lg font-bold break-words sm:text-2xl">{title}</h1>
+              <StatusChip tone="live">{t.live.liveNow}</StatusChip>
+            </div>
+          </div>
         </div>
-        <div className="h-[55dvh] lg:h-auto lg:flex-1 min-h-0">
+        <div className="flex items-center gap-4 text-sm font-medium">
+          <span className="inline-flex items-center gap-1.5">
+            <Users className="h-4 w-4 text-muted-foreground" /> {parts.length} {t.live.people}
+          </span>
+          {startedAt && (
+            <span className="inline-flex items-center gap-1.5 border-l border-border pl-4 tabular-nums">
+              <Clock className="h-4 w-4 text-muted-foreground" /> <RoomClock since={startedAt} />
+            </span>
+          )}
+        </div>
+      </header>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
+        <div className="h-[60dvh] min-w-0 lg:h-auto lg:flex-1">
           <Suspense fallback={<div className="h-full flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
             <LiveStage
               token={conn.token}
@@ -351,76 +374,130 @@ function LiveRoomPage() {
             />
           </Suspense>
         </div>
-      </div>
 
-      <Card className="lg:w-80 shrink-0 flex flex-col h-[60dvh] lg:h-auto">
-        <div className="flex border-b">
-          <button className={`flex-1 p-3 text-sm font-medium ${tab === "chat" ? "border-b-2 border-primary" : "text-muted-foreground"}`} onClick={() => setTab("chat")}>
-            {t.live.chat}
-          </button>
-          <button className={`flex-1 p-3 text-sm font-medium ${tab === "people" ? "border-b-2 border-primary" : "text-muted-foreground"}`} onClick={() => setTab("people")}>
-            {t.live.participants} ({parts.length})
-          </button>
-        </div>
+        <Card className="flex h-[60dvh] shrink-0 flex-col overflow-hidden border-0 lg:h-auto lg:w-[360px]">
+          <div role="tablist" aria-label={t.live.chat} className="flex border-b border-border px-2">
+            {tabs.map((x) => (
+              <button
+                key={x.id}
+                type="button"
+                role="tab"
+                id={`room-tab-${x.id}`}
+                aria-selected={tab === x.id}
+                aria-controls="room-tabpanel"
+                onClick={() => setTab(x.id)}
+                className={cn(
+                  "-mb-px flex-1 border-b-2 px-2 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25",
+                  tab === x.id
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {x.label}
+              </button>
+            ))}
+          </div>
 
-        {tab === "chat" ? (
-          <>
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {msgs.length === 0 && <div className="text-sm text-muted-foreground text-center py-6">{t.live.noMessages}</div>}
-              {msgs.map((m) => (
-                <div key={m.id} className="text-sm">
-                  <span className="font-semibold">{m.user_id === user?.id ? t.comments.you : m.full_name ?? "—"}</span>{" "}
-                  <span className="text-xs text-muted-foreground">{new Date(m.created_at).toTimeString().slice(0, 5)}</span>
-                  <div className="break-words">{m.message}</div>
+          <div id="room-tabpanel" role="tabpanel" aria-labelledby={`room-tab-${tab}`} className="flex min-h-0 flex-1 flex-col">
+            {tab === "chat" ? (
+              <>
+                <div className="flex-1 space-y-4 overflow-y-auto p-4">
+                  {msgs.length === 0 && <div className="py-6 text-center text-sm text-muted-foreground">{t.live.noMessages}</div>}
+                  {msgs.map((m) => {
+                    const mine = m.user_id === user?.id;
+                    return (
+                      <div key={m.id} className="flex gap-3">
+                        <UserAvatar name={m.full_name} size="sm" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-2 text-sm">
+                            <span className="font-semibold">{mine ? t.comments.you : m.full_name ?? "—"}</span>
+                            <span className="text-xs text-muted-foreground tabular-nums">
+                              {new Date(m.created_at).toTimeString().slice(0, 5)}
+                            </span>
+                          </div>
+                          <div
+                            className={cn(
+                              "mt-1 inline-block max-w-full rounded-xl px-3 py-2 text-sm break-words",
+                              mine ? "bg-brand-50 text-brand-900 dark:bg-brand-600/15 dark:text-brand-100" : "bg-muted",
+                            )}
+                          >
+                            {m.message}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={chatEnd} />
                 </div>
-              ))}
-              <div ref={chatEnd} />
-            </div>
-            <div className="p-2 border-t flex gap-2">
-              <Input value={text} placeholder={t.live.messagePlaceholder} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} />
-              <Button size="icon" onClick={send} aria-label={t.live.send}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
-            {conn.isHost && (
-              <Button size="sm" variant="outline" className="w-full" onClick={muteAll}>
-                <MicOff className="h-4 w-4 mr-2" /> {t.live.muteAll}
-              </Button>
-            )}
-            {conn.isHost && hands.length > 0 && (
-              <div className="space-y-1">
-                <div className="text-xs font-semibold text-muted-foreground">{t.live.handsRaised}</div>
+                <div className="flex gap-2 border-t border-border p-3">
+                  <Input
+                    value={text}
+                    aria-label={t.live.messagePlaceholder}
+                    placeholder={t.live.messagePlaceholder}
+                    onChange={(e) => setText(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && send()}
+                  />
+                  <Button size="icon" onClick={send} aria-label={t.live.send}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            ) : tab === "people" ? (
+              <div className="flex-1 space-y-2 overflow-y-auto p-4">
+                {conn.isHost && (
+                  <Button size="sm" variant="outline" className="mb-2 w-full" onClick={muteAll}>
+                    <MicOff className="h-4 w-4 mr-2" /> {t.live.muteAll}
+                  </Button>
+                )}
+                {parts.map((p) => (
+                  <div key={p.id} className="flex items-center gap-3 text-sm">
+                    <UserAvatar name={p.full_name} size="sm" />
+                    <span className="flex-1 truncate">{p.full_name ?? "—"}</span>
+                    {hands.some((h) => h.user_id === p.user_id) && (
+                      <Hand className="h-4 w-4 text-primary" aria-label={t.live.handsRaised} />
+                    )}
+                    {!p.mic_enabled && <MicOff className="h-3.5 w-3.5 text-muted-foreground" aria-label={t.live.micOff} />}
+                    {conn.isHost && p.user_id !== user?.id && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8" aria-label={t.live.micOff} onClick={() => mute(p)}>
+                        <MicOff className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex-1 space-y-2 overflow-y-auto p-4">
+                {hands.length === 0 && (
+                  <div className="py-6 text-center text-sm text-muted-foreground">Qaldırılmış əl yoxdur.</div>
+                )}
                 {hands.map((h) => (
-                  <div key={h.id} className="flex items-center gap-2 text-sm">
-                    <Hand className="h-4 w-4 text-primary" />
-                    <span className="flex-1 truncate">{h.full_name}</span>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" aria-label={t.live.approve} onClick={() => resolveHand(h, true)}>
+                  <div key={h.id} className="flex items-center gap-3 rounded-xl bg-muted/50 p-2 text-sm">
+                    <IconChip icon={Hand} size="sm" />
+                    <span className="flex-1 truncate font-medium">{h.full_name ?? "—"}</span>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" aria-label={t.live.approve} onClick={() => resolveHand(h, true)}>
                       <Check className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" aria-label={t.live.reject} onClick={() => resolveHand(h, false)}>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" aria-label={t.live.reject} onClick={() => resolveHand(h, false)}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
               </div>
             )}
-            {parts.map((p) => (
-              <div key={p.id} className="flex items-center gap-2 text-sm">
-                <span className="flex-1 truncate">{p.full_name ?? "—"}</span>
-                {!p.mic_enabled && <MicOff className="h-3.5 w-3.5 text-muted-foreground" />}
-                {conn.isHost && p.user_id !== user?.id && (
-                  <Button size="icon" variant="ghost" className="h-7 w-7" aria-label={t.live.micOff} onClick={() => mute(p)}>
-                    <MicOff className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
           </div>
-        )}
-      </Card>
+        </Card>
+      </div>
     </div>
   );
+}
+
+function RoomClock({ since }: { since: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const s = Math.max(0, Math.floor((now - new Date(since).getTime()) / 1000));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return <>{pad(Math.floor(s / 3600))}:{pad(Math.floor((s % 3600) / 60))}:{pad(s % 60)}</>;
 }
