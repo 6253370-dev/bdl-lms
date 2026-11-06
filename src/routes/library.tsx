@@ -26,10 +26,14 @@ import { useAuth } from "@/lib/auth";
 import {
   BookOpen, Plus, Search, Download, Eye, Pencil, Trash2, Upload, Loader2,
   LayoutGrid, List, Image as ImageIcon, FileText, Download as DownloadIcon, X,
-  Tags, Info,
+  Tags, Info, PlayCircle, Presentation, FileSpreadsheet, File as FileIcon, HardDrive, User as UserIcon,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/design/PageHeader";
+import { PillTabs } from "@/components/design/PillTabs";
+import { StatusChip } from "@/components/design/StatusChip";
+import { IconChip } from "@/components/design/IconChip";
 
 export const Route = createFileRoute("/library")({
   head: () => ({
@@ -275,13 +279,6 @@ function LibraryPage() {
               {categories.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
             </SelectContent>
           </Select>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Fayl tipi" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Bütün tiplər</SelectItem>
-              {types.map((tp) => (<SelectItem key={tp} value={tp}>{tp.toUpperCase()}</SelectItem>))}
-            </SelectContent>
-          </Select>
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
             <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -292,6 +289,22 @@ function LibraryPage() {
             </SelectContent>
           </Select>
         </div>
+
+        {types.length > 0 && (
+          <PillTabs
+            ariaLabel="Fayl tipi"
+            value={typeFilter}
+            onValueChange={setTypeFilter}
+            items={[
+              { value: "all", label: "Bütün tiplər", count: books.length },
+              ...types.map((tp) => ({
+                value: tp,
+                label: tp.toUpperCase(),
+                count: books.filter((b) => b.file_type.toLowerCase() === tp).length,
+              })),
+            ]}
+          />
+        )}
 
         <Tabs value={view} onValueChange={(v) => setView(v as "cards" | "table")}>
           <TabsList className="module-tabs">
@@ -308,7 +321,7 @@ function LibraryPage() {
                 Hələ kitab yoxdur.
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-5">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filtered.map((b) => (
                   <BookCard
                     key={b.id}
@@ -467,6 +480,17 @@ function LibraryPage() {
   );
 }
 
+/** Fayl tipinə görə ikon (üz qabığı olmayanda). */
+function typeIcon(fileType: string): LucideIcon {
+  const t = fileType.toLowerCase();
+  if (t === "pdf") return FileText;
+  if (["epub", "fb2", "mobi", "djvu"].includes(t)) return BookOpen;
+  if (["mp4", "webm", "mov", "avi", "mkv"].includes(t)) return PlayCircle;
+  if (["ppt", "pptx", "key", "odp"].includes(t)) return Presentation;
+  if (["xls", "xlsx", "csv", "ods"].includes(t)) return FileSpreadsheet;
+  return FileIcon;
+}
+
 function BookCard({
   book, categoryName, coverUrl, onPreview, onDownload, onDetails, onEdit, onDelete,
 }: {
@@ -475,56 +499,59 @@ function BookCard({
   onEdit?: () => void; onDelete?: () => void;
 }) {
   return (
-    <div className="group rounded-lg bg-card shadow-card p-4 min-w-0">
-      {/* Book-shaped: standing rectangle with left spine */}
-      <div className="relative aspect-[4/3] rounded-md overflow-hidden bg-muted border border-border transition-transform motion-safe:group-hover:-translate-y-1">
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/30" />
-        {coverUrl ? (
-          <img src={coverUrl} alt={book.title} className="absolute inset-0 w-full h-full object-contain p-3" />
-        ) : (
-          <div className="absolute inset-0 pl-2 flex flex-col items-center justify-center text-center p-3">
-            <BookOpen className="h-10 w-10 text-primary/60 mb-2" />
-            <div className="text-xs font-semibold line-clamp-3">{book.title}</div>
-          </div>
-        )}
-        <Badge className="absolute top-2 right-2 text-[10px]" variant="secondary">{book.file_type.toUpperCase()}</Badge>
+    <article className="flex min-w-0 flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-card">
+      <div className="flex gap-4">
+        <div className="relative flex h-32 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/50">
+          {coverUrl ? (
+            <img src={coverUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <IconChip icon={typeIcon(book.file_type)} size="lg" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <StatusChip tone="brand">{book.file_type.toUpperCase()}</StatusChip>
+          <h3 className="font-semibold leading-snug break-words line-clamp-2">{book.title}</h3>
+          {book.author && (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <UserIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 truncate">{book.author}</span>
+            </p>
+          )}
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+            <HardDrive className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {formatSize(book.file_size)}
+          </p>
+          {categoryName && <p className="text-xs text-primary line-clamp-1">{categoryName}</p>}
+          {book.description && (
+            <button
+              type="button"
+              onClick={onDetails}
+              className="text-left text-xs text-muted-foreground line-clamp-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
+            >
+              {book.description}
+            </button>
+          )}
+        </div>
       </div>
-      <div className="mt-2 space-y-1">
-        <div className="text-sm font-medium line-clamp-2">{book.title}</div>
-        {book.author && <div className="text-xs text-muted-foreground line-clamp-1">{book.author}</div>}
-        {categoryName && <div className="text-[11px] text-primary/80 line-clamp-1">{categoryName}</div>}
-        {book.description && (
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={onDetails}
-                  className="text-left text-xs text-muted-foreground line-clamp-2 hover:text-foreground"
-                >
-                  {book.description}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs whitespace-pre-wrap">{book.description}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </div>
-      <div className="mt-2 flex gap-1">
-        <Button size="sm" variant="outline" className="flex-1 h-8" onClick={onPreview}>
-          <Eye className="h-3.5 w-3.5 mr-1" />Bax
+      <div className="mt-auto flex gap-2">
+        <Button size="sm" className="flex-1" onClick={onDownload}>
+          <Download className="h-4 w-4 mr-1" />Yüklə
         </Button>
-        <Button size="sm" variant="outline" className="flex-1 h-8" onClick={onDownload}>
-          <Download className="h-3.5 w-3.5 mr-1" />Yüklə
+        <Button size="sm" variant="outline" className="flex-1" onClick={onPreview}>
+          <Eye className="h-4 w-4 mr-1" />Bax
         </Button>
         {onEdit && (
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" aria-label="Redaktə et" onClick={onEdit}>
+            <Pencil className="h-4 w-4" />
+          </Button>
         )}
         {onDelete && (
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onDelete}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+          <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0 hover:bg-[var(--error-50)] hover:text-[var(--error-600)]" aria-label="Sil" onClick={onDelete}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
         )}
       </div>
-    </div>
+    </article>
   );
 }
 
