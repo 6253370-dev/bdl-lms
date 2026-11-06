@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
@@ -43,13 +42,26 @@ import {
   Search,
   Image as ImageIcon,
   Library,
-  ChevronDown,
+  ArrowLeft,
+  ArrowRight,
+  LogOut,
+  Lightbulb,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "@/components/FileUpload";
 import { CertificateTemplateSelect } from "@/components/CertificateTemplateSelect";
 import { BankPicker, type ImportedQuestion } from "@/components/BankPicker";
 import { PageHeader } from "@/components/design/PageHeader";
+import { RingProgress } from "@/components/design/RingProgress";
+import { StatusChip } from "@/components/design/StatusChip";
+import { IconChip } from "@/components/design/IconChip";
+import { cn } from "@/lib/utils";
+
+const ANSWER_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+function formatClock(totalSeconds: number) {
+  return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
 
 export const Route = createFileRoute("/exams")({
   head: () => ({
@@ -715,7 +727,6 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
   const [verifying, setVerifying] = useState(false);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [current, setCurrent] = useState(0);
-  const [questionListOpen, setQuestionListOpen] = useState(false);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [openAnswers, setOpenAnswers] = useState<Record<string, string>>({});
@@ -868,6 +879,15 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
   };
 
   const q = questions[current];
+  const isAnswered = (question: ExamQuestion) =>
+    question.is_open_ended
+      ? Boolean(openAnswers[question.id]?.trim())
+      : Boolean(selected[question.id]);
+  const answeredCount = questions.filter(isAnswered).length;
+  const timePercent =
+    exam.time_limit_seconds && remaining !== null
+      ? (remaining / exam.time_limit_seconds) * 100
+      : 0;
 
   const closeExam = () => {
     onClose();
@@ -882,7 +902,13 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) requestClose(); }}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent
+        className={cn(
+          "max-w-2xl",
+          stage === "running" &&
+            "left-0 top-0 block h-dvh max-h-none w-screen max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-0 bg-[var(--gray-50)] p-0 shadow-none sm:w-screen sm:max-h-none sm:rounded-none dark:bg-background [&>button:last-child]:hidden",
+        )}
+      >
         {stage === "blocked" && (
           <>
             <DialogHeader>
@@ -952,95 +978,178 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
         )}
 
         {stage === "running" && q && (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center justify-between gap-2 pr-6">
-                <Popover open={questionListOpen} onOpenChange={setQuestionListOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" aria-label="Sual seç">
-                      Sual {current + 1} / {questions.length}
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-96 max-w-[calc(100vw-3rem)] p-2">
-                    <div className="max-h-[min(24rem,50dvh)] overflow-y-auto space-y-1" aria-label="Suallar">
-                      {questions.map((question, index) => {
-                        const answered = question.is_open_ended
-                          ? Boolean(openAnswers[question.id]?.trim())
-                          : Boolean(selected[question.id]);
+          <div className="flex min-h-full flex-col">
+            <DialogHeader className="sticky top-0 z-10 flex-row items-center justify-between gap-3 space-y-0 border-b bg-background px-4 py-3 text-left sm:px-6">
+              <div className="min-w-0">
+                <DialogTitle className="truncate text-base sm:text-lg">{exam.title}</DialogTitle>
+                <p className="text-xs text-muted-foreground sm:text-sm">
+                  {answeredCount} / {questions.length} sual cavablandırılıb
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                {remaining !== null && (
+                  <RingProgress
+                    value={timePercent}
+                    size={64}
+                    stroke={5}
+                    tone={remaining <= 60 ? "warning" : "brand"}
+                    label="Qalan vaxt"
+                  >
+                    <span className="flex flex-col items-center leading-none">
+                      <span className="text-sm font-semibold tabular-nums">{formatClock(remaining)}</span>
+                      <span className="mt-0.5 text-[10px] font-normal text-muted-foreground">qalan vaxt</span>
+                    </span>
+                  </RingProgress>
+                )}
+                <Button
+                  variant="outline"
+                  aria-label="İmtahanı tərk et"
+                  onClick={() => setCloseConfirmOpen(true)}
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">İmtahanı tərk et</span>
+                </Button>
+              </div>
+            </DialogHeader>
+
+            <div className="mx-auto grid w-full max-w-6xl flex-1 content-start grid-cols-[minmax(0,1fr)] gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6">
+              <section
+                className="rounded-2xl border bg-card p-5 shadow-[var(--shadow-card)] sm:p-8"
+                aria-labelledby="exam-question-text"
+              >
+                <span className="inline-flex rounded-full bg-muted px-3 py-1 text-sm font-semibold tabular-nums">
+                  Sual {current + 1} / {questions.length}
+                </span>
+                <h2
+                  id="exam-question-text"
+                  className="mt-4 break-words text-xl font-semibold leading-snug sm:text-2xl"
+                >
+                  {q.text}
+                </h2>
+
+                <div className="mt-6">
+                  {q.is_open_ended ? (
+                    <Textarea
+                      rows={6}
+                      placeholder="Cavabınızı buraya yazın…"
+                      value={openAnswers[q.id] ?? ""}
+                      onChange={(e) => setOpenAnswers((s) => ({ ...s, [q.id]: e.target.value }))}
+                    />
+                  ) : (
+                    <div className="space-y-3">
+                      {q.answers.map((a, i) => {
+                        const on = selected[q.id] === a.id;
                         return (
-                          <Button
-                            key={question.id}
-                            variant={index === current ? "secondary" : "ghost"}
-                            className="h-auto w-full items-start justify-start gap-3 whitespace-normal p-3 text-left"
-                            aria-current={index === current ? "step" : undefined}
-                            onClick={() => { setCurrent(index); setQuestionListOpen(false); }}
+                          <button
+                            type="button"
+                            key={a.id}
+                            aria-pressed={on}
+                            onClick={() => setSelected((s) => ({ ...s, [q.id]: a.id }))}
+                            className={cn(
+                              "flex w-full items-center gap-4 rounded-[10px] border px-4 py-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25 sm:px-5",
+                              on
+                                ? "border-primary bg-brand-50 dark:bg-brand-600/15"
+                                : "border-border bg-background hover:bg-muted/60",
+                            )}
                           >
-                            <span className="min-w-0 flex-1 space-y-1">
-                              <span className="block font-semibold">Sual {index + 1}</span>
-                              <span className="block break-words text-sm font-normal">{question.text}</span>
+                            <span
+                              aria-hidden="true"
+                              className={cn(
+                                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
+                                on ? "border-primary" : "border-[var(--gray-300)]",
+                              )}
+                            >
+                              {on && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
                             </span>
-                            <CheckCircle2
-                              className={`mt-1 h-4 w-4 shrink-0 ${answered ? "text-primary" : "text-muted-foreground"}`}
-                              aria-label={answered ? "Cavablandırılıb" : "Cavablandırılmayıb"}
-                            />
-                          </Button>
+                            <span className="min-w-0 break-words">
+                              <span className={cn("mr-1 font-semibold", on && "text-primary")}>
+                                {ANSWER_LETTERS[i] ?? i + 1})
+                              </span>
+                              {a.text}
+                            </span>
+                          </button>
                         );
                       })}
                     </div>
-                  </PopoverContent>
-                </Popover>
-                {remaining !== null && (
-                  <span className="text-sm font-mono text-amber-600 flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    {Math.floor(remaining / 60)}:
-                    {String(remaining % 60).padStart(2, "0")}
-                  </span>
-                )}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <p className="font-medium">{q.text}</p>
-              {q.is_open_ended ? (
-                <Textarea
-                  rows={6}
-                  placeholder="Cavabınızı buraya yazın…"
-                  value={openAnswers[q.id] ?? ""}
-                  onChange={(e) => setOpenAnswers((s) => ({ ...s, [q.id]: e.target.value }))}
-                />
-              ) : (
-              <div className="grid sm:grid-cols-2 gap-3">
-                {q.answers.map((a) => (
-                  <Button variant="outline"
-                    key={a.id}
-                    onClick={() => setSelected((s) => ({ ...s, [q.id]: a.id }))}
-                    className={`h-auto min-h-16 whitespace-normal justify-start w-full text-left p-4 rounded-md border transition ${
-                      selected[q.id] === a.id
-                        ? "border-primary bg-primary/5"
-                        : "border-input hover:bg-accent"
-                    }`}
+                  )}
+                </div>
+
+                <div className="mt-8 flex items-center justify-between gap-3 border-t pt-6">
+                  <Button
+                    variant="outline"
+                    disabled={current === 0}
+                    onClick={() => setCurrent((c) => c - 1)}
                   >
-                    {a.text}
+                    <ArrowLeft className="h-4 w-4" /> Əvvəlki
                   </Button>
-                ))}
-              </div>
-              )}
+                  {current < questions.length - 1 ? (
+                    <Button onClick={() => setCurrent((c) => c + 1)}>
+                      Növbəti <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button onClick={submit}>İmtahanı bitir</Button>
+                  )}
+                </div>
+              </section>
+
+              <aside className="order-first min-w-0 space-y-4 lg:order-none" aria-label="Sual naviqasiyası">
+                <div className="rounded-2xl border bg-card p-4 shadow-[var(--shadow-card)] sm:p-5">
+                  <h3 className="hidden text-lg font-semibold lg:block">Sual naviqasiyası</h3>
+                  <div className="-mx-1 flex gap-2 overflow-x-auto px-1 py-1 sm:flex-wrap sm:overflow-visible lg:mx-0 lg:mt-4 lg:grid lg:grid-cols-5 lg:gap-3 lg:overflow-visible lg:px-0">
+                    {questions.map((question, index) => {
+                      const isCurrent = index === current;
+                      const done = isAnswered(question);
+                      return (
+                        <button
+                          type="button"
+                          key={question.id}
+                          onClick={() => setCurrent(index)}
+                          aria-current={isCurrent ? "step" : undefined}
+                          aria-label={`Sual ${index + 1}, ${
+                            isCurrent ? "hazırkı sual" : done ? "cavablandırılıb" : "cavablandırılmayıb"
+                          }`}
+                          className={cn(
+                            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-sm font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25 lg:h-11 lg:w-11 lg:justify-self-center",
+                            isCurrent
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : done
+                                ? "border-brand-200 bg-brand-50 text-brand-700 dark:border-transparent dark:bg-brand-600/15 dark:text-brand-400"
+                                : "border-border bg-background text-muted-foreground hover:bg-muted",
+                          )}
+                        >
+                          {index + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2 border-t pt-3 text-xs text-muted-foreground lg:mt-5 lg:flex-col lg:pt-4 lg:text-sm">
+                    <li className="flex items-center gap-2">
+                      <span aria-hidden="true" className="h-4 w-4 rounded-full border border-brand-200 bg-brand-50 dark:border-transparent dark:bg-brand-600/15" />
+                      Cavablandırılıb
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span aria-hidden="true" className="h-4 w-4 rounded-full bg-primary" />
+                      Hazırkı sual
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span aria-hidden="true" className="h-4 w-4 rounded-full border bg-background" />
+                      Cavablandırılmayıb
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="hidden gap-3 rounded-2xl border bg-muted/50 p-4 lg:flex">
+                  <IconChip icon={Lightbulb} tone="warning" />
+                  <div>
+                    <p className="text-sm font-semibold">Kiçik ipucu</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Sualları diqqətlə oxuyun. Cavablar yalnız «İmtahanı bitir» düyməsi ilə göndərilir.
+                    </p>
+                  </div>
+                </div>
+              </aside>
             </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                disabled={current === 0}
-                onClick={() => setCurrent((c) => c - 1)}
-              >
-                Əvvəlki
-              </Button>
-              {current < questions.length - 1 ? (
-                <Button onClick={() => setCurrent((c) => c + 1)}>Növbəti</Button>
-              ) : (
-                <Button onClick={submit}>İmtahanı bitir</Button>
-              )}
-            </DialogFooter>
-          </>
+          </div>
         )}
 
         {stage === "result" && result && (
@@ -1048,16 +1157,10 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
             <DialogHeader>
               <DialogTitle>Nəticə</DialogTitle>
             </DialogHeader>
-            <div className="text-center py-6 space-y-3">
-              {result.pendingReview ? (
-                <Clock className="h-14 w-14 mx-auto text-amber-500" />
-              ) : result.passed ? (
-                <CheckCircle2 className="h-14 w-14 mx-auto text-emerald-500" />
-              ) : (
-                <XCircle className="h-14 w-14 mx-auto text-destructive" />
-              )}
+            <div className="flex flex-col items-center gap-3 py-6 text-center">
               {result.pendingReview ? (
                 <>
+                  <IconChip icon={Clock} tone="warning" size="lg" />
                   <div className="font-display text-2xl font-bold">Cavablar qəbul edildi</div>
                   <p className="text-muted-foreground">
                     Bu imtahanda açıq tipli suallar var. Yekun nəticə admin yoxlamasından sonra elan olunacaq.
@@ -1065,10 +1168,20 @@ function ExamRunner({ exam, onClose }: { exam: Exam; onClose: () => void }) {
                 </>
               ) : (
                 <>
-                  <div className="font-display text-4xl font-bold">{result.percent}%</div>
-                  <p className="text-muted-foreground">
-                    {result.correct} / {result.total} doğru ·{" "}
+                  <RingProgress
+                    value={result.percent}
+                    size={128}
+                    stroke={10}
+                    tone={result.passed ? "success" : "error"}
+                    label="İmtahan nəticəsi"
+                  >
+                    <span className="font-display text-3xl font-bold">{result.percent}%</span>
+                  </RingProgress>
+                  <StatusChip tone={result.passed ? "success" : "error"} dot>
                     {result.passed ? "Keçib" : "Keçməyib"}
+                  </StatusChip>
+                  <p className="text-muted-foreground">
+                    {result.correct} / {result.total} doğru · Keçid balı: {exam.passing_score}%
                   </p>
                 </>
               )}
