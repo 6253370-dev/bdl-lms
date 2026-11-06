@@ -21,8 +21,19 @@ import {
   KeyRound,
   Grid3x3,
   PlayCircle,
+  Lock,
+  Footprints,
+  GraduationCap,
+  Trophy,
+  Puzzle,
+  Target,
+  Zap,
+  Award,
+  Sparkles,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -88,6 +99,61 @@ interface CrosswordAttemptRow {
   completed_at: string;
 }
 
+interface Achievement {
+  id: string;
+  title: string;
+  desc: string;
+  icon: LucideIcon;
+  earned: boolean;
+  progress: string;
+  hidden?: boolean;
+}
+
+function AchievementsCard({ items }: { items: Achievement[] }) {
+  const earned = items.filter((a) => a.earned).length;
+  const total = items.filter((a) => !a.hidden).length;
+  return (
+    <section aria-labelledby="achievements-title" className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="achievements-title" className="font-display text-lg font-semibold">Uğurlarım</h2>
+        <span className="text-sm text-muted-foreground tabular-nums">{earned} / {total} qazanılıb</span>
+      </div>
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-3 gap-y-5">
+        {items.map((a) => {
+          const Icon = a.hidden ? Lock : a.icon;
+          return (
+            <li key={a.id} className="flex flex-col items-center gap-1.5 text-center">
+              <span
+                className={cn(
+                  "relative mb-1 flex h-14 w-14 items-center justify-center rounded-2xl",
+                  a.earned
+                    ? "bg-brand-50 text-brand-600 dark:bg-brand-600/15 dark:text-brand-300"
+                    : "bg-muted text-muted-foreground",
+                )}
+                aria-hidden="true"
+              >
+                <Icon className="h-6 w-6" />
+                {!a.earned && !a.hidden && (
+                  <Lock className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border border-border bg-card p-0.5 text-muted-foreground" />
+                )}
+              </span>
+              <span className={cn("text-sm font-semibold leading-tight", !a.earned && "text-muted-foreground")}>{a.title}</span>
+              <span className="text-xs text-muted-foreground">{a.earned ? a.desc : a.progress}</span>
+              <span className="sr-only">{a.earned ? "Qazanılıb" : "Kilidli"}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function resultTone(pct: number) {
+  if (pct >= 80) return "text-[var(--success-700)] dark:text-[var(--success-500)]";
+  if (pct >= 50) return "text-[var(--warning-700)] dark:text-[var(--warning-500)]";
+  return "text-[var(--error-700)] dark:text-[var(--error-500)]";
+}
+
 function fmtDur(s: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
@@ -118,6 +184,7 @@ function ProfilePage() {
   const [courses, setCourses] = useState<CourseProgress[]>([]);
   const [exams, setExams] = useState<ExamHistoryRow[]>([]);
   const [cwAttempts, setCwAttempts] = useState<CrosswordAttemptRow[]>([]);
+  const [certCount, setCertCount] = useState(0);
   const [cwDrafts, setCwDrafts] = useState<{ crossword_id: string; title: string; filled: number; elapsed_seconds: number; updated_at: string }[]>([]);
 
   useEffect(() => {
@@ -190,6 +257,8 @@ function ProfilePage() {
         }, {});
       }
       const certSet = new Set(((certs ?? []) as { course_id: string }[]).map((c) => c.course_id));
+      setCertCount((certs ?? []).length);
+      setCertCount((certs ?? []).length);
       const byCourse = new Map<string, CourseProgress>();
       rows.forEach((r) => {
         const cur = byCourse.get(r.course_id) ?? {
@@ -231,6 +300,35 @@ function ProfilePage() {
   const completedCourses = useMemo(() => courses.filter((c) => c.completed), [courses]);
   const ongoingCourses = useMemo(() => courses.filter((c) => !c.completed), [courses]);
   const rank = rankFor(completedCourses.length);
+
+  // Uğurlar (maddə 43): bazada saxlanmır, artıq yüklənmiş məlumatdan hesablanır.
+  const achievements = useMemo<Achievement[]>(() => {
+    const done = completedCourses.length;
+    const distinctCw = new Set(cwAttempts.map((a) => a.crossword_id)).size;
+    return [
+      { id: "first", title: "İlk addım", desc: "1 kurs tamamlandı", icon: Footprints, earned: done >= 1, progress: `${Math.min(done, 1)} / 1 kurs` },
+      { id: "student", title: "Tələbə ruhu", desc: "5 kurs tamamlandı", icon: GraduationCap, earned: done >= 5, progress: `${Math.min(done, 5)} / 5 kurs` },
+      { id: "exam", title: "İmtahan qəhrəmanı", desc: "İmtahandan keçdi", icon: Trophy, earned: exams.some((e) => e.passed), progress: "İmtahandan keçin" },
+      { id: "cw-fan", title: "Krossvord həvəskarı", desc: "5 krossvord həll edildi", icon: Puzzle, earned: distinctCw >= 5, progress: `${Math.min(distinctCw, 5)} / 5 krossvord` },
+      { id: "perfect", title: "Dəqiqlik ustası", desc: "Krossvordda 100% nəticə", icon: Target, earned: cwAttempts.some((a) => a.score_percent >= 100), progress: "Krossvordda 100% toplayın" },
+      { id: "fast", title: "Sürətli ağıl", desc: "Krossvord 3 dəqiqədən tez", icon: Zap, earned: cwAttempts.some((a) => a.duration_seconds < 180), progress: "3 dəqiqədən tez həll edin" },
+      { id: "cert", title: "Sertifikat sahibi", desc: "İlk sertifikat alındı", icon: Award, earned: certCount >= 1, progress: "Kursu sertifikatla bitirin" },
+      { id: "secret", title: "Gizli uğur", desc: "", icon: Sparkles, earned: false, progress: "Tezliklə…", hidden: true },
+    ];
+  }, [completedCourses.length, cwAttempts, exams, certCount]);
+
+  const cwSummary = useMemo(() => {
+    const groups = new Map<string, CrosswordAttemptRow[]>();
+    cwAttempts.forEach((a) => groups.set(a.crossword_id, [...(groups.get(a.crossword_id) ?? []), a]));
+    return [...groups.values()].map((list) => {
+      const best = list.reduce((b, a) =>
+        a.score_percent > b.score_percent || (a.score_percent === b.score_percent && a.duration_seconds < b.duration_seconds) ? a : b,
+      );
+      const last = list.reduce((l, a) => (a.completed_at > l ? a.completed_at : l), list[0].completed_at);
+      const xp = list.reduce((s, a) => s + (a.xp_earned ?? 0), 0);
+      return { best, attempts: list.length, last, xp };
+    });
+  }, [cwAttempts]);
 
   const roleLabel = roles.includes("super_admin")
     ? "Super admin"
@@ -346,6 +444,9 @@ function ProfilePage() {
           </p>
         </div>
       </div>
+
+      <div className="min-w-0 space-y-6">
+      {!loading && <AchievementsCard items={achievements} />}
 
       <Tabs defaultValue="info" className="min-w-0">
         <TabsList className="module-tabs">
@@ -491,9 +592,9 @@ function ProfilePage() {
 
         <TabsContent value="crosswords" className="space-y-4">
           {!loading && cwDrafts.length > 0 && (
-            <Card className="p-4 space-y-3 border-warning/50 bg-warning/10">
+            <Card className="p-4 space-y-3 border border-[var(--warning-200)] bg-[var(--warning-50)] dark:border-transparent dark:bg-[var(--warning-600)]/15">
               <div className="flex items-center gap-2 font-semibold">
-                <PlayCircle className="h-5 w-5 text-warning" /> Yarımçıq qalmış krossvordlar
+                <PlayCircle className="h-5 w-5 text-[var(--warning-600)]" /> Yarımçıq qalmış krossvordlar
               </div>
               {cwDrafts.map((d) => (
                 <div key={d.crossword_id} className="flex flex-wrap items-center gap-3 rounded-md bg-background p-3">
@@ -516,49 +617,65 @@ function ProfilePage() {
             <div className="flex justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : cwAttempts.length ? (
-            <div className="space-y-4">
-              {Object.values(
-                cwAttempts.reduce<Record<string, CrosswordAttemptRow[]>>((acc, a) => {
-                  (acc[a.crossword_id] ??= []).push(a);
-                  return acc;
-                }, {}),
-              ).map((list) => {
-                const best = Math.max(...list.map((a) => a.score_percent));
-                return (
-                  <Card key={list[0].crossword_id} className="p-4 space-y-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className="font-medium flex-1 min-w-0 truncate">{list[0].title}</div>
-                      <Badge variant="secondary">{list.length} cəhd</Badge>
-                      <Badge>Ən yaxşı: {Math.round(best)}%</Badge>
+          ) : cwSummary.length ? (
+            <Card className="overflow-hidden border-0 p-0">
+              <table className="hidden w-full text-sm xl:table">
+                <thead className="bg-muted text-left text-xs text-muted-foreground">
+                  <tr>
+                    <th className="h-11 px-4 font-medium">Krossvord</th>
+                    <th className="h-11 px-4 font-medium">Nəticə</th>
+                    <th className="h-11 px-4 font-medium">Vaxt</th>
+                    <th className="h-11 px-4 font-medium">XP</th>
+                    <th className="h-11 px-4 font-medium">Cəhd</th>
+                    <th className="h-11 px-4 font-medium">Tarix</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cwSummary.map(({ best, attempts, last, xp }) => (
+                    <tr key={best.crossword_id} className="border-t border-border">
+                      <td className="px-4 py-3">
+                        <span className="flex items-center gap-2 font-medium">
+                          <Grid3x3 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          <span className="min-w-0 break-words">{best.title}</span>
+                        </span>
+                      </td>
+                      <td className={cn("px-4 py-3 font-semibold tabular-nums whitespace-nowrap", resultTone(best.score_percent))}>
+                        {best.correct_count} / {best.total_words}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums">{fmtDur(best.duration_seconds)}</td>
+                      <td className="px-4 py-3 tabular-nums">{xp ? `+${xp}` : "—"}</td>
+                      <td className="px-4 py-3 tabular-nums">{attempts}</td>
+                      <td className="px-4 py-3 tabular-nums whitespace-nowrap">{fmtDate(last)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <ul className="divide-y divide-border xl:hidden">
+                {cwSummary.map(({ best, attempts, last, xp }) => (
+                  <li key={best.crossword_id} className="space-y-2 p-4">
+                    <div className="flex items-start gap-2 font-medium">
+                      <Grid3x3 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      <span className="min-w-0 flex-1 break-words">{best.title}</span>
+                      <span className={cn("shrink-0 font-semibold tabular-nums whitespace-nowrap", resultTone(best.score_percent))}>
+                        {best.correct_count} / {best.total_words}
+                      </span>
                     </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="text-muted-foreground text-left">
-                          <tr><th className="pr-3 font-medium">Tarix</th><th className="pr-3 font-medium">Düzgün</th><th className="pr-3 font-medium">Nəticə</th><th className="pr-3 font-medium">Vaxt</th><th className="font-medium">XP</th></tr>
-                        </thead>
-                        <tbody>
-                          {list.map((a) => (
-                            <tr key={a.id} className="border-t">
-                              <td className="pr-3 py-1.5">{fmtDate(a.completed_at)}</td>
-                              <td className="pr-3">{a.correct_count}/{a.total_words}</td>
-                              <td className="pr-3">{Math.round(a.score_percent)}%</td>
-                              <td className="pr-3">{fmtDur(a.duration_seconds)}</td>
-                              <td>{a.xp_earned ? `+${a.xp_earned}` : "—"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
+                    <dl className="grid grid-cols-4 gap-2 text-xs">
+                      <div><dt className="text-muted-foreground">Vaxt</dt><dd className="tabular-nums">{fmtDur(best.duration_seconds)}</dd></div>
+                      <div><dt className="text-muted-foreground">XP</dt><dd className="tabular-nums">{xp ? `+${xp}` : "—"}</dd></div>
+                      <div><dt className="text-muted-foreground">Cəhd</dt><dd className="tabular-nums">{attempts}</dd></div>
+                      <div><dt className="text-muted-foreground">Tarix</dt><dd className="tabular-nums">{fmtDate(last)}</dd></div>
+                    </dl>
+                  </li>
+                ))}
+              </ul>
+            </Card>
           ) : (
             <Card className="p-8 text-center text-sm text-muted-foreground">Hələ krossvord həll etməmisiniz</Card>
           )}
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
