@@ -207,12 +207,12 @@ function ControlButton({
           "flex h-12 w-12 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50",
           active
             ? "bg-primary text-primary-foreground hover:bg-[var(--primary-hover)]"
-            : "bg-muted text-foreground hover:bg-[var(--gray-200)] dark:hover:bg-[var(--gray-700)]",
+            : "bg-white/10 text-white hover:bg-white/20",
         )}
       >
         {children}
       </button>
-      <span className="text-center text-[11px] leading-tight text-muted-foreground">{label}</span>
+      <span className="text-center text-[11px] leading-tight text-white/80">{label}</span>
     </div>
   );
 }
