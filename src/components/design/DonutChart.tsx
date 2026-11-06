@@ -7,7 +7,8 @@ export const SERIES = {
   primary: "var(--brand-600)",
   secondary: "var(--brand-300)",
   tertiary: "var(--brand-100)",
-  track: "var(--gray-200)",
+  // --border: açıq rejimdə --gray-200, tünd rejimdə --gray-800.
+  track: "var(--border)",
   success: "var(--success-500)",
   warning: "var(--warning-500)",
   error: "var(--error-500)",
