@@ -34,7 +34,7 @@ export function MotivationStrip({
           src={image}
           alt=""
           loading="lazy"
-          className="pointer-events-none absolute inset-y-0 right-0 -z-10 h-full w-full object-cover object-right opacity-90 [mask-image:linear-gradient(to_right,transparent_15%,black_60%)] dark:opacity-40"
+          className="pointer-events-none absolute inset-y-0 right-0 -z-10 h-full w-auto max-w-none opacity-90 [mask-image:linear-gradient(to_right,transparent_15%,black_60%)] dark:opacity-40"
         />
       )}
       {icon && <IconChip icon={icon} />}
