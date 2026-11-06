@@ -12,6 +12,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,6 +73,9 @@ function UsersPage() {
   const [editing, setEditing] = useState<UserRow | null>(null);
   const [viewing, setViewing] = useState<UserRow | null>(null);
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | "super_admin" | "admin" | "user">("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -108,20 +112,51 @@ function UsersPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter(
-      (u) =>
+    return users.filter((u) => {
+      // Maddə 60: rol filtri ("İstifadəçi" = admin/super admin olmayanlar).
+      if (roleFilter === "super_admin" && !u.roles.includes("super_admin")) return false;
+      if (roleFilter === "admin" && !u.roles.includes("admin")) return false;
+      if (roleFilter === "user" && (u.roles.includes("admin") || u.roles.includes("super_admin"))) return false;
+      if (!q) return true;
+      return (
         u.full_name.toLowerCase().includes(q) ||
         u.employee_id.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
-        (u.phone ?? "").toLowerCase().includes(q),
-    );
-  }, [users, search]);
+        (u.phone ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [users, search, roleFilter]);
   const pager = usePagination(filtered, 10);
   const { setPage } = pager;
   useEffect(() => {
     setPage(1);
-  }, [search, setPage]);
+  }, [search, roleFilter, setPage]);
+
+  const toggleSelected = (id: string) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const pageIds = pager.pageRows.map((u) => u.id);
+  const pageAllSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+  const pageSomeSelected = pageIds.some((id) => selected.has(id));
+  const selectedBlocked = users.filter((u) => selected.has(u.id) && u.is_exam_blocked);
+
+  // Toplu əməliyyat: tək-tək "Blokdan çıxar" ilə eyni yeniləmə.
+  const bulkUnblock = async () => {
+    if (!selectedBlocked.length) return;
+    setBulkBusy(true);
+    const { error } = await supabase.from("profiles")
+      .update({ is_exam_blocked: false, exam_blocked_reason: null, exam_blocked_at: null })
+      .in("id", selectedBlocked.map((u) => u.id));
+    setBulkBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${selectedBlocked.length} istifadəçi blokdan çıxarıldı`);
+    setSelected(new Set());
+    load();
+  };
 
   return (
     <div className="bento-page">
@@ -161,15 +196,44 @@ function UsersPage() {
           tone="warning"
         />
       </div>
-      <div className="mb-4 relative max-w-md">
-        <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t.users.search}
-          className="pl-9"
-        />
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[14rem] max-w-md flex-1">
+          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t.users.search}
+            aria-label={t.users.search}
+            className="pl-9"
+          />
+        </div>
+        <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as typeof roleFilter)}>
+          <SelectTrigger className="w-48" aria-label="Rol filtri">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Bütün rollar</SelectItem>
+            <SelectItem value="super_admin">Super admin</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="user">İstifadəçi</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
+      {selected.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl bg-brand-50 px-4 py-2.5 text-sm dark:bg-brand-600/15" role="status">
+          <span className="font-medium text-brand-700 dark:text-brand-300">{selected.size} istifadəçi seçilib</span>
+          {selectedBlocked.length > 0 && (
+            <Button size="sm" disabled={bulkBusy} onClick={bulkUnblock}>
+              {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Unlock className="h-4 w-4" />}
+              Seçilənləri blokdan çıxar ({selectedBlocked.length})
+            </Button>
+          )}
+          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+            Seçimi ləğv et
+          </Button>
+        </div>
+      )}
 
       <TableCard>
         {loading ? (
@@ -178,9 +242,21 @@ function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    aria-label="Səhifədəkilərin hamısını seç"
+                    checked={pageAllSelected ? true : pageSomeSelected ? "indeterminate" : false}
+                    onCheckedChange={(v) =>
+                      setSelected((s) => {
+                        const n = new Set(s);
+                        pageIds.forEach((id) => (v === true ? n.add(id) : n.delete(id)));
+                        return n;
+                      })
+                    }
+                  />
+                </TableHead>
+                <TableHead>İstifadəçi</TableHead>
                 <TableHead>Əməkdaş ID</TableHead>
-                <TableHead>Ad Soyad</TableHead>
-                <TableHead>E-mail</TableHead>
                 <TableHead>Telefon</TableHead>
                 <TableHead>Rollar</TableHead>
                 <TableHead className="text-right">Əməliyyatlar</TableHead>
@@ -188,22 +264,29 @@ function UsersPage() {
             </TableHeader>
             <TableBody>
               {pager.pageRows.map((u) => (
-                <TableRow key={u.id}>
-                  <TableCell className="font-mono text-muted-foreground">{u.employee_id}</TableCell>
+                <TableRow key={u.id} data-state={selected.has(u.id) ? "selected" : undefined}>
+                  <TableCell>
+                    <Checkbox
+                      aria-label={`${u.full_name} seç`}
+                      checked={selected.has(u.id)}
+                      onCheckedChange={() => toggleSelected(u.id)}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
                       <UserAvatar name={u.full_name} size="md" />
                       <div className="min-w-0">
-                        {u.full_name}
+                        <div className="break-words">{u.full_name}</div>
+                        <div className="text-xs font-normal text-muted-foreground break-all">{u.email}</div>
                         {u.is_exam_blocked && (
-                          <div className="text-xs font-normal text-destructive mt-0.5">
-                            İmtahandan bloklanıb: {u.exam_blocked_reason ?? "—"}
-                          </div>
+                          <StatusChip tone="error" className="mt-1">
+                            <span title={u.exam_blocked_reason ?? ""}>İmtahandan bloklanıb</span>
+                          </StatusChip>
                         )}
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                  <TableCell className="font-mono text-muted-foreground">{u.employee_id}</TableCell>
                   <TableCell className="text-muted-foreground">{u.phone ?? "—"}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
