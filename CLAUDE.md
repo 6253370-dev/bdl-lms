@@ -6,7 +6,7 @@ Daxili təlim platforması (kurslar, imtahanlar, quiz, krossvord, canlı dərsl�
 TanStack Start + Vite 7, React 19, Tailwind 4, shadcn/ui, Supabase, LiveKit. `npm run dev` (8080), `npm run build`, `npm run lint`.
 
 ## Mühit
-- Repo: `6253370-dev/lmskontakt` (GitHub). Deploy: Vercel layihəsi `lmskontakt`, canlı sayt `hdclms.vercel.app`. **`main`-ə hər push dərhal canlı sayta düşür.** PR-lar Vercel preview alır.
+- Repo: `6253370-dev/bdl-lms` (GitHub). Deploy: Vercel layihəsi `bdl-lms`, canlı sayt `hdclms.vercel.app`. **`main`-ə hər push dərhal canlı sayta düşür.** PR-lar Vercel preview alır.
 - Baza: Supabase `lms-prod` (`kfcyvwpwmlwykkealgfu`, region eu-central-1, pulsuz plan). **Lokal sayt də bu bazaya qoşulur.** Storage bucket-ları: `course-media` (public), `certificate-templates` (private), `library-books` (private).
 - Edge function-lar (`supabase/functions`): `admin-create-user`, `admin-update-user`, `admin-delete-user`, `login-with-employee-id`. (`bootstrap-super-admin` bilərəkdən deploy edilməyib. `copy-files` təqaüdə çıxıb və silinməlidir.)
 - Giriş işçi ID ilə işləyir. Hesab məlumatlarını və parolları Rustam verir, heç yerdə yazma.

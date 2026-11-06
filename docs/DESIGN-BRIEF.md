@@ -9,7 +9,7 @@ Sahib: Rustam Azimov (Baku Digital Lab). Dil: istifadəçi interfeysi Azərbayca
 
 - **Stack:** TanStack Start + Vite 7, React 19, Tailwind CSS 4, shadcn/ui (Radix), `lucide-react`, `recharts`, Supabase (`@supabase/supabase-js`), LiveKit (canlı dərslər).
 - **Skriptlər:** `npm run dev` (port 8080), `npm run build`, `npm run lint`, `npm run format`.
-- **Deploy:** GitHub repo `6253370-dev/lmskontakt` → Vercel. **`main`-ə hər push dərhal canlı sayta (hdclms.vercel.app) deploy olur.** Hər PR üçün Vercel preview yaranır.
+- **Deploy:** GitHub repo `6253370-dev/bdl-lms` → Vercel. **`main`-ə hər push dərhal canlı sayta (hdclms.vercel.app) deploy olur.** Hər PR üçün Vercel preview yaranır.
 - **Baza:** Supabase layihəsi `lms-prod` (`kfcyvwpwmlwykkealgfu`). `.env`-dəki açarlar yalnız ictimai (publishable) açarlardır. **Lokal sayt real bazaya qoşulur.**
 - **Marşrutlar:** `src/routes/*.tsx` (dashboard, courses.*, exams, quiz, crosswords, live-classes.*, library, attendance, calendar, champions, certificates.*, profile, question-bank, grading, reports, users, admin.comments).
 - **Çərçivə:** `src/components/AppShell.tsx`. **UI primitivləri:** `src/components/ui/*`. **Ortaq dizayn komponentləri:** `src/components/design/*`.
