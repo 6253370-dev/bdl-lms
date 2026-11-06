@@ -12,8 +12,46 @@ export interface CertificateData {
 }
 
 // ---------- Fallback (no template) ----------
-export function buildCertificatePdf(data: CertificateData): jsPDF {
+// Helvetica (jsPDF-in daxili şrifti) Ə, ğ, ı, İ, ş kimi hərfləri çəkmir.
+// Ona görə şablonlu yolda olduğu kimi NotoSans istifadə olunur.
+let _regularFont: ArrayBuffer | null = null;
+let _boldFont: ArrayBuffer | null = null;
+
+async function loadFont(url: string): Promise<ArrayBuffer> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Font fetch failed: ${url}`);
+  return await res.arrayBuffer();
+}
+
+async function loadCertificateFonts(): Promise<[ArrayBuffer, ArrayBuffer]> {
+  return Promise.all([
+    _regularFont ?? loadFont("/fonts/NotoSans-Regular.ttf").then((b) => (_regularFont = b)),
+    _boldFont ?? loadFont("/fonts/NotoSans-Bold.ttf").then((b) => (_boldFont = b)),
+  ]);
+}
+
+function toBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+
+export function buildCertificatePdf(
+  data: CertificateData,
+  fonts?: { regular: ArrayBuffer; bold: ArrayBuffer },
+): jsPDF {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  let family = "helvetica";
+  if (fonts) {
+    doc.addFileToVFS("NotoSans-Regular.ttf", toBase64(fonts.regular));
+    doc.addFont("NotoSans-Regular.ttf", "NotoSans", "normal");
+    doc.addFileToVFS("NotoSans-Bold.ttf", toBase64(fonts.bold));
+    doc.addFont("NotoSans-Bold.ttf", "NotoSans", "bold");
+    family = "NotoSans";
+  }
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
 
@@ -28,7 +66,7 @@ export function buildCertificatePdf(data: CertificateData): jsPDF {
   doc.rect(36, 36, W - 72, 8, "F");
 
   doc.setTextColor(20, 40, 65);
-  doc.setFont("helvetica", "bold");
+  doc.setFont(family, "bold");
   doc.setFontSize(34);
   doc.text("TƏLİM SERTİFİKATI", W / 2, 170, { align: "center" });
 
@@ -37,28 +75,28 @@ export function buildCertificatePdf(data: CertificateData): jsPDF {
   doc.setLineWidth(1);
   doc.line(W / 2 - 80, 184, W / 2 + 80, 184);
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(family, "normal");
   doc.setFontSize(13);
   doc.setTextColor(80, 80, 80);
   doc.text("Bu sertifikat təqdim olunur", W / 2, 222, { align: "center" });
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont(family, "bold");
   doc.setFontSize(32);
   doc.setTextColor(20, 40, 65);
   doc.text(data.fullName, W / 2, 268, { align: "center" });
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(family, "normal");
   doc.setFontSize(13);
   doc.setTextColor(80, 80, 80);
   doc.text("aşağıdakı kursu uğurla tamamladığı üçün:", W / 2, 300, { align: "center" });
 
-  doc.setFont("helvetica", "bolditalic");
+  doc.setFont(family, family === "helvetica" ? "bolditalic" : "bold");
   doc.setFontSize(20);
   doc.setTextColor(40, 60, 90);
   const titleLines = doc.splitTextToSize(data.courseTitle, W - 200);
   doc.text(titleLines, W / 2, 336, { align: "center" });
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont(family, "bold");
   doc.setFontSize(14);
   doc.setTextColor(20, 40, 65);
   doc.text(`Nəticə: ${data.scorePercent}%`, W / 2, 384, { align: "center" });
@@ -70,19 +108,19 @@ export function buildCertificatePdf(data: CertificateData): jsPDF {
   doc.setLineWidth(0.5);
   doc.line(80, footerY, 240, footerY);
   doc.line(W - 240, footerY, W - 80, footerY);
-  doc.setFont("helvetica", "normal");
+  doc.setFont(family, "normal");
   doc.setFontSize(10);
   doc.setTextColor(80, 80, 80);
   doc.text("Tarix", 160, footerY + 14, { align: "center" });
-  doc.setFont("helvetica", "bold");
+  doc.setFont(family, "bold");
   doc.setTextColor(30, 30, 30);
   doc.text(dateStr, 160, footerY + 30, { align: "center" });
-  doc.setFont("helvetica", "normal");
+  doc.setFont(family, "normal");
   doc.setTextColor(80, 80, 80);
   doc.text("İmza", W - 160, footerY + 14, { align: "center" });
 
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(family, "normal");
   doc.setFontSize(9);
   doc.setTextColor(140, 140, 140);
   doc.text(`Seriya: ${data.serial}`, W / 2, H - 50, { align: "center" });
@@ -90,8 +128,19 @@ export function buildCertificatePdf(data: CertificateData): jsPDF {
   return doc;
 }
 
-export function downloadCertificate(data: CertificateData) {
-  const doc = buildCertificatePdf(data);
+/** Şablonsuz sertifikat: Azərbaycan hərfləri üçün NotoSans, şrift yüklənməsə Helvetica. */
+async function buildFallbackPdf(data: CertificateData): Promise<jsPDF> {
+  try {
+    const [regular, bold] = await loadCertificateFonts();
+    return buildCertificatePdf(data, { regular, bold });
+  } catch (e) {
+    console.error("Sertifikat şrifti yüklənmədi, standart şrift istifadə olunur:", e);
+    return buildCertificatePdf(data);
+  }
+}
+
+export async function downloadCertificate(data: CertificateData) {
+  const doc = await buildFallbackPdf(data);
   const safe = sanitize(data.fullName);
   doc.save(`Sertifikat_${safe}.pdf`);
 }
@@ -108,14 +157,6 @@ export function formatDateDDMMYYYY(d: Date): string {
 }
 
 // ---------- Template overlay ----------
-let _regularFont: ArrayBuffer | null = null;
-let _boldFont: ArrayBuffer | null = null;
-
-async function loadFont(url: string): Promise<ArrayBuffer> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Font fetch failed: ${url}`);
-  return await res.arrayBuffer();
-}
 
 interface Placeholder {
   token: string;          // e.g. "FULL_NAME"
@@ -358,7 +399,7 @@ export async function downloadCertificateSmart(data: CertificateData, templateUr
       console.error("Sertifikat şablonu tətbiq edilmədi:", e);
     }
   }
-  downloadCertificate(data);
+  await downloadCertificate(data);
 }
 
 export async function previewCertificateSmart(data: CertificateData, templateUrl?: string | null): Promise<string> {
@@ -371,7 +412,7 @@ export async function previewCertificateSmart(data: CertificateData, templateUrl
     }
   }
 
-  const blob = buildCertificatePdf(data).output("blob");
+  const blob = (await buildFallbackPdf(data)).output("blob");
   const ab = await blob.arrayBuffer();
   return await renderPdfToImageDataUrl(new Uint8Array(ab));
 }
