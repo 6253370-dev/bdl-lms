@@ -142,60 +142,60 @@ Rustam şəkilləri `docs/design-reference/` qovluğuna qoyur (adları dəyişm�
 28. ✅ Dərs tipi ikonları, müddət/ölçü göstəricisi `[G]`
 
 **İmtahan və quiz**
-29. Sual naviqasiyası (nömrəli dairələr: cavablanıb / hazırkı / boş) `[G]`
-30. Başlıqda dairəvi taymer, "İmtahanı tərk et", kiçik ipucu kartı `[G]`
-31. Quiz tarixçəsi paneli (faiz çipləri) və XP paneli `[G+B]`
+29. ✅ Sual naviqasiyası (nömrəli dairələr: cavablanıb / hazırkı / boş) `[G]`
+30. ✅ Başlıqda dairəvi taymer, "İmtahanı tərk et", kiçik ipucu kartı `[G]`
+31. ✅ Quiz tarixçəsi paneli (faiz çipləri) və XP paneli `[G+B]` ⚠️ Quiz tarixçəsi hazırdır; XP paneli edilməyib (XP sistemi yoxdur, `[B]`).
 32. Suallarda şəkil dəstəyi `[B]`
 
 **Krossvord**
-33. Oyun ekranı: vaxt/XP/tamamlanma kartları, Üfüqi/Şaquli ipucu siyahısı, aktiv söz vurğusu, "Yoxla" və "Yadda saxla və çıx" `[G]`
+33. ✅ Oyun ekranı: vaxt/XP/tamamlanma kartları, Üfüqi/Şaquli ipucu siyahısı, aktiv söz vurğusu, "Yoxla" və "Yadda saxla və çıx" `[G]`
 34. Katalog: "Yarımçıq qalmış" davam kartları, filtrlər (mövzu, çətinlik, müəllif), kartda XP/söz sayı/çətinlik `[B]`
-35. Yaradıcı ekran: söz–sual cədvəli və avtomatik önizləmə `~` `[G]`
+35. ✅ Yaradıcı ekran: söz–sual cədvəli və avtomatik önizləmə `~` `[G]`
 
 **Canlı dərslər**
-36. Siyahı: "İndi canlı" hero kartı, gələcək dərslər (tarix bloku, "Xatırlat"), keçmiş dərslər `[G+B]`
+36. ✅ Siyahı: "İndi canlı" hero kartı, gələcək dərslər (tarix bloku, "Xatırlat"), keçmiş dərslər `[G+B]` ⚠️ "Xatırlat" və gələcək dərslərdə avatar yığını edilməyib (`[B]`).
 37. Keçmiş dərsin yazısı və "Təkrar izlə" `[B]` (böyük iş)
-38. Otaq: iştirakçı video şəbəkəsi, alt idarəetmə paneli, "Çat / Qaldırılmış əllər" tabları `[G]` (funksiya var, görünüş yenilənir)
+38. ✅ Otaq: iştirakçı video şəbəkəsi, alt idarəetmə paneli, "Çat / Qaldırılmış əllər" tabları `[G]` (funksiya var, görünüş yenilənir)
 
 **Sertifikatlar**
-39. "Sertifikatlarım": böyük önizləmə, "Etibarlı sertifikat" nişanı, kod, "PDF yüklə", "Paylaş", say kartları `[G+B]`
+39. ✅ "Sertifikatlarım": böyük önizləmə, "Etibarlı sertifikat" nişanı, kod, "PDF yüklə", "Paylaş", say kartları `[G+B]` ⚠️ "Paylaş" kodu kopyalayır; yoxlama linki yoxdur (40, `[B]`).
 40. Kodla sertifikatı yoxlama səhifəsi `[B]`
 41. Şablon qalereyası və vizual redaktor (əsas/ikinci/fon rəngi, loqo, imza, canlı önizləmə, "Defolt", "Kopyasını yarat") `[B]` (indi yalnız PDF/PPTX yüklənir)
 
 **Profil**
 42. Başlıq: kamera düyməsi, məkan/universitet/sahə çipləri, səviyyə proqresi, şüar kartı `[G+B]`
-43. "Uğurlarım" rozet şəbəkəsi və gizli uğurlar `[G]`
-44. "Krossvordlarım" cədvəli `[G]`
+43. ✅ "Uğurlarım" rozet şəbəkəsi və gizli uğurlar `[G]`
+44. ✅ "Krossvordlarım" cədvəli `[G]`
 45. "Haqqımda": maraqlar, hədəf, sevimli sitat, qoşulma tarixi `[B]`
 
 **Təqvim**
-46. Rəngli hadisə çipləri və növ leyendası `[G]`
-47. "Bu gün" gündəlik xətti (vaxt, yer: Zoom/Meet/LMS) və "Bütün tədbirlər" filtri `[G+B]`
+46. ✅ Rəngli hadisə çipləri və növ leyendası `[G]`
+47. ✅ "Bu gün" gündəlik xətti (vaxt, yer: Zoom/Meet/LMS) və "Bütün tədbirlər" filtri `[G+B]` ⚠️ Bugünkü hadisələr üçün ayrıca oxuma sorğusu əlavə olunub.
 
 **Hesabatlar**
-48. Trendli KPI-lər, aylıq aktivlik, tamamlanma donutu, ən çox izlənən kurslar, ən aktiv istifadəçilər, son imtahan nəticələri `[G+B]`
+48. ✅ Trendli KPI-lər, aylıq aktivlik, tamamlanma donutu, ən çox izlənən kurslar, ən aktiv istifadəçilər, son imtahan nəticələri `[G+B]` ⚠️ "Ən çox izlənən" əvəzinə cəhd sayına görə reytinq; PDF ixracı edilməyib.
 
 **Sual bankı**
-49. Statistik kartlar (cəmi, test, açıq, mövzu sayı) `[G]`
+49. ✅ Statistik kartlar (cəmi, test, açıq, mövzu sayı) `[G]`
 50. Sağda önizləmə paneli, düzgün cavab və "İzah" sahəsi, "PDF ixrac" `[B]`
-51. Sətirdə kopyalama və toplu seçim `[G]`
+51. ✅ Sətirdə kopyalama və toplu seçim `[G]`
 
 **Kitabxana**
 52. Növ filtri (Kitablar, PDF, Video, Təqdimat) və "Seçilmiş resurs" hero kartı `[B]`
-53. Video və təqdimat resursları, kartda növ çipi, ölçü, "Yüklə" və "Bax" `[G+B]`
+53. ✅ Video və təqdimat resursları, kartda növ çipi, ölçü, "Yüklə" və "Bax" `[G+B]` ⚠️ Kart görünüşü hazırdır; video/təqdimat növləri edilməyib (52, `[B]`).
 
 **Davamiyyət**
-54. Filtrlər (tarix, kurs, qrup) və KPI (iştirak %, gəlməyən, gecikən) `[G]`
+54. ✅ Filtrlər (tarix, kurs, qrup) və KPI (iştirak %, gəlməyən, gecikən) `[G]` ⚠️ Tarix filtri və KPI hazırdır; kurs/qrup filtri yoxdur (offline dərsdə bu sahələr yoxdur), "gecikən" 55-dən asılıdır.
 55. "Gecikdi" statusu (indi yalnız var/yox) `[B]`
-56. Donut statistikası və Excel ixrac `[G+B]`
+56. ✅ Donut statistikası və Excel ixrac `[G+B]`
 
 **Qiymətləndirmə**
-57. 3 sütunlu düzülüş: növbə, cavab, bal paneli. Slayder, sürətli bal düymələri (0, 0.25, 0.5…), rəy sahəsi, "1/12" naviqasiyası `[G]`
+57. ✅ 3 sütunlu düzülüş: növbə, cavab, bal paneli. Slayder, sürətli bal düymələri (0, 0.25, 0.5…), rəy sahəsi, "1/12" naviqasiyası `[G]` ⚠️ "Rəy" sahəsi edilməyib (cavab cədvəlində sütun yoxdur, `[B]`).
 
 **İstifadəçilər**
 58. Yan profil paneli: Haqqında, Fəaliyyət, Kurslar, Qruplar tabları `[G+B]`
 59. Vəzifə, şöbə, status (Aktiv/Qeyri-aktiv), "Bu gün aktiv" KPI-si `[B]`
-60. Rol filtri və toplu seçim `[G]`
+60. ✅ Rol filtri və toplu seçim `[G]`
 
 **Şərhlər**
 61. Master-detal: filtr (Yeni/Cavablanmış/Gizlədilmiş), "Cavab yaz", "Gizlət", sağda cavab zənciri və cavab redaktoru `[B]`
@@ -243,7 +243,7 @@ Maddələr 1–12, 16–20. İşin sırası:
 
 **Mərhələ 2: ən çox görünən ekranlar.** Ana səhifə (62, 65–70), kataloq (71–74), kurs səhifəsi (76, 77, 79, 80), pleyer (23, 24), kurs redaktoru (27, 28).
 
-**Mərhələ 3: qalan `[G]` maddələri.** İmtahan/quiz (29, 30), krossvord oyunu (33, 35), canlı dərs görünüşü (36, 38), sertifikatlarım görünüşü (39), profil (43, 44), təqvim (46), hesabatlar (48, mövcud məlumatla), sual bankı (49, 51), kitabxana kartları (53), davamiyyət (54, 56), qiymətləndirmə (57), istifadəçilər (60), şərhlər düzülüşü.
+**Mərhələ 3: qalan `[G]` maddələri.** İmtahan/quiz (29, 30), krossvord oyunu (33, 35), canlı dərs görünüşü (36, 38), sertifikatlarım görünüşü (39), profil (43, 44), təqvim (46), hesabatlar (48, mövcud məlumatla), sual bankı (49, 51), kitabxana kartları (53), davamiyyət (54, 56), qiymətləndirmə (57), istifadəçilər (60), şərhlər düzülüşü. ✅ Hazırdır (PR #10–#20). ⚠️ Şərhlər düzülüşü edilməyib (61, `[B]`).
 
 **Mərhələ 4: `[B]` maddələri.** Hər biri ayrıca PR, 7-ci bölmə ilə.
 
