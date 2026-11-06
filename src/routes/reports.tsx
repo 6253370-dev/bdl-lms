@@ -52,6 +52,9 @@ import { AreaChartCard } from "@/components/design/AreaChartCard";
 import { DonutChart } from "@/components/design/DonutChart";
 import { isoToDate } from "@/lib/design";
 import { PageHeader } from "@/components/design/PageHeader";
+import { UserAvatar } from "@/components/design/UserAvatar";
+import { cn } from "@/lib/utils";
+import { AZ_MONTHS_SHORT } from "@/lib/az-date";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({ meta: [
@@ -224,7 +227,7 @@ function ReportsPage() {
     while (cur <= last && months.length < 36) {
       months.push({
         key: `${cur.getFullYear()}-${cur.getMonth()}`,
-        label: cur.toLocaleDateString("az-AZ", { month: "short", year: "2-digit" }),
+        label: `${AZ_MONTHS_SHORT[cur.getMonth()]} ${String(cur.getFullYear()).slice(2)}`,
         value: 0,
       });
       cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
@@ -237,6 +240,39 @@ function ReportsPage() {
     }
     return months.map(({ label, value }) => ({ label, value }));
   }, [filteredCourseAttempts, filteredExamAttempts, from, to]);
+
+  // Maddə 48: mövcud (filtrlənmiş) cəhdlərdən reytinqlər və son nəticələr.
+  const topCourses = useMemo(() => {
+    const m = new Map<string, number>();
+    filteredCourseAttempts.forEach((a) => m.set(a.course_id, (m.get(a.course_id) ?? 0) + 1));
+    return [...m.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([id, count]) => ({ id, title: courses.find((c) => c.id === id)?.title ?? "—", count }));
+  }, [filteredCourseAttempts, courses]);
+
+  const topUsers = useMemo(() => {
+    const m = new Map<string, number>();
+    [...filteredCourseAttempts, ...filteredExamAttempts].forEach((a) => m.set(a.user_id, (m.get(a.user_id) ?? 0) + 1));
+    return [...m.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([id, count]) => ({ id, name: profileMap.get(id)?.full_name ?? "—", count }));
+  }, [filteredCourseAttempts, filteredExamAttempts, profileMap]);
+
+  const recentResults = useMemo(() => {
+    const rows = [
+      ...filteredCourseAttempts.map((a) => ({
+        id: a.id, user_id: a.user_id, created_at: a.created_at, score: Number(a.score_percent), passed: a.passed,
+        title: courses.find((c) => c.id === a.course_id)?.title ?? "—", kind: t.reports.courses,
+      })),
+      ...filteredExamAttempts.map((a) => ({
+        id: a.id, user_id: a.user_id, created_at: a.created_at, score: Number(a.score_percent), passed: a.passed,
+        title: exams.find((e) => e.id === a.exam_id)?.title ?? "—", kind: t.reports.standaloneExams,
+      })),
+    ];
+    return rows.sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 5);
+  }, [filteredCourseAttempts, filteredExamAttempts, courses, exams]);
 
   const exportExcel = async () => {
     const XLSX = await import("xlsx");
@@ -405,6 +441,76 @@ function ReportsPage() {
         </section>
       </div>
 
+      <div className="grid gap-5 lg:grid-cols-2">
+        <RankCard
+          title="Ən aktiv kurslar"
+          empty="Cəhd yoxdur"
+          items={topCourses.map((c) => ({ id: c.id, label: c.title, value: c.count }))}
+        />
+        <RankCard
+          title="Ən aktiv istifadəçilər"
+          empty="Cəhd yoxdur"
+          withAvatar
+          items={topUsers.map((u) => ({ id: u.id, label: u.name, value: u.count }))}
+        />
+        <section className="min-w-0 rounded-xl border border-border bg-card p-5 shadow-card lg:col-span-2">
+          <h2 className="mb-3 font-display text-base font-semibold">Son nəticələr</h2>
+          {recentResults.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Cəhd yoxdur</p>
+          ) : (
+            <>
+              <table className="hidden w-full text-sm md:table">
+                <thead className="text-left text-xs text-muted-foreground">
+                  <tr>
+                    <th className="pb-2 pr-3 font-medium">{t.reports.user}</th>
+                    <th className="pb-2 pr-3 font-medium">Kurs / imtahan</th>
+                    <th className="pb-2 pr-3 font-medium">Bal</th>
+                    <th className="pb-2 pr-3 font-medium">{t.reports.status}</th>
+                    <th className="pb-2 font-medium">Tarix</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentResults.map((r) => (
+                    <tr key={r.id} className="border-t border-border">
+                      <td className="py-2.5 pr-3">
+                        <span className="flex items-center gap-2">
+                          <UserAvatar name={profileMap.get(r.user_id)?.full_name} size="xs" />
+                          <span className="min-w-0 break-words">{profileMap.get(r.user_id)?.full_name ?? "—"}</span>
+                        </span>
+                      </td>
+                      <td className="py-2.5 pr-3">
+                        <span className="block break-words">{r.title}</span>
+                        <span className="block text-xs text-muted-foreground">{r.kind}</span>
+                      </td>
+                      <td className="py-2.5 pr-3 tabular-nums">{Math.round(r.score)}</td>
+                      <td className="py-2.5 pr-3">
+                        <StatusChip tone={r.passed ? "success" : "error"}>{r.passed ? t.reports.passed : t.reports.failed}</StatusChip>
+                      </td>
+                      <td className="py-2.5 whitespace-nowrap tabular-nums">{formatDate(new Date(r.created_at))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <ul className="divide-y divide-border md:hidden">
+                {recentResults.map((r) => (
+                  <li key={r.id} className="flex items-start gap-3 py-3">
+                    <UserAvatar name={profileMap.get(r.user_id)?.full_name} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium break-words">{profileMap.get(r.user_id)?.full_name ?? "—"}</p>
+                      <p className="text-xs text-muted-foreground break-words">{r.title} · {formatDate(new Date(r.created_at))}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className="text-sm font-semibold tabular-nums">{Math.round(r.score)}</span>
+                      <StatusChip tone={r.passed ? "success" : "error"}>{r.passed ? t.reports.passed : t.reports.failed}</StatusChip>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      </div>
+
       <div className="grid xl:grid-cols-2 gap-5 items-start">
         <Card className="p-5">
         <h2 className="font-display font-semibold flex items-center gap-2 mb-3">
@@ -459,6 +565,45 @@ function ReportsPage() {
         <AttemptDetailDialog detailRef={detail} onClose={() => setDetail(null)} />
       )}
     </div>
+  );
+}
+
+function RankCard({
+  title,
+  items,
+  empty,
+  withAvatar,
+}: {
+  title: string;
+  items: { id: string; label: string; value: number }[];
+  empty: string;
+  withAvatar?: boolean;
+}) {
+  return (
+    <section className="min-w-0 rounded-xl border border-border bg-card p-5 shadow-card">
+      <h2 className="mb-3 font-display text-base font-semibold">{title}</h2>
+      {items.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{empty}</p>
+      ) : (
+        <ol className="divide-y divide-border">
+          {items.map((it, i) => (
+            <li key={it.id} className="flex items-center gap-3 py-2.5">
+              <span
+                className={cn(
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
+                  i === 0 ? "bg-brand-600 text-white" : i < 3 ? "bg-brand-50 text-brand-700 dark:bg-brand-600/15 dark:text-brand-300" : "bg-muted text-muted-foreground",
+                )}
+              >
+                {i + 1}
+              </span>
+              {withAvatar && <UserAvatar name={it.label} size="sm" />}
+              <span className="min-w-0 flex-1 text-sm font-medium break-words">{it.label}</span>
+              <span className="shrink-0 text-sm text-muted-foreground tabular-nums">{it.value.toLocaleString("az-AZ")} cəhd</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   );
 }
 
