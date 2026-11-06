@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
@@ -9,6 +9,8 @@ import { PageHeader } from "@/components/design/PageHeader";
 import { PillTabs } from "@/components/design/PillTabs";
 import { StatusChip } from "@/components/design/StatusChip";
 import { TableCard } from "@/components/design/DataTable";
+import { UserAvatar } from "@/components/design/UserAvatar";
+import { IconChip } from "@/components/design/IconChip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +36,6 @@ import {
   Plus,
   KeyRound,
   Radio,
-  CalendarDays,
   Clock,
   Users,
   Trash2,
@@ -132,6 +133,83 @@ function Countdown({ target }: { target: Date }) {
       {pad(h)}:{pad(m)}:{pad(s)}
     </span>
   );
+}
+
+function Elapsed({ since }: { since: string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+  const mins = Math.max(0, Math.floor((now - new Date(since).getTime()) / 60000));
+  const d = Math.floor(mins / 1440);
+  const h = Math.floor((mins % 1440) / 60);
+  const m = mins % 60;
+  if (d > 0) return <>{`${d} gün ${h} saat keçib`}</>;
+  return <>{h > 0 ? `${h} saat ${m} dəqiqə keçib` : `${m} dəqiqə keçib`}</>;
+}
+
+function endTime(r: Pick<LiveRoom, "scheduled_date" | "scheduled_start_time" | "planned_duration">) {
+  const d = new Date(roomStartDate(r).getTime() + (r.planned_duration ?? 0) * 60000);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+/** "İndi canlı" hero kartı (maddə 36). */
+function LiveHero({
+  room,
+  teacher,
+  count,
+  onJoin,
+}: {
+  room: LiveRoom;
+  teacher: string;
+  count: number;
+  onJoin: () => void;
+}) {
+  return (
+    <section
+      aria-label={room.title}
+      className="rounded-2xl border border-border bg-card p-5 shadow-card sm:p-6"
+    >
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="flex items-center gap-2">
+            {statusBadge("live")}
+            <span className="text-sm text-muted-foreground">Hazırda davam edir</span>
+          </div>
+          <h2 className="font-display text-xl font-bold break-words sm:text-2xl">{room.title}</h2>
+          {room.description && (
+            <p className="text-muted-foreground line-clamp-2">{room.description}</p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <Users className="h-4 w-4" /> {count} {t.live.people}
+            </span>
+            {room.started_at && (
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-4 w-4" /> <Elapsed since={room.started_at} />
+              </span>
+            )}
+            <span className="rounded-full bg-muted px-2.5 py-0.5 font-mono text-xs">{room.room_code}</span>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+          <UserAvatar name={teacher} size="lg" />
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{t.live.teacher}</p>
+            <p className="font-medium break-words">{teacher}</p>
+          </div>
+          <Button size="lg" className="w-full sm:ml-auto sm:w-auto" onClick={onJoin}>
+            <Video className="h-4 w-4" /> {t.live.join}
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SectionTitle({ children }: { children: ReactNode }) {
+  return <h2 className="font-display text-lg font-semibold sm:text-xl">{children}</h2>;
 }
 
 function LiveClassesPage() {
@@ -408,6 +486,15 @@ function LiveClassesPage() {
         <Card className="p-10 text-center text-muted-foreground">{t.live.noRooms}</Card>
       ) : isAdmin ? (
         <>
+          {liveRooms.map((r) => (
+            <LiveHero
+              key={r.id}
+              room={r}
+              teacher={teacherName(r.teacher_id)}
+              count={counts[r.id] ?? 0}
+              onJoin={() => navigate({ to: "/live-classes/$roomId/room", params: { roomId: r.id } })}
+            />
+          ))}
           {/* Masaüstü (lg+): cədvəl */}
           <TableCard className="hidden lg:block">
             <table className="w-full text-sm">
@@ -488,74 +575,89 @@ function LiveClassesPage() {
           </ul>
         </>
       ) : (
-        <div className="space-y-6">
-          {liveRooms.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {liveRooms.map((r) => (
-                <Card key={r.id} className="p-5 space-y-3 border-destructive/40">
-                  {statusBadge(r.status)}
-                  <div className="font-display font-bold text-lg">{r.title}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {t.live.teacher}: {teacherName(r.teacher_id)}
-                  </div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-1">
-                    <Users className="h-4 w-4" /> {counts[r.id] ?? 0} {t.live.people}
-                  </div>
-                  <Button
-                    className="w-full"
-                    onClick={() =>
-                      navigate({ to: "/live-classes/$roomId/room", params: { roomId: r.id } })
-                    }
-                  >
-                    {t.live.join}
-                  </Button>
-                </Card>
-              ))}
-            </div>
-          )}
+        <div className="space-y-8">
+          {liveRooms.map((r) => (
+            <LiveHero
+              key={r.id}
+              room={r}
+              teacher={teacherName(r.teacher_id)}
+              count={counts[r.id] ?? 0}
+              onJoin={() => navigate({ to: "/live-classes/$roomId/room", params: { roomId: r.id } })}
+            />
+          ))}
+
           {upcoming.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {upcoming.map((r) => (
-                <Card key={r.id} className="p-5 space-y-3">
-                  {statusBadge(r.status)}
-                  <div className="font-display font-bold text-lg">{r.title}</div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-3">
-                    <span className="flex items-center gap-1">
-                      <CalendarDays className="h-4 w-4" /> {fmtDate(r.scheduled_date)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" /> {fmtTime(r.scheduled_start_time)}
-                    </span>
-                  </div>
-                  <div className="text-sm">
-                    {t.live.startsIn}: <Countdown target={roomStartDate(r)} />
-                  </div>
-                  <Button variant="outline" className="w-full" asChild>
-                    <Link to="/live-classes/$roomId" params={{ roomId: r.id }}>
-                      {t.live.details}
-                    </Link>
-                  </Button>
-                </Card>
-              ))}
-            </div>
+            <section className="space-y-3">
+              <SectionTitle>Gələcək dərslər</SectionTitle>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {upcoming.map((r) => {
+                  const start = roomStartDate(r);
+                  return (
+                    <article
+                      key={r.id}
+                      className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-card"
+                    >
+                      <div className="flex gap-3">
+                        <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-600/15 dark:text-brand-300">
+                          <span className="text-xl font-bold leading-none tabular-nums">{start.getDate()}</span>
+                          <span className="mt-1 text-xs">
+                            {start.toLocaleDateString("az-AZ", { month: "short" })}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold break-words">{r.title}</h3>
+                          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                            <span className="inline-flex items-center gap-1 tabular-nums">
+                              <Clock className="h-4 w-4" /> {fmtTime(r.scheduled_start_time)} – {endTime(r)}
+                            </span>
+                            <span className="inline-flex items-center gap-1 font-mono text-xs">
+                              <Video className="h-4 w-4" /> {r.room_code}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-sm text-muted-foreground">{teacherName(r.teacher_id)}</p>
+                        </div>
+                      </div>
+                      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3 text-sm">
+                        <span className="text-muted-foreground">
+                          {t.live.startsIn}: <Countdown target={start} />
+                        </span>
+                        <Button size="sm" variant="outline" asChild>
+                          <Link to="/live-classes/$roomId" params={{ roomId: r.id }}>
+                            {t.live.details}
+                          </Link>
+                        </Button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
           )}
+
           {past.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {past.map((r) => (
-                <Card key={r.id} className="p-5 space-y-3 opacity-80">
-                  {statusBadge(r.status)}
-                  <div className="font-display font-bold text-lg">{r.title}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {fmtDate(r.scheduled_date)} · {fmtTime(r.scheduled_start_time)}
-                  </div>
-                  <Button variant="outline" className="w-full" asChild>
-                    <Link to="/live-classes/$roomId" params={{ roomId: r.id }}>
-                      {t.live.details}
-                    </Link>
-                  </Button>
-                </Card>
-              ))}
-            </div>
+            <section className="space-y-3">
+              <SectionTitle>Keçmiş dərslər</SectionTitle>
+              <ul className="divide-y divide-border rounded-2xl border border-border bg-card px-4 shadow-card">
+                {past.map((r) => (
+                  <li key={r.id} className="flex flex-wrap items-center gap-3 py-3 sm:flex-nowrap">
+                    <IconChip icon={Video} tone={r.status === "cancelled" ? "gray" : "brand"} />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium break-words">{r.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {teacherName(r.teacher_id)} · {fmtDate(r.scheduled_date)} · {fmtTime(r.scheduled_start_time)} ·{" "}
+                        <span className="font-mono text-xs">{r.room_code}</span>
+                      </p>
+                    </div>
+                    {r.status === "cancelled" && statusBadge(r.status)}
+                    <Button size="sm" variant="outline" className="w-full sm:w-auto" asChild>
+                      <Link to="/live-classes/$roomId" params={{ roomId: r.id }}>
+                        {t.live.details}
+                      </Link>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
         </div>
       )}
