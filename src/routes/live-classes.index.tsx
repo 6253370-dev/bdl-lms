@@ -149,6 +149,8 @@ function Elapsed({ since }: { since: string }) {
   return <>{h > 0 ? `${h} saat ${m} dəqiqə keçib` : `${m} dəqiqə keçib`}</>;
 }
 
+const AZ_MONTHS_SHORT = ["Yan", "Fev", "Mar", "Apr", "May", "İyn", "İyl", "Avq", "Sen", "Okt", "Noy", "Dek"];
+
 function endTime(r: Pick<LiveRoom, "scheduled_date" | "scheduled_start_time" | "planned_duration">) {
   const d = new Date(roomStartDate(r).getTime() + (r.planned_duration ?? 0) * 60000);
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -194,11 +196,15 @@ function LiveHero({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
-          <UserAvatar name={teacher} size="lg" />
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">{t.live.teacher}</p>
-            <p className="font-medium break-words">{teacher}</p>
-          </div>
+          {teacher !== "—" && (
+            <>
+              <UserAvatar name={teacher} size="lg" />
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">{t.live.teacher}</p>
+                <p className="font-medium break-words">{teacher}</p>
+              </div>
+            </>
+          )}
           <Button size="lg" className="w-full sm:ml-auto sm:w-auto" onClick={onJoin}>
             <Video className="h-4 w-4" /> {t.live.join}
           </Button>
@@ -601,7 +607,7 @@ function LiveClassesPage() {
                         <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-600/15 dark:text-brand-300">
                           <span className="text-xl font-bold leading-none tabular-nums">{start.getDate()}</span>
                           <span className="mt-1 text-xs">
-                            {start.toLocaleDateString("az-AZ", { month: "short" })}
+                            {AZ_MONTHS_SHORT[start.getMonth()]}
                           </span>
                         </div>
                         <div className="min-w-0">
@@ -614,7 +620,9 @@ function LiveClassesPage() {
                               <Video className="h-4 w-4" /> {r.room_code}
                             </span>
                           </div>
-                          <p className="mt-1 text-sm text-muted-foreground">{teacherName(r.teacher_id)}</p>
+                          {teacherName(r.teacher_id) !== "—" && (
+                            <p className="mt-1 text-sm text-muted-foreground">{teacherName(r.teacher_id)}</p>
+                          )}
                         </div>
                       </div>
                       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3 text-sm">
