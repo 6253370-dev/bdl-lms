@@ -29,12 +29,18 @@ import {
   ArrowLeft,
   Percent,
   CheckCircle2,
+  UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { StatCard } from "@/components/design/StatCard";
 import { RowActions, TableCard } from "@/components/design/DataTable";
 import { ExportButton } from "@/components/design/ExportButton";
 import { PageHeader } from "@/components/design/PageHeader";
+import { DateRangePicker } from "@/components/design/DateRangePicker";
+import { DonutChart } from "@/components/design/DonutChart";
+import { StatusChip } from "@/components/design/StatusChip";
+import { UserAvatar } from "@/components/design/UserAvatar";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/attendance")({
   head: () => ({
@@ -121,6 +127,19 @@ function AttendancePage() {
   const [openLesson, setOpenLesson] = useState<Lesson | null>(null);
   const [editing, setEditing] = useState<Lesson | null>(null);
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [range, setRange] = useState<{ from: string; to: string }>({ from: "", to: "" });
+
+  // Maddə 54: axtarış və tarix aralığı (dərsin tarixləri aralıqla kəsişirsə göstərilir).
+  const visibleLessons = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return lessons.filter((l) => {
+      if (q && !l.title.toLowerCase().includes(q)) return false;
+      if (range.from && l.end_date < range.from) return false;
+      if (range.to && l.start_date > range.to) return false;
+      return true;
+    });
+  }, [lessons, search, range]);
 
   const load = async () => {
     setLoading(true);
@@ -189,13 +208,28 @@ function AttendancePage() {
           value={Array.from(counts.values()).reduce((sum, count) => sum + count, 0)}
         />
       </div>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="relative min-w-[14rem] flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Dərs adı üzrə axtar..."
+            aria-label="Dərs adı üzrə axtar"
+            className="pl-9"
+          />
+        </div>
+        <div className="w-full sm:w-72">
+          <DateRangePicker value={range} onChange={setRange} />
+        </div>
+      </div>
       <TableCard>
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-        ) : lessons.length === 0 ? (
+        ) : visibleLessons.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <CalendarCheck className="h-12 w-12 mx-auto mb-3 opacity-40" />
-            Hələ dərs yoxdur.
+            {lessons.length === 0 ? "Hələ dərs yoxdur." : "Nəticə tapılmadı."}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -211,7 +245,7 @@ function AttendancePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lessons.map((l) => (
+                {visibleLessons.map((l) => (
                   <TableRow key={l.id} className="cursor-pointer" onClick={() => setOpenLesson(l)}>
                     <TableCell className="font-medium">{l.title}</TableCell>
                     <TableCell>{formatDate(l.start_date)} — {formatDate(l.end_date)}</TableCell>
@@ -477,8 +511,13 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
       const c = dates.reduce((s, d) => s + (records.get(`${p.id}|${d}`) ? 1 : 0), 0);
       return { p, count: c, pct: dates.length ? Math.round((c / dates.length) * 100) : 0 };
     });
+    // Ekranda "Gəlmədi" yalnız keçmiş tarixlərdə göstərilir; statistikada da eyni qayda.
+    const today = isoDate(new Date());
+    const pastDates = dates.filter((d) => d < today);
+    let absentPast = 0;
+    participants.forEach((p) => pastDates.forEach((d) => { if (!records.get(`${p.id}|${d}`)) absentPast++; }));
     return {
-      totalCells, present, absent: totalCells - present,
+      totalCells, present, absent: totalCells - present, absentPast,
       rate: totalCells ? Math.round((present / totalCells) * 100) : 0,
       perParticipant,
     };
@@ -521,95 +560,136 @@ function LessonDetail({ lesson, onBack }: { lesson: Lesson; onBack: () => void }
     XLSX.writeFile(wb, `davamiyyet_${lesson.title.replace(/[^a-zA-Z0-9]+/g, "_")}_${isoDate(new Date())}.xlsx`);
   };
 
+  const todayIso = isoDate(new Date());
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={onBack}><ArrowLeft className="h-5 w-5" /></Button>
-          <div>
-            <h1 className="text-2xl font-display font-bold">{lesson.title}</h1>
+        <div className="flex min-w-0 items-center gap-3">
+          <Button variant="ghost" size="icon" aria-label="Geri" onClick={onBack}><ArrowLeft className="h-5 w-5" /></Button>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-display font-bold break-words">{lesson.title}</h1>
             <p className="text-sm text-muted-foreground">
               {formatDate(lesson.start_date)} — {formatDate(lesson.end_date)} · {dates.length} gün
               {teacherLabel && <> · Müəllim: {teacherLabel}</>}
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <ExportButton format="excel" onExport={exportExcel}>
-            Excel
-          </ExportButton>
-          <Button onClick={() => setAddOpen(true)}><UserPlus className="h-4 w-4 mr-2" />İştirakçı əlavə et</Button>
-        </div>
+        <Button onClick={() => setAddOpen(true)}><UserPlus className="h-4 w-4 mr-2" />İştirakçı əlavə et</Button>
       </div>
 
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <StatCard icon={Percent} label="İştirak %" value={`${stats.rate}%`} tone="success" />
+        <StatCard icon={UserX} label="Gəlmədi (qeyd)" value={stats.absentPast} tone="error" />
         <StatCard icon={Users} label="İştirakçılar" value={participants.length} />
         <StatCard icon={CalendarDays} label="Dərs günləri" value={dates.length} />
-        <StatCard icon={Percent} label="İştirak %" value={`${stats.rate}%`} tone="success" />
-        <StatCard
-          icon={CheckCircle2}
-          label="İştirak / Qeyri"
-          value={`${stats.present} / ${stats.absent}`}
-        />
       </div>
 
-      <Card className="p-2 md:p-4">
-        {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-        ) : participants.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <Users className="h-12 w-12 mx-auto mb-3 opacity-40" />
-            Hələ iştirakçı yoxdur.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="sticky left-0 bg-background z-10 min-w-[220px]">İştirakçı</TableHead>
-                  {dates.map((d) => (
-                    <TableHead key={d} className={`text-center whitespace-nowrap ${isExamDate(d) ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : ""}`}>
-                      {formatShort(d)}
-                    </TableHead>
-                  ))}
-                  <TableHead className="text-center">Faiz</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {participants.map((p) => {
-                  const c = dates.reduce((s, d) => s + (records.get(`${p.id}|${d}`) ? 1 : 0), 0);
-                  const pct = dates.length ? Math.round((c / dates.length) * 100) : 0;
-                  return (
-                    <TableRow key={p.id}>
-                      <TableCell className="sticky left-0 bg-background z-10 font-medium">
-                        {participantName(p)}
-                        {p.user_id && <Badge variant="secondary" className="ml-2 text-[10px]">LMS</Badge>}
-                      </TableCell>
-                      {dates.map((d) => {
-                        const on = !!records.get(`${p.id}|${d}`);
-                        return (
-                          <TableCell key={d} className={`text-center ${isExamDate(d) ? "bg-emerald-500/10" : ""}`}>
-                            <div className="flex items-center justify-center">
-                              <Checkbox checked={on} onCheckedChange={(v) => toggle(p.id, d, !!v)} />
-                            </div>
-                          </TableCell>
-                        );
-                      })}
-                      <TableCell className="text-center">
-                        <Badge variant={pct >= 75 ? "default" : "secondary"}>{pct}%</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => removeParticipant(p)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </Card>
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <section aria-labelledby="att-table-title" className="min-w-0 rounded-2xl border border-border bg-card shadow-card">
+          <h2 id="att-table-title" className="px-5 pt-5 font-display text-lg font-semibold">İştirakçılar üzrə davamiyyət</h2>
+          {loading ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : participants.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-3 opacity-40" />
+              Hələ iştirakçı yoxdur.
+            </div>
+          ) : (
+            <div className="mt-3 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 z-10 min-w-[220px] bg-card">İştirakçı</TableHead>
+                    {dates.map((d) => (
+                      <TableHead
+                        key={d}
+                        className={cn("text-center whitespace-nowrap", isExamDate(d) && "bg-brand-50 text-brand-700 dark:bg-brand-600/15 dark:text-brand-300")}
+                        title={isExamDate(d) ? "İmtahan günü" : undefined}
+                      >
+                        {formatShort(d)}
+                      </TableHead>
+                    ))}
+                    <TableHead className="text-center">Orta</TableHead>
+                    <TableHead><span className="sr-only">Əməliyyat</span></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {participants.map((p) => {
+                    const c = dates.reduce((s, d) => s + (records.get(`${p.id}|${d}`) ? 1 : 0), 0);
+                    const pct = dates.length ? Math.round((c / dates.length) * 100) : 0;
+                    const name = participantName(p);
+                    return (
+                      <TableRow key={p.id}>
+                        <TableCell className="sticky left-0 z-10 bg-card font-medium">
+                          <span className="flex items-center gap-2">
+                            <UserAvatar name={name} size="sm" />
+                            <span className="min-w-0 flex-1 break-words">{name}</span>
+                            {p.user_id && <StatusChip tone="gray" className="text-[10px]">LMS</StatusChip>}
+                          </span>
+                        </TableCell>
+                        {dates.map((d) => {
+                          const on = !!records.get(`${p.id}|${d}`);
+                          const past = d < todayIso;
+                          return (
+                            <TableCell key={d} className={cn("text-center", isExamDate(d) && "bg-brand-25 dark:bg-brand-600/10")}>
+                              <button
+                                type="button"
+                                aria-pressed={on}
+                                aria-label={`${name}, ${formatShort(d)}: ${on ? "İştirak etdi" : past ? "Gəlmədi" : "Qeyd yoxdur"}`}
+                                onClick={() => toggle(p.id, d, !on)}
+                                className="rounded-full focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
+                              >
+                                <StatusChip tone={on ? "success" : past ? "error" : "gray"} className="cursor-pointer">
+                                  {on ? "İştirak etdi" : past ? "Gəlmədi" : "—"}
+                                </StatusChip>
+                              </button>
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-center font-semibold tabular-nums">{pct}%</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`${name}: iştirakçını sil`}
+                            className="hover:bg-[var(--error-50)] hover:text-[var(--error-600)]"
+                            onClick={() => removeParticipant(p)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </section>
+
+        <aside className="grid gap-5 md:grid-cols-2 xl:grid-cols-1">
+          <section aria-labelledby="att-stats-title" className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <h2 id="att-stats-title" className="mb-4 font-display text-base font-semibold">Davamiyyət statistikası</h2>
+            <DonutChart
+              ariaLabel={`İştirak etdi: ${stats.present}, Gəlmədi: ${stats.absentPast}`}
+              centerValue={`${stats.rate}%`}
+              centerLabel="ümumi iştirak"
+              data={[
+                { key: "present", label: "İştirak etdi", value: stats.present, color: "success" },
+                { key: "absent", label: "Gəlmədi", value: stats.absentPast, color: "error" },
+              ]}
+            />
+          </section>
+          <section aria-labelledby="att-export-title" className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <h2 id="att-export-title" className="font-display text-base font-semibold">Fayl ixracı</h2>
+            <p className="mt-1 mb-4 text-sm text-muted-foreground">Davamiyyət siyahısını Excel formatında endirin.</p>
+            <ExportButton format="excel" onExport={exportExcel} className="w-full">
+              Excel ixrac
+            </ExportButton>
+          </section>
+        </aside>
+      </div>
 
       {addOpen && (
         <AddParticipantsDialog
