@@ -46,6 +46,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { NotificationBell } from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { UserAvatar } from "@/components/design/UserAvatar";
 import { useUnansweredComments } from "@/lib/useUnansweredComments";
@@ -258,6 +259,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 <Search className="h-5 w-5" />
               </Button>
+              <ThemeToggle />
               <NotificationBell />
               <UserMenu
                 avatar={avatar}
@@ -290,6 +292,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
           <GlobalSearch className="max-w-md" />
           <div className="ml-auto flex items-center gap-4">
+            <div className="rounded-full bg-card shadow-card">
+              <ThemeToggle />
+            </div>
             <div className="rounded-full bg-card shadow-card">
               <NotificationBell />
             </div>
