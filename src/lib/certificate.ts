@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
+import { applyAzerbaijaniFont } from "@/lib/pdfFont";
 
 export interface CertificateData {
   fullName: string;
@@ -12,46 +13,18 @@ export interface CertificateData {
 }
 
 // ---------- Fallback (no template) ----------
-// Helvetica (jsPDF-in daxili şrifti) Ə, ğ, ı, İ, ş kimi hərfləri çəkmir.
-// Ona görə şablonlu yolda olduğu kimi NotoSans istifadə olunur.
-let _regularFont: ArrayBuffer | null = null;
-let _boldFont: ArrayBuffer | null = null;
+const newCertificateDoc = () => new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
 
-async function loadFont(url: string): Promise<ArrayBuffer> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Font fetch failed: ${url}`);
-  return await res.arrayBuffer();
-}
-
-async function loadCertificateFonts(): Promise<[ArrayBuffer, ArrayBuffer]> {
-  return Promise.all([
-    _regularFont ?? loadFont("/fonts/NotoSans-Regular.ttf").then((b) => (_regularFont = b)),
-    _boldFont ?? loadFont("/fonts/NotoSans-Bold.ttf").then((b) => (_boldFont = b)),
-  ]);
-}
-
-function toBase64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let bin = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  }
-  return btoa(bin);
-}
-
+/**
+ * Şablonsuz sertifikat. `family` Azərbaycan hərfləri üçün "NotoSans" olmalıdır
+ * (bax `applyAzerbaijaniFont`); "helvetica" yalnız şrift yüklənməyəndə ehtiyat yoldur.
+ */
 export function buildCertificatePdf(
   data: CertificateData,
-  fonts?: { regular: ArrayBuffer; bold: ArrayBuffer },
+  opts: { doc?: jsPDF; family?: string } = {},
 ): jsPDF {
-  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-  let family = "helvetica";
-  if (fonts) {
-    doc.addFileToVFS("NotoSans-Regular.ttf", toBase64(fonts.regular));
-    doc.addFont("NotoSans-Regular.ttf", "NotoSans", "normal");
-    doc.addFileToVFS("NotoSans-Bold.ttf", toBase64(fonts.bold));
-    doc.addFont("NotoSans-Bold.ttf", "NotoSans", "bold");
-    family = "NotoSans";
-  }
+  const doc = opts.doc ?? newCertificateDoc();
+  const family = opts.family ?? "helvetica";
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
 
@@ -130,9 +103,10 @@ export function buildCertificatePdf(
 
 /** Şablonsuz sertifikat: Azərbaycan hərfləri üçün NotoSans, şrift yüklənməsə Helvetica. */
 async function buildFallbackPdf(data: CertificateData): Promise<jsPDF> {
+  const doc = newCertificateDoc();
   try {
-    const [regular, bold] = await loadCertificateFonts();
-    return buildCertificatePdf(data, { regular, bold });
+    await applyAzerbaijaniFont(doc);
+    return buildCertificatePdf(data, { doc, family: "NotoSans" });
   } catch (e) {
     console.error("Sertifikat şrifti yüklənmədi, standart şrift istifadə olunur:", e);
     return buildCertificatePdf(data);
@@ -157,6 +131,15 @@ export function formatDateDDMMYYYY(d: Date): string {
 }
 
 // ---------- Template overlay ----------
+// pdf-lib şrifti ArrayBuffer kimi istəyir, ona görə burada ayrıca keş saxlanılır.
+let _regularFont: ArrayBuffer | null = null;
+let _boldFont: ArrayBuffer | null = null;
+
+async function loadFont(url: string): Promise<ArrayBuffer> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Font fetch failed: ${url}`);
+  return await res.arrayBuffer();
+}
 
 interface Placeholder {
   token: string;          // e.g. "FULL_NAME"
