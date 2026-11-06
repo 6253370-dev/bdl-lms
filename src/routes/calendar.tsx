@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { azDateLong, azDayMonthShort, azMonthYear, azTime, azWeekdayShort } from "@/lib/az-date";
 import { PageHeader } from "@/components/design/PageHeader";
 
 export const Route = createFileRoute("/calendar")({
@@ -70,6 +71,26 @@ const EVENT_TYPE_LABEL: Record<EventType, string> = {
   online_course: "Online kurs",
   offline_course: "Offline kurs",
 };
+/** Növ rəngləri (maddə 46): yalnız brand tonları və boz; yaşıl/qırmızı/kəhrəba status üçündür. */
+const EVENT_TYPE_STYLE: Record<EventType, { chip: string; block: string; dot: string }> = {
+  exam: {
+    chip: "bg-brand-600 text-white hover:bg-brand-700",
+    block: "bg-brand-600 text-white",
+    dot: "bg-brand-600",
+  },
+  online_course: {
+    chip: "bg-brand-100 text-brand-800 hover:bg-brand-200 dark:bg-brand-600/30 dark:text-brand-100",
+    block: "bg-brand-100 text-brand-800 dark:bg-brand-600/40 dark:text-brand-50",
+    dot: "bg-brand-300",
+  },
+  offline_course: {
+    chip: "border border-border bg-muted text-foreground hover:bg-[var(--gray-200)] dark:hover:bg-[var(--gray-700)]",
+    block: "border border-border bg-muted text-foreground",
+    dot: "bg-[var(--gray-400)]",
+  },
+};
+const EVENT_SELECT =
+  "id,event_type,exam_id,course_id,attendance_lesson_id,notes,title,description,location,starts_at,ends_at,exam:standalone_exams(title),course:courses(title),offline_lesson:attendance_lessons(title),invitees:exam_event_invitees(id,user_id,status)";
 type ProfileLite = { id: string; full_name: string; employee_id: string };
 type Invitee = { id: string; user_id: string; status: string; full_name?: string; employee_id?: string };
 type EventRow = {
@@ -117,10 +138,10 @@ function sameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 function fmtTime(d: Date) {
-  return d.toLocaleTimeString("az-AZ", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return azTime(d);
 }
 function fmtDate(d: Date) {
-  return d.toLocaleDateString("az-AZ", { day: "2-digit", month: "long", year: "numeric" });
+  return azDateLong(d);
 }
 function toLocalInput(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -189,6 +210,8 @@ function CalendarPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [activeEvent, setActiveEvent] = useState<EventRow | null>(null);
   const [details, setDetails] = useState<EventRow | null>(null);
+  const [typeFilter, setTypeFilter] = useState<"all" | EventType>("all");
+  const [todayEvents, setTodayEvents] = useState<EventRow[]>([]);
 
   const range = useMemo(() => {
     if (view === "month") {
@@ -204,12 +227,23 @@ function CalendarPage() {
   }, [view, cursor]);
 
   const load = async () => {
-    const { data } = await supabase
-      .from("exam_events")
-      .select("id,event_type,exam_id,course_id,attendance_lesson_id,notes,title,description,location,starts_at,ends_at,exam:standalone_exams(title),course:courses(title),offline_lesson:attendance_lessons(title),invitees:exam_event_invitees(id,user_id,status)")
-      .gte("starts_at", range.from.toISOString())
-      .lt("starts_at", range.to.toISOString())
-      .order("starts_at");
+    const dayStart = startOfDay(new Date());
+    const [{ data }, { data: today }] = await Promise.all([
+      supabase
+        .from("exam_events")
+        .select(EVENT_SELECT)
+        .gte("starts_at", range.from.toISOString())
+        .lt("starts_at", range.to.toISOString())
+        .order("starts_at"),
+      // "Bu gün" paneli (maddə 47) görünən aralıqdan asılı olmasın deyə bugünkü hadisələr ayrıca oxunur.
+      supabase
+        .from("exam_events")
+        .select(EVENT_SELECT)
+        .gte("starts_at", dayStart.toISOString())
+        .lt("starts_at", addDays(dayStart, 1).toISOString())
+        .order("starts_at"),
+    ]);
+    setTodayEvents((today ?? []) as unknown as EventRow[]);
     let rows = (data ?? []) as unknown as EventRow[];
 
     // For non-admins, the SELECT policy already filters; but enrich invitee names for admin
@@ -311,12 +345,21 @@ function CalendarPage() {
     load();
   };
 
+  const visibleEvents = useMemo(
+    () => (typeFilter === "all" ? events : events.filter((e) => e.event_type === typeFilter)),
+    [events, typeFilter],
+  );
+  const visibleToday = useMemo(
+    () => (typeFilter === "all" ? todayEvents : todayEvents.filter((e) => e.event_type === typeFilter)),
+    [todayEvents, typeFilter],
+  );
+
   const navTitle = useMemo(() => {
-    if (view === "month") return cursor.toLocaleDateString("az-AZ", { month: "long", year: "numeric" });
+    if (view === "month") return azMonthYear(cursor);
     if (view === "week") {
       const s = startOfWeek(cursor);
       const e = addDays(s, 6);
-      return `${s.toLocaleDateString("az-AZ", { day: "2-digit", month: "short" })} – ${e.toLocaleDateString("az-AZ", { day: "2-digit", month: "short", year: "numeric" })}`;
+      return `${azDayMonthShort(s)} – ${azDayMonthShort(e)} ${e.getFullYear()}`;
     }
     return fmtDate(cursor);
   }, [view, cursor]);
@@ -364,44 +407,59 @@ function CalendarPage() {
         }
       />
 
-      <div className="calendar-workspace">
-      <div className="calendar-grid">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card shadow-card [&>[data-slot=card]]:rounded-none [&>[data-slot=card]]:border-0 [&>[data-slot=card]]:shadow-none">
       {/* Toolbar */}
-      <div className="p-4 border-b flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setCursor(startOfDay(new Date()))}>
-            Bu gün
-          </Button>
-          <div className="flex items-center">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="min-w-[10rem] font-display text-lg font-bold capitalize sm:text-xl">{navTitle}</h2>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" aria-label="Əvvəlki" onClick={() => navigate(-1)}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="font-semibold px-2 text-center capitalize">{navTitle}</div>
-            <Button variant="ghost" size="icon" onClick={() => navigate(1)}>
+            <Button variant="outline" size="icon" className="h-9 w-9 rounded-full" aria-label="Növbəti" onClick={() => navigate(1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+          <Button variant="outline" size="sm" onClick={() => setCursor(startOfDay(new Date()))}>
+            Bu gün
+          </Button>
         </div>
-        <div className="inline-flex rounded-md border bg-background p-0.5">
-          {(["day", "week", "month"] as ViewMode[]).map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={cn(
-                "px-3 py-1.5 text-sm rounded",
-                view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {v === "day" ? "Gün" : v === "week" ? "Həftə" : "Ay"}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as "all" | EventType)}>
+            <SelectTrigger className="h-9 w-44" aria-label="Tədbir növü">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Bütün tədbirlər</SelectItem>
+              {(Object.keys(EVENT_TYPE_LABEL) as EventType[]).map((k) => (
+                <SelectItem key={k} value={k}>{EVENT_TYPE_LABEL[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="inline-flex rounded-full border border-border bg-background p-0.5" role="group" aria-label="Görünüş">
+            {(["day", "week", "month"] as ViewMode[]).map((v) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={view === v}
+                onClick={() => setView(v)}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25",
+                  view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {v === "day" ? "Gün" : v === "week" ? "Həftə" : "Ay"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {view === "month" && (
         <MonthView
           cursor={cursor}
-          events={events}
+          events={visibleEvents}
           isAdmin={isAdmin}
           onSelectDay={(d) => isAdmin && openCreate(d)}
           onSelectEvent={(e) => setDetails(e)}
@@ -411,7 +469,7 @@ function CalendarPage() {
       {view === "week" && (
         <TimeView
           days={Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor), i))}
-          events={events}
+          events={visibleEvents}
           isAdmin={isAdmin}
           onSelectSlot={(d) => isAdmin && openCreate(d)}
           onSelectEvent={(e) => setDetails(e)}
@@ -421,7 +479,7 @@ function CalendarPage() {
       {view === "day" && (
         <TimeView
           days={[startOfDay(cursor)]}
-          events={events}
+          events={visibleEvents}
           isAdmin={isAdmin}
           onSelectSlot={(d) => isAdmin && openCreate(d)}
           onSelectEvent={(e) => setDetails(e)}
@@ -429,18 +487,81 @@ function CalendarPage() {
         />
       )}
 
-      </div>
-      <aside className="calendar-agenda">
-        <h2 className="font-display font-bold mb-4">Dəvətlər və hadisələr</h2>
-        {events.filter((event) => eventStatus(event) !== 'completed').slice(0, 8).map((event) => (
-          <div key={event.id} className="py-4 border-b border-border last:border-0">
-            <Button variant="ghost" className="h-auto w-full justify-start p-0 whitespace-normal text-left" onClick={() => setDetails(event)}>{event.title}</Button>
-            <p className="text-xs text-muted-foreground mt-2">{fmtDate(new Date(event.starts_at))} · {fmtTime(new Date(event.starts_at))}</p>
-            <Badge variant="secondary" className="mt-2 text-xs">{EVENT_TYPE_LABEL[event.event_type]}</Badge>
-            {myInvite(event)?.status === 'invited' && <div className="flex gap-2 mt-3"><Button size="sm" onClick={() => respond(event, 'accepted')}><Check className="h-3 w-3" />Qəbul</Button><Button size="sm" variant="outline" onClick={() => respond(event, 'declined')}><X className="h-3 w-3" />İmtina</Button></div>}
-          </div>
+      <ul className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border px-4 py-3 text-sm text-muted-foreground" aria-label="Növlər">
+        {(Object.keys(EVENT_TYPE_LABEL) as EventType[]).map((k) => (
+          <li key={k} className="flex items-center gap-2">
+            <span aria-hidden="true" className={cn("h-2.5 w-2.5 rounded-full", EVENT_TYPE_STYLE[k].dot)} />
+            {EVENT_TYPE_LABEL[k]}
+          </li>
         ))}
-        {!events.some((event) => eventStatus(event) !== 'completed') && <p className="text-sm text-muted-foreground">Gələcək hadisə yoxdur.</p>}
+      </ul>
+      </div>
+
+      <aside className="grid min-w-0 gap-5 md:grid-cols-2 xl:grid-cols-1">
+        <section aria-labelledby="today-title" className="rounded-2xl border border-border bg-card p-5 shadow-card">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="today-title" className="font-display text-lg font-bold">Bu gün</h2>
+            <span className="text-sm text-muted-foreground tabular-nums">{fmtDate(new Date())}</span>
+          </div>
+          {visibleToday.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Bu gün üçün hadisə yoxdur.</p>
+          ) : (
+            <ol className="relative space-y-1 before:absolute before:bottom-3 before:left-[5px] before:top-3 before:w-px before:bg-border">
+              {visibleToday.map((ev) => {
+                const s = new Date(ev.starts_at);
+                const e = new Date(ev.ends_at);
+                return (
+                  <li key={ev.id} className="relative pl-6">
+                    <span aria-hidden="true" className={cn("absolute left-0 top-3 h-[11px] w-[11px] rounded-full ring-2 ring-card", EVENT_TYPE_STYLE[ev.event_type].dot)} />
+                    <button
+                      type="button"
+                      onClick={() => setDetails(ev)}
+                      className="flex w-full items-start gap-3 rounded-lg p-2 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
+                    >
+                      <span className="shrink-0 whitespace-nowrap text-sm font-medium tabular-nums">{fmtTime(s)} – {fmtTime(e)}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold break-words">{ev.title}</span>
+                        <span className="block text-xs text-muted-foreground">{EVENT_TYPE_LABEL[ev.event_type]}</span>
+                        {ev.location && (
+                          <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3 shrink-0" aria-hidden="true" />
+                            <span className="min-w-0 break-words">{ev.location}</span>
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
+
+        <section aria-labelledby="agenda-title" className="rounded-2xl border border-border bg-card p-5 shadow-card">
+          <h2 id="agenda-title" className="mb-2 font-display text-lg font-bold">Dəvətlər və hadisələr</h2>
+          {visibleEvents.filter((event) => eventStatus(event) !== 'completed').slice(0, 8).map((event) => (
+            <div key={event.id} className="border-b border-border py-3 last:border-0">
+              <button
+                type="button"
+                className="flex w-full items-start gap-2 rounded-md text-left text-sm font-semibold hover:text-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
+                onClick={() => setDetails(event)}
+              >
+                <span aria-hidden="true" className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", EVENT_TYPE_STYLE[event.event_type].dot)} />
+                <span className="min-w-0 break-words">{event.title}</span>
+              </button>
+              <p className="ml-[1.125rem] mt-1 text-xs text-muted-foreground tabular-nums">
+                {fmtDate(new Date(event.starts_at))} · {fmtTime(new Date(event.starts_at))} · {EVENT_TYPE_LABEL[event.event_type]}
+              </p>
+              {myInvite(event)?.status === 'invited' && (
+                <div className="ml-[1.125rem] mt-3 flex gap-2">
+                  <Button size="sm" onClick={() => respond(event, 'accepted')}><Check className="h-3 w-3" />Qəbul</Button>
+                  <Button size="sm" variant="outline" onClick={() => respond(event, 'declined')}><X className="h-3 w-3" />İmtina</Button>
+                </div>
+              )}
+            </div>
+          ))}
+          {!visibleEvents.some((event) => eventStatus(event) !== 'completed') && <p className="text-sm text-muted-foreground">Gələcək hadisə yoxdur.</p>}
+        </section>
       </aside>
       </div>
       {/* Details dialog */}
@@ -640,7 +761,7 @@ function MonthView({
                     draggable={isAdmin}
                     onDragStart={(e) => e.dataTransfer.setData("text/event-id", ev.id)}
                     onClick={(e) => { e.stopPropagation(); onSelectEvent(ev); }}
-                    className="text-xs truncate px-1.5 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"
+                    className={cn("text-xs truncate px-1.5 py-1 rounded-md cursor-pointer transition-colors", EVENT_TYPE_STYLE[ev.event_type].chip)}
                   >
                     <span className="font-medium">{fmtTime(new Date(ev.starts_at))}</span>{" "}
                     {ev.title}
@@ -676,8 +797,8 @@ function TimeView({
         <div />
         {days.map((d) => (
           <div key={d.toISOString()} className="px-3 py-2 text-center text-sm">
-            <div className="text-xs text-muted-foreground uppercase">
-              {d.toLocaleDateString("az-AZ", { weekday: "short" })}
+            <div className="text-xs text-muted-foreground">
+              {azWeekdayShort(d)}
             </div>
             <div className={cn(
               "inline-flex h-7 w-7 items-center justify-center rounded-full font-medium",
@@ -724,7 +845,7 @@ function TimeView({
                           onDragStart={(e) => e.dataTransfer.setData("text/event-id", ev.id)}
                           onClick={(e) => { e.stopPropagation(); onSelectEvent(ev); }}
                           style={{ height: `${height}px` }}
-                          className="absolute inset-x-1 top-0 z-10 rounded-md bg-primary text-primary-foreground px-2 py-1 text-xs shadow-sm cursor-pointer overflow-hidden"
+                          className={cn("absolute inset-x-1 top-0 z-10 rounded-md px-2 py-1 text-xs shadow-sm cursor-pointer overflow-hidden", EVENT_TYPE_STYLE[ev.event_type].block)}
                         >
                           <div className="font-medium truncate">{ev.title}</div>
                           <div className="opacity-80 truncate">
